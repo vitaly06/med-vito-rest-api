@@ -1,10 +1,20 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { createProductDto } from './dto/create-product.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ProductService {
-  constructor(private readonly prisma: PrismaService) {}
+  baseUrl: string;
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {
+    this.baseUrl = this.configService.get<string>(
+      'BASE_URL',
+      'http://localhost:3000',
+    );
+  }
 
   async createProduct(
     dto: createProductDto,
@@ -66,7 +76,10 @@ export class ProductService {
 
       return {
         message: 'Продукт успешно создан',
-        product,
+        product: {
+          ...product,
+          images: imagePaths.map((path) => `${this.baseUrl}${path}`),
+        },
       };
     } catch (error) {
       throw new BadRequestException(

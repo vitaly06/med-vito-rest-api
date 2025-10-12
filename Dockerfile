@@ -36,7 +36,7 @@ COPY --from=development /usr/src/app/node_modules ./node_modules
 COPY --from=development /usr/src/app/dist ./dist
 COPY --from=development /usr/src/app/prisma ./prisma
 # COPY --from=development /usr/src/app/storage ./storage
-# COPY --from=development /usr/src/app/uploads ./uploads
+COPY --from=development /usr/src/app/uploads ./uploads
 # COPY --from=development /usr/src/app/templates ./templates
 # Устанавливаем только production зависимости
 RUN yarn install --production

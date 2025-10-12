@@ -16,6 +16,7 @@ services:
       # - SMTP_PASSWORD=S_Be5173
       - JWT_SECRET=ss3ZpIGPhT4qpL0LhwrSIjh3gxAey88i
       - JWT_REFRESH_SECRET=OvMAfvaZEtsEkj4utArLBMD7ia3gITaO
+      - BASE_URL=http://localhost:3000
     depends_on:
       - db
       # - redis
