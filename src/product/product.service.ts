@@ -87,4 +87,41 @@ export class ProductService {
       );
     }
   }
+
+  async getProductsByUserId(id: number) {
+    const checkUser = await this.prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!checkUser) {
+      throw new BadRequestException('Пользователь не найден');
+    }
+
+    const products = await this.prisma.product.findMany({
+      where: { userId: id },
+      omit: {
+        categoryId: true,
+        subCategoryId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      include: {
+        category: true,
+        subCategory: {
+          omit: {
+            categoryId: true,
+          },
+        },
+      },
+    });
+
+    return this.formatProductsResponse(products);
+  }
+
+  private formatProductsResponse(products: any[]) {
+    return products.map((product) => ({
+      ...product,
+      images: product.images.map((img) => `${this.baseUrl}${img}`),
+    }));
+  }
 }

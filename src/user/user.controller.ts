@@ -12,8 +12,4 @@ export class UserController {
   async userInfo(@Req() req: Request & { user: any }) {
     return await this.userService.getUserInfo(req.user.id);
   }
-
-  @Get('/my-projects')
-  @UseGuards(JwtAuthGuard)
-  async getMyProjects(@Req() req: Request & { user: any }) {}
 }

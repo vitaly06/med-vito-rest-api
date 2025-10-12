@@ -6,6 +6,7 @@ import {
   UseGuards,
   UseInterceptors,
   Req,
+  Get,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
@@ -26,7 +27,7 @@ import {
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
-  @Post('/create')
+  @Post('create')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FilesInterceptor('images', 8))
   @ApiOperation({
@@ -168,5 +169,16 @@ export class ProductController {
     const fileNames = images ? images.map((file) => file.filename) : [];
 
     return await this.productService.createProduct(dto, fileNames, req.user.id);
+  }
+
+  @ApiOperation({
+    summary: 'Получение товаров текущего пользователя',
+    description:
+      'Возвращает список всех товаров, созданных текущим пользователем',
+  })
+  @Get('my-products')
+  @UseGuards(JwtAuthGuard)
+  async getMyProducts(@Req() req: Request & { user: any }) {
+    return await this.productService.getProductsByUserId(req.user.id);
   }
 }
