@@ -13,15 +13,66 @@ enum ProfileType {
   IP
 }
 
+enum ProductState {
+  NEW
+  USED
+}
+
 model User{
   id Int @id @default(autoincrement())
   fullName String
   email String @unique
   phoneNumber String @unique
   password String
+  rating Int?
   profileType ProfileType @default(INDIVIDUAL)
   refreshToken String?
   refreshTokenExpiresAt DateTime?
+
+  products Product[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Product{
+  id Int @id @default(autoincrement())
+  name String
+  price Int
+  state ProductState
+  brand String?
+  model String?
+  description String?
+  address String?
+  images String[] @default([])
+  categoryId Int
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  subCategoryId Int
+  subCategory SubCategory @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+
+  userId Int
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+// Основная категория
+model Category{
+  id Int @id @default(autoincrement())
+  name String
+
+  products Product[]
+
+  subCategories SubCategory[]
+}
+// Подкатегории
+model SubCategory{
+  id Int @id @default(autoincrement())
+  name String
+  
+  categoryId Int
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  products Product[]
 }
