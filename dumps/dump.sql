@@ -2,7 +2,6 @@
 -- PostgreSQL database dump
 --
 
-\restrict PmiUVaOCdJ6fpYuHMFTlanJif7lhMdTBNHJZlnrDkcasLm3PaYwpMKYEspN6oLL
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -10,7 +9,6 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -223,6 +221,18 @@ ALTER SEQUENCE public."User_id_seq" OWNED BY public."User".id;
 
 
 --
+-- Name: _UserFavorites; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."_UserFavorites" (
+    "A" integer NOT NULL,
+    "B" integer NOT NULL
+);
+
+
+ALTER TABLE public."_UserFavorites" OWNER TO postgres;
+
+--
 -- Name: _prisma_migrations; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -309,7 +319,15 @@ COPY public."SubCategory" (id, name, "categoryId") FROM stdin;
 --
 
 COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "refreshToken", "refreshTokenExpiresAt", "createdAt", "updatedAt", rating) FROM stdin;
-1	Садиков Виталий Дмитриевич	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$2vQnACKyL//wj8S/Ix7LIu/Le7b4Tbube5UI/yENhJ9WiTawaLcfe	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImlhdCI6MTc2MDI2OTIyNSwiZXhwIjoxNzYwODc0MDI1fQ.jsu_riBCt4vqx69b_J7kXPJobJjJyQWoMhD6fP3vEfs	2025-10-19 11:40:25.061	2025-10-12 11:07:42.847	2025-10-12 11:40:25.063	\N
+1	Садиков Виталий Дмитриевич	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$2vQnACKyL//wj8S/Ix7LIu/Le7b4Tbube5UI/yENhJ9WiTawaLcfe	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImlhdCI6MTc2MDY0NTQ0MywiZXhwIjoxNzYxMjUwMjQzfQ.mG4g4O5NI7UvCw5yKmIrsLd2ncE8Hoys0HdRbP51nhw	2025-10-23 20:10:43.42	2025-10-12 11:07:42.847	2025-10-16 20:10:43.422	\N
+\.
+
+
+--
+-- Data for Name: _UserFavorites; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."_UserFavorites" ("A", "B") FROM stdin;
 \.
 
 
@@ -320,6 +338,7 @@ COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType
 COPY public._prisma_migrations (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count) FROM stdin;
 c6ffc524-0e4d-4d5f-8142-97f71d9d2fd4	9a97e81893bf2ec4fc3cbb193511b77b89e82561206c399240ad61a1ef3f5411	2025-10-12 13:54:36.542249+03	20251008175218_add_refresh_token_to_user	\N	\N	2025-10-12 13:54:36.533327+03	1
 6f3360a1-5fc1-4a6c-9933-df6b23853a96	cb65e46beba4ea36f2090bc28cb45f2d037cd9ceda9b5f126c4cae06f4c46b68	2025-10-12 13:55:19.034128+03	20251012105519_add_product_categories_images	\N	\N	2025-10-12 13:55:19.015688+03	1
+98cd9435-b268-4e42-95c2-c36c89047dd1	f1c9c744537ed418b626a499157343dd8afb663cdb8c6b3252b271c2c8c9f603	2025-10-14 08:24:38.761087+03	20251014052438_add_user_favorites	\N	\N	2025-10-14 08:24:38.737825+03	1
 \.
 
 
@@ -384,6 +403,14 @@ ALTER TABLE ONLY public."User"
 
 
 --
+-- Name: _UserFavorites _UserFavorites_AB_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."_UserFavorites"
+    ADD CONSTRAINT "_UserFavorites_AB_pkey" PRIMARY KEY ("A", "B");
+
+
+--
 -- Name: _prisma_migrations _prisma_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -403,6 +430,13 @@ CREATE UNIQUE INDEX "User_email_key" ON public."User" USING btree (email);
 --
 
 CREATE UNIQUE INDEX "User_phoneNumber_key" ON public."User" USING btree ("phoneNumber");
+
+
+--
+-- Name: _UserFavorites_B_index; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "_UserFavorites_B_index" ON public."_UserFavorites" USING btree ("B");
 
 
 --
@@ -438,6 +472,22 @@ ALTER TABLE ONLY public."SubCategory"
 
 
 --
+-- Name: _UserFavorites _UserFavorites_A_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."_UserFavorites"
+    ADD CONSTRAINT "_UserFavorites_A_fkey" FOREIGN KEY ("A") REFERENCES public."Product"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: _UserFavorites _UserFavorites_B_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."_UserFavorites"
+    ADD CONSTRAINT "_UserFavorites_B_fkey" FOREIGN KEY ("B") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: SCHEMA public; Type: ACL; Schema: -; Owner: postgres
 --
 
@@ -448,5 +498,4 @@ REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict PmiUVaOCdJ6fpYuHMFTlanJif7lhMdTBNHJZlnrDkcasLm3PaYwpMKYEspN6oLL
 

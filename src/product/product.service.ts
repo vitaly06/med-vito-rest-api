@@ -88,6 +88,21 @@ export class ProductService {
     }
   }
 
+  async findAll() {
+    const products = await this.prisma.product.findMany({
+      select: {
+        id: true,
+        images: true,
+        name: true,
+        address: true,
+        createdAt: true,
+        price: true,
+      },
+    });
+
+    return this.formatProductsResponse(products);
+  }
+
   async getProductsByUserId(id: number) {
     const checkUser = await this.prisma.user.findUnique({
       where: { id },
@@ -99,19 +114,13 @@ export class ProductService {
 
     const products = await this.prisma.product.findMany({
       where: { userId: id },
-      omit: {
-        categoryId: true,
-        subCategoryId: true,
+      select: {
+        id: true,
+        images: true,
+        name: true,
+        address: true,
         createdAt: true,
-        updatedAt: true,
-      },
-      include: {
-        category: true,
-        subCategory: {
-          omit: {
-            categoryId: true,
-          },
-        },
+        price: true,
       },
     });
 
@@ -119,9 +128,107 @@ export class ProductService {
   }
 
   private formatProductsResponse(products: any[]) {
-    return products.map((product) => ({
-      ...product,
-      images: product.images.map((img) => `${this.baseUrl}${img}`),
-    }));
+    return products.map((product) => {
+      const createdAt = new Date(product.createdAt);
+      const day = createdAt.getDate().toString().padStart(2, '0');
+      const month = (createdAt.getMonth() + 1).toString().padStart(2, '0');
+      const year = createdAt.getFullYear().toString().slice(-2);
+      const hours = createdAt.getHours().toString().padStart(2, '0');
+      const minutes = createdAt.getMinutes().toString().padStart(2, '0');
+
+      return {
+        ...product,
+        images: product.images.map((img) => `${this.baseUrl}${img}`),
+        createdAt: `${day}.${month}.${year} в ${hours}:${minutes}`,
+      };
+    });
+  }
+
+  async addProductToFavorites(id: number, userId: number) {
+    const checkProduct = await this.prisma.product.findUnique({
+      where: { id },
+    });
+
+    if (!checkProduct) {
+      throw new BadRequestException('Товар не найден');
+    }
+
+    const existingFavorite = await this.prisma.user.findFirst({
+      where: {
+        id: userId,
+        favorites: {
+          some: { id },
+        },
+      },
+    });
+
+    if (existingFavorite) {
+      throw new BadRequestException('Товар уже добавлен в избранное');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        favorites: {
+          connect: { id },
+        },
+      },
+    });
+
+    return { message: 'Товар успешно добавлен в избранное' };
+  }
+
+  async removeProductFromFavorites(id: number, userId: number) {
+    const checkProduct = await this.prisma.product.findUnique({
+      where: { id },
+    });
+
+    if (!checkProduct) {
+      throw new BadRequestException('Товар не найден');
+    }
+
+    const existingFavorite = await this.prisma.user.findFirst({
+      where: {
+        id: userId,
+        favorites: {
+          some: { id },
+        },
+      },
+    });
+
+    if (!existingFavorite) {
+      throw new BadRequestException('Товар не в избранном');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        favorites: {
+          disconnect: { id },
+        },
+      },
+    });
+
+    return { message: 'Товар успешно удалён из избранного' };
+  }
+
+  async getMyFavorites(userId: number) {
+    const checkUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        favorites: {
+          select: {
+            id: true,
+            images: true,
+            name: true,
+            address: true,
+            createdAt: true,
+            price: true,
+          },
+        },
+      },
+    });
+
+    return this.formatProductsResponse(checkUser?.favorites || []);
   }
 }

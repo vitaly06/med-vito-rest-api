@@ -7,6 +7,8 @@ import {
   UseInterceptors,
   Req,
   Get,
+  Param,
+  Delete,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
@@ -172,6 +174,14 @@ export class ProductController {
   }
 
   @ApiOperation({
+    summary: 'Возвращает все товары для главной страницы',
+  })
+  @Get('all-products')
+  async findAll() {
+    return await this.productService.findAll();
+  }
+
+  @ApiOperation({
     summary: 'Получение товаров текущего пользователя',
     description:
       'Возвращает список всех товаров, созданных текущим пользователем',
@@ -180,5 +190,41 @@ export class ProductController {
   @UseGuards(JwtAuthGuard)
   async getMyProducts(@Req() req: Request & { user: any }) {
     return await this.productService.getProductsByUserId(req.user.id);
+  }
+
+  @ApiOperation({
+    summary: 'Добавление товара в избранное',
+  })
+  @Post('add-to-favorites/:id')
+  @UseGuards(JwtAuthGuard)
+  async addToFavorites(
+    @Param('id') id: string,
+    @Req() req: Request & { user: any },
+  ) {
+    return await this.productService.addProductToFavorites(+id, req.user.id);
+  }
+
+  @ApiOperation({
+    summary: 'Удаление товара из избранного',
+  })
+  @Delete('remove-from-favorites/:id')
+  @UseGuards(JwtAuthGuard)
+  async removeFromFavorites(
+    @Req() req: Request & { user: any },
+    @Param('id') id: string,
+  ) {
+    return await this.productService.removeProductFromFavorites(
+      +id,
+      req.user.id,
+    );
+  }
+
+  @ApiOperation({
+    summary: 'Получение всех товаров из избранного',
+  })
+  @Get('my-favorites')
+  @UseGuards(JwtAuthGuard)
+  async getMyFavorites(@Req() req: Request & { user: any }) {
+    return await this.productService.getMyFavorites(req.user.id);
   }
 }
