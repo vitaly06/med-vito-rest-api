@@ -231,4 +231,26 @@ export class ProductService {
 
     return this.formatProductsResponse(checkUser?.favorites || []);
   }
+
+  async getProductCard(id: number) {
+    const product = await this.prisma.product.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        images: true,
+        address: true,
+        brand: true,
+        model: true,
+      },
+    });
+
+    return {
+      ...product,
+      images: product?.images.map((img) => `${this.baseUrl}${img}`),
+    };
+  }
 }

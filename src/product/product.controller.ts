@@ -227,4 +227,12 @@ export class ProductController {
   async getMyFavorites(@Req() req: Request & { user: any }) {
     return await this.productService.getMyFavorites(req.user.id);
   }
+
+  @ApiOperation({
+    summary: 'Получение данных товара для карточки по id',
+  })
+  @Get('product-card/:id')
+  async getProductCard(@Param('id') id: string) {
+    return await this.productService.getProductCard(+id);
+  }
 }
