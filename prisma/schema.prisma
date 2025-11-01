@@ -29,6 +29,8 @@ model User{
   refreshToken String?
   refreshTokenExpiresAt DateTime?
 
+  isResetVerified Boolean @default(false)
+
   products Product[]
   favorites Product[] @relation("UserFavorites")
 

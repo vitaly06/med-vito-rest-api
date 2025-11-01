@@ -1,7 +1,10 @@
 import {
   BadRequestException,
+  ForbiddenException,
+  Inject,
   Injectable,
   Logger,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -10,6 +13,9 @@ import { SignUpDto } from './dto/sign-up.dto';
 import * as bcrypt from 'bcrypt';
 import { SignInDto } from './dto/sign-in.dto';
 import { Response } from 'express';
+import { MailerService } from '@nestjs-modules/mailer';
+import * as cacheManager_1 from 'cache-manager';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +23,8 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly mailerSerivce: MailerService,
+    @Inject(CACHE_MANAGER) private cacheManager: cacheManager_1.Cache,
   ) {}
 
   async signUp(dto: SignUpDto) {
@@ -204,5 +212,121 @@ export class AuthService {
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
     });
+  }
+
+  async forgotPassword(email: string) {
+    const checkUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!checkUser) {
+      throw new BadRequestException(
+        'Пользователя с такой почтой не существует',
+      );
+    }
+
+    const code = await this.generateVerifyCode();
+
+    await this.cacheManager.set(
+      `forgot-password:${code}`,
+      JSON.stringify({
+        id: checkUser.id.toString(),
+        code,
+      }),
+      3600 * 1000,
+    );
+
+    await this.sendVerificationEmail(
+      email,
+      'Код восстановления пароля - Торгуй Сам',
+      code,
+      'forgot-password',
+    );
+
+    return { message: 'Письмо с кодом подтверждения отправлено на почту' };
+  }
+
+  async verifyCode(code: string) {
+    const cachedDataStr = await this.cacheManager.get<string>(
+      `forgot-password:${code}`,
+    );
+    const cachedData = cachedDataStr ? JSON.parse(cachedDataStr) : null;
+
+    if (!cachedData) {
+      console.log('Данные не найдены в кеше');
+    }
+    if (cachedData.code !== code) {
+      throw new BadRequestException('Неверный код подтверждения');
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { id: +cachedData.id },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Такого пользователя не существует');
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        isResetVerified: true,
+      },
+    });
+
+    await this.cacheManager.del(`forgot-password:${code}`);
+    return { userId: user.id };
+  }
+
+  async changePassword(userId: number, password: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+
+    if (!user.isResetVerified) {
+      throw new ForbiddenException('Требуется подтверждение сброса пароля');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: await bcrypt.hash(password, 10),
+        isResetVerified: false,
+      },
+    });
+
+    return { message: 'Пароль успешно изменён' };
+  }
+
+  private async sendVerificationEmail(
+    email: string,
+    text: string,
+    code: string,
+    template: string,
+  ) {
+    try {
+      this.logger.log(`Отправка письма на ${email} с кодом ${code}`);
+
+      const result = await this.mailerSerivce.sendMail({
+        to: email,
+        subject: text,
+        template,
+        context: {
+          code,
+        },
+      });
+
+      this.logger.log('Письмо успешно отправлено:', result);
+    } catch (error) {
+      this.logger.error('Ошибка отправки письма:', error);
+      throw new BadRequestException(`Ошибка отправки письма: ${error.message}`);
+    }
+  }
+
+  async generateVerifyCode(): Promise<string> {
+    return Math.floor(100000 + Math.random() * 900000).toString(); // Генерирует 6 цифр (от 100000 до 999999)
   }
 }

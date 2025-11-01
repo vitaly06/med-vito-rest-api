@@ -8,18 +8,20 @@ services:
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/Medvito?schema=public
-      # - REDIS_HOST=redis
-      # - REDIS_PORT=6379
-      # - SMTP_HOST=smtp.beget.com
-      # - SMTP_PORT=465
-      # - SMTP_USER=support@benty.work
-      # - SMTP_PASSWORD=S_Be5173
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SMTP_HOST=mail.hosting.reg.ru
+      - SMTP_PORT=465
+      - SMTP_SECURE=false
+      - SMTP_USER=torguisam@torguisam.ru
+      - SMTP_PASSWORD=JYNgZ7KNTrZNca!
+      - SMTP_FROM=torguisam@torguisam.ru
       - JWT_SECRET=ss3ZpIGPhT4qpL0LhwrSIjh3gxAey88i
       - JWT_REFRESH_SECRET=OvMAfvaZEtsEkj4utArLBMD7ia3gITaO
       - BASE_URL=http://localh1ost:3000
     depends_on:
       - db
-      # - redis
+      - redis
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
@@ -42,18 +44,18 @@ services:
       timeout: 5s
       retries: 10
 
-  # redis: # Добавляем сервис Redis
-  #   image: redis:7-alpine
-  #   ports:
-  #     - '6380:6379'
-  #   volumes:
-  #     - redis_data:/data
-  #   healthcheck:
-  #     test: ['CMD', 'redis-cli', 'ping']
-  #     interval: 5s
-  #     timeout: 3s
-  #     retries: 5
+  redis: # Добавляем сервис Redis
+    image: redis:7-alpine
+    ports:
+      - '6380:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
 volumes:
   postgres_data:
-  # redis_data: # Volume для Redis
+  redis_data: # Volume для Redis

@@ -192,7 +192,8 @@ CREATE TABLE public."User" (
     "refreshTokenExpiresAt" timestamp(3) without time zone,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "updatedAt" timestamp(3) without time zone NOT NULL,
-    rating integer
+    rating integer,
+    "isResetVerified" boolean DEFAULT false NOT NULL
 );
 
 
@@ -318,8 +319,8 @@ COPY public."SubCategory" (id, name, "categoryId") FROM stdin;
 -- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "refreshToken", "refreshTokenExpiresAt", "createdAt", "updatedAt", rating) FROM stdin;
-1	Садиков Виталий Дмитриевич	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$2vQnACKyL//wj8S/Ix7LIu/Le7b4Tbube5UI/yENhJ9WiTawaLcfe	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImlhdCI6MTc2MDY0NTQ0MywiZXhwIjoxNzYxMjUwMjQzfQ.mG4g4O5NI7UvCw5yKmIrsLd2ncE8Hoys0HdRbP51nhw	2025-10-23 20:10:43.42	2025-10-12 11:07:42.847	2025-10-16 20:10:43.422	\N
+COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "refreshToken", "refreshTokenExpiresAt", "createdAt", "updatedAt", rating, "isResetVerified") FROM stdin;
+1	Садиков Виталий Дмитриевич	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$n49kuHdMIY8WvXnghWqlPuf6f7GxgE4SqUmoUpUPh0Y7PNKSLGTDC	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImlhdCI6MTc2MjAyMjYyMSwiZXhwIjoxNzYyNjI3NDIxfQ.iL_DKwhfJ-7mTaL1y0IMxHhl5iNcU6DQXBFVrVdstSk	2025-11-08 18:43:41.247	2025-10-12 11:07:42.847	2025-11-01 18:43:41.248	\N	f
 \.
 
 
