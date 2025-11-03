@@ -192,6 +192,7 @@ export class ProductController {
     return await this.productService.getProductsByUserId(req.user.id);
   }
 
+  @ApiTags('Избранное')
   @ApiOperation({
     summary: 'Добавление товара в избранное',
   })
@@ -204,6 +205,7 @@ export class ProductController {
     return await this.productService.addProductToFavorites(+id, req.user.id);
   }
 
+  @ApiTags('Избранное')
   @ApiOperation({
     summary: 'Удаление товара из избранного',
   })
@@ -219,6 +221,7 @@ export class ProductController {
     );
   }
 
+  @ApiTags('Избранное')
   @ApiOperation({
     summary: 'Получение всех товаров из избранного',
   })

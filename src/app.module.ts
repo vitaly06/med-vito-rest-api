@@ -7,6 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 import { CategoryModule } from './category/category.module';
 import { MailModule } from './mail/mail.module';
 import { CacheModule } from '@nestjs/cache-manager';
+import { ChatModule } from './chat/chat.module';
 import * as redisStore from 'cache-manager-ioredis';
 
 @Module({
@@ -28,6 +29,7 @@ import * as redisStore from 'cache-manager-ioredis';
       host: 'redis',
       port: 6379,
     }),
+    ChatModule,
   ],
 })
 export class AppModule {}

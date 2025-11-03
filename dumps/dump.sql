@@ -97,6 +97,88 @@ ALTER SEQUENCE public."Category_id_seq" OWNED BY public."Category".id;
 
 
 --
+-- Name: Chat; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Chat" (
+    id integer NOT NULL,
+    "productId" integer NOT NULL,
+    "buyerId" integer NOT NULL,
+    "sellerId" integer NOT NULL,
+    "unreadCountBuyer" integer DEFAULT 0 NOT NULL,
+    "unreadCountSeller" integer DEFAULT 0 NOT NULL,
+    "lastMessageId" integer,
+    "lastMessageAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."Chat" OWNER TO postgres;
+
+--
+-- Name: Chat_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Chat_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Chat_id_seq" OWNER TO postgres;
+
+--
+-- Name: Chat_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Chat_id_seq" OWNED BY public."Chat".id;
+
+
+--
+-- Name: Message; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Message" (
+    id integer NOT NULL,
+    content text NOT NULL,
+    "senderId" integer NOT NULL,
+    "chatId" integer NOT NULL,
+    "isRead" boolean DEFAULT false NOT NULL,
+    "readAt" timestamp(3) without time zone,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."Message" OWNER TO postgres;
+
+--
+-- Name: Message_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Message_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Message_id_seq" OWNER TO postgres;
+
+--
+-- Name: Message_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Message_id_seq" OWNED BY public."Message".id;
+
+
+--
 -- Name: Product; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -259,6 +341,20 @@ ALTER TABLE ONLY public."Category" ALTER COLUMN id SET DEFAULT nextval('public."
 
 
 --
+-- Name: Chat id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Chat" ALTER COLUMN id SET DEFAULT nextval('public."Chat_id_seq"'::regclass);
+
+
+--
+-- Name: Message id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Message" ALTER COLUMN id SET DEFAULT nextval('public."Message_id_seq"'::regclass);
+
+
+--
 -- Name: Product id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -285,6 +381,25 @@ ALTER TABLE ONLY public."User" ALTER COLUMN id SET DEFAULT nextval('public."User
 
 COPY public."Category" (id, name) FROM stdin;
 1	Личные вещи
+\.
+
+
+--
+-- Data for Name: Chat; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Chat" (id, "productId", "buyerId", "sellerId", "unreadCountBuyer", "unreadCountSeller", "lastMessageId", "lastMessageAt", "createdAt", "updatedAt") FROM stdin;
+1	1	2	1	1	1	2	2025-11-03 13:50:11.551	2025-11-03 13:28:43.595	2025-11-03 13:50:11.554
+\.
+
+
+--
+-- Data for Name: Message; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Message" (id, content, "senderId", "chatId", "isRead", "readAt", "createdAt", "updatedAt") FROM stdin;
+1	Hello from test client!	1	1	f	\N	2025-11-03 13:42:35.748	2025-11-03 13:42:35.748
+2	Hello from test client!	2	1	f	\N	2025-11-03 13:50:11.53	2025-11-03 13:50:11.53
 \.
 
 
@@ -320,7 +435,8 @@ COPY public."SubCategory" (id, name, "categoryId") FROM stdin;
 --
 
 COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "refreshToken", "refreshTokenExpiresAt", "createdAt", "updatedAt", rating, "isResetVerified") FROM stdin;
-1	Садиков Виталий Дмитриевич	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$n49kuHdMIY8WvXnghWqlPuf6f7GxgE4SqUmoUpUPh0Y7PNKSLGTDC	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImlhdCI6MTc2MjAyMjYyMSwiZXhwIjoxNzYyNjI3NDIxfQ.iL_DKwhfJ-7mTaL1y0IMxHhl5iNcU6DQXBFVrVdstSk	2025-11-08 18:43:41.247	2025-10-12 11:07:42.847	2025-11-01 18:43:41.248	\N	f
+2	Садиков Виталий Дмитриевич	vitaly.sadikov2@yandex.ru	+79510341676	$2b$10$dhu7m2XZsbBAU/5mFDE2suAGRnTv8SgKKzZW66dfXBcVCq3GfHiUG	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImlhdCI6MTc2MjE3NzgyNSwiZXhwIjoxNzYyNzgyNjI1fQ.RKcsoaJMQYiGJxDt8Q1Ox4j5QalHloFApEQ5z1MJM2Q	2025-11-10 13:50:25.431	2025-11-02 17:12:47.122	2025-11-03 13:50:25.432	\N	f
+1	Садиков Виталий Дмитриевич	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$n49kuHdMIY8WvXnghWqlPuf6f7GxgE4SqUmoUpUPh0Y7PNKSLGTDC	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImlhdCI6MTc2MjE3NjQ2MCwiZXhwIjoxNzYyNzgxMjYwfQ.pLP6sEB57MMbZOT6qpeqhqSUqCa0V2bgWYS1wgV_woM	2025-11-10 13:27:40.151	2025-10-12 11:07:42.847	2025-11-03 13:27:40.161	\N	f
 \.
 
 
@@ -351,6 +467,20 @@ SELECT pg_catalog.setval('public."Category_id_seq"', 1, true);
 
 
 --
+-- Name: Chat_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Chat_id_seq"', 1, true);
+
+
+--
+-- Name: Message_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Message_id_seq"', 2, true);
+
+
+--
 -- Name: Product_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -368,7 +498,7 @@ SELECT pg_catalog.setval('public."SubCategory_id_seq"', 10, true);
 -- Name: User_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."User_id_seq"', 1, true);
+SELECT pg_catalog.setval('public."User_id_seq"', 2, true);
 
 
 --
@@ -377,6 +507,22 @@ SELECT pg_catalog.setval('public."User_id_seq"', 1, true);
 
 ALTER TABLE ONLY public."Category"
     ADD CONSTRAINT "Category_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: Chat Chat_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Chat"
+    ADD CONSTRAINT "Chat_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: Message Message_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Message"
+    ADD CONSTRAINT "Message_pkey" PRIMARY KEY (id);
 
 
 --
@@ -420,6 +566,13 @@ ALTER TABLE ONLY public._prisma_migrations
 
 
 --
+-- Name: Chat_buyerId_sellerId_productId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "Chat_buyerId_sellerId_productId_key" ON public."Chat" USING btree ("buyerId", "sellerId", "productId");
+
+
+--
 -- Name: User_email_key; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -438,6 +591,54 @@ CREATE UNIQUE INDEX "User_phoneNumber_key" ON public."User" USING btree ("phoneN
 --
 
 CREATE INDEX "_UserFavorites_B_index" ON public."_UserFavorites" USING btree ("B");
+
+
+--
+-- Name: Chat Chat_buyerId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Chat"
+    ADD CONSTRAINT "Chat_buyerId_fkey" FOREIGN KEY ("buyerId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Chat Chat_lastMessageId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Chat"
+    ADD CONSTRAINT "Chat_lastMessageId_fkey" FOREIGN KEY ("lastMessageId") REFERENCES public."Message"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: Chat Chat_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Chat"
+    ADD CONSTRAINT "Chat_productId_fkey" FOREIGN KEY ("productId") REFERENCES public."Product"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Chat Chat_sellerId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Chat"
+    ADD CONSTRAINT "Chat_sellerId_fkey" FOREIGN KEY ("sellerId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Message Message_chatId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Message"
+    ADD CONSTRAINT "Message_chatId_fkey" FOREIGN KEY ("chatId") REFERENCES public."Chat"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Message Message_senderId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Message"
+    ADD CONSTRAINT "Message_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
