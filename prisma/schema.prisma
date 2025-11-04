@@ -34,12 +34,24 @@ model User {
   products  Product[]
   favorites Product[] @relation("UserFavorites")
 
+
   // Чаты где пользователь покупатель
   chatsAsBuyer  Chat[]    @relation("BuyerChats")
   // Чаты где пользователь продавец  
   chatsAsSeller Chat[]    @relation("SellerChats")
   // Отправленные сообщения
   sentMessages  Message[] @relation("SentMessages")
+
+  // Статистика показов номеров (кто показывал номера)
+  phoneNumberViews PhoneNumberView[] @relation("ViewedBy")
+  // Статистика чьи номера показывались
+  phoneNumberViewsReceived PhoneNumberView[] @relation("ViewedUser")
+
+  // Статистика просмотров товаров (какие товары смотрел пользователь)
+  productViews ProductView[] @relation("ProductViewedBy")
+
+  // Статистика добавлений в избранное (какие товары добавлял в избранное)
+  favoriteActions FavoriteAction[] @relation("FavoriteActions")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -68,6 +80,12 @@ model Product {
   // Чаты по этому товару
   chats       Chat[]
 
+  // Статистика просмотров этого товара
+  views ProductView[] @relation("ProductViews")
+
+  // Статистика добавлений в избранное этого товара
+  favoriteActions FavoriteAction[] @relation("FavoriteActions")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -91,6 +109,16 @@ model SubCategory {
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   products Product[]
+
+  subcategoryTypes SubcategotyType[]
+}
+
+model SubcategotyType {
+  id Int @id @default(autoincrement())
+  name String
+
+  subcategoryId Int
+  subcategory SubCategory @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
 }
 
 // Чат между покупателем и продавцом по конкретному товару
@@ -153,3 +181,55 @@ model Message {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model PhoneNumberView {
+  id Int @id @default(autoincrement())
+
+  // Кто смотрел номер
+  viewedById Int
+  viewedBy   User @relation("ViewedBy", fields: [viewedById], references: [id], onDelete: Cascade)
+
+  // Чей номер смотрели
+  viewedUserId Int
+  viewedUser   User @relation("ViewedUser", fields: [viewedUserId], references: [id], onDelete: Cascade)
+
+  // Дата и время просмотра
+  viewedAt DateTime @default(now())
+
+  @@unique([viewedById, viewedUserId]) 
+}
+
+model ProductView {
+  id Int @id @default(autoincrement())
+
+  // Кто смотрел товар
+  viewedById Int
+  viewedBy   User @relation("ProductViewedBy", fields: [viewedById], references: [id], onDelete: Cascade)
+
+  // Какой товар смотрели
+  productId Int
+  product   Product @relation("ProductViews", fields: [productId], references: [id], onDelete: Cascade)
+
+  // Дата и время просмотра
+  viewedAt DateTime @default(now())
+
+  @@unique([viewedById, productId])
+}
+
+model FavoriteAction {
+  id Int @id @default(autoincrement())
+
+  // Кто добавил в избранное
+  userId Int
+  user   User @relation("FavoriteActions", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Какой товар добавили в избранное
+  productId Int
+  product   Product @relation("FavoriteActions", fields: [productId], references: [id], onDelete: Cascade)
+
+  // Дата и время добавления в избранное
+  addedAt DateTime @default(now())
+
+  @@unique([userId, productId])
+}
+

@@ -6,6 +6,7 @@ import * as path from 'path';
 import { MulterModule } from '@nestjs/platform-express';
 import { AuthModule } from 'src/auth/auth.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
+import { OptionalJwtAuthGuard } from 'src/auth/guards/optional-jwt-auth.guard';
 
 @Module({
   imports: [
@@ -24,6 +25,6 @@ import { PrismaModule } from 'src/prisma/prisma.module';
     PrismaModule,
   ],
   controllers: [ProductController],
-  providers: [ProductService],
+  providers: [ProductService, OptionalJwtAuthGuard],
 })
 export class ProductModule {}

@@ -9,9 +9,11 @@ import {
   Get,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from 'src/auth/guards/optional-jwt-auth.guard';
 import { createProductDto } from './dto/create-product.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
@@ -234,8 +236,47 @@ export class ProductController {
   @ApiOperation({
     summary: 'Получение данных товара для карточки по id',
   })
+  @UseGuards(OptionalJwtAuthGuard)
   @Get('product-card/:id')
-  async getProductCard(@Param('id') id: string) {
-    return await this.productService.getProductCard(+id);
+  async getProductCard(
+    @Param('id') id: string,
+    @Req() req: Request & { user: any },
+  ) {
+    return await this.productService.getProductCard(+id, req.user?.id);
   }
+
+  // @ApiOperation({
+  //   summary: 'Получение статистики просмотров товаров пользователя',
+  // })
+  // @UseGuards(JwtAuthGuard)
+  // @Get('view-stats')
+  // async getProductViewStats(
+  //   @Req() req: Request & { user: any },
+  //   @Query('page') page: string = '1',
+  //   @Query('limit') limit: string = '20',
+  // ) {
+  //   return await this.productService.getProductViewStats(
+  //     req.user.id,
+  //     +page,
+  //     +limit,
+  //   );
+  // }
+
+  // @ApiOperation({
+  //   summary:
+  //     'Получение статистики добавлений в избранное для товаров пользователя',
+  // })
+  // @UseGuards(JwtAuthGuard)
+  // @Get('favorite-stats')
+  // async getFavoriteStats(
+  //   @Req() req: Request & { user: any },
+  //   @Query('page') page: string = '1',
+  //   @Query('limit') limit: string = '20',
+  // ) {
+  //   return await this.productService.getFavoriteStats(
+  //     req.user.id,
+  //     +page,
+  //     +limit,
+  //   );
+  // }
 }

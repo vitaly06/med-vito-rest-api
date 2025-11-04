@@ -74,7 +74,7 @@ export class AuthController {
 
   @ApiTags('Восстановление пароля')
   @ApiOperation({
-    summary: 'Смена пароля после подтверждения кода из почты',
+    summary: 'Смена4 пароля после подтверждения кода из почты',
   })
   @Post('change-password')
   async changePassword(@Body() dto: ChangePasswordDto) {

@@ -139,6 +139,42 @@ ALTER SEQUENCE public."Chat_id_seq" OWNED BY public."Chat".id;
 
 
 --
+-- Name: FavoriteAction; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."FavoriteAction" (
+    id integer NOT NULL,
+    "userId" integer NOT NULL,
+    "productId" integer NOT NULL,
+    "addedAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."FavoriteAction" OWNER TO postgres;
+
+--
+-- Name: FavoriteAction_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."FavoriteAction_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."FavoriteAction_id_seq" OWNER TO postgres;
+
+--
+-- Name: FavoriteAction_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."FavoriteAction_id_seq" OWNED BY public."FavoriteAction".id;
+
+
+--
 -- Name: Message; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -179,6 +215,42 @@ ALTER SEQUENCE public."Message_id_seq" OWNED BY public."Message".id;
 
 
 --
+-- Name: PhoneNumberView; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."PhoneNumberView" (
+    id integer NOT NULL,
+    "viewedById" integer NOT NULL,
+    "viewedUserId" integer NOT NULL,
+    "viewedAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."PhoneNumberView" OWNER TO postgres;
+
+--
+-- Name: PhoneNumberView_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."PhoneNumberView_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."PhoneNumberView_id_seq" OWNER TO postgres;
+
+--
+-- Name: PhoneNumberView_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."PhoneNumberView_id_seq" OWNED BY public."PhoneNumberView".id;
+
+
+--
 -- Name: Product; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -201,6 +273,42 @@ CREATE TABLE public."Product" (
 
 
 ALTER TABLE public."Product" OWNER TO postgres;
+
+--
+-- Name: ProductView; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."ProductView" (
+    id integer NOT NULL,
+    "viewedById" integer NOT NULL,
+    "productId" integer NOT NULL,
+    "viewedAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."ProductView" OWNER TO postgres;
+
+--
+-- Name: ProductView_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."ProductView_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."ProductView_id_seq" OWNER TO postgres;
+
+--
+-- Name: ProductView_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."ProductView_id_seq" OWNED BY public."ProductView".id;
+
 
 --
 -- Name: Product_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -257,6 +365,41 @@ ALTER SEQUENCE public."SubCategory_id_seq" OWNER TO postgres;
 --
 
 ALTER SEQUENCE public."SubCategory_id_seq" OWNED BY public."SubCategory".id;
+
+
+--
+-- Name: SubcategotyType; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."SubcategotyType" (
+    id integer NOT NULL,
+    name text NOT NULL,
+    "subcategoryId" integer NOT NULL
+);
+
+
+ALTER TABLE public."SubcategotyType" OWNER TO postgres;
+
+--
+-- Name: SubcategotyType_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."SubcategotyType_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."SubcategotyType_id_seq" OWNER TO postgres;
+
+--
+-- Name: SubcategotyType_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."SubcategotyType_id_seq" OWNED BY public."SubcategotyType".id;
 
 
 --
@@ -348,10 +491,24 @@ ALTER TABLE ONLY public."Chat" ALTER COLUMN id SET DEFAULT nextval('public."Chat
 
 
 --
+-- Name: FavoriteAction id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."FavoriteAction" ALTER COLUMN id SET DEFAULT nextval('public."FavoriteAction_id_seq"'::regclass);
+
+
+--
 -- Name: Message id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."Message" ALTER COLUMN id SET DEFAULT nextval('public."Message_id_seq"'::regclass);
+
+
+--
+-- Name: PhoneNumberView id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."PhoneNumberView" ALTER COLUMN id SET DEFAULT nextval('public."PhoneNumberView_id_seq"'::regclass);
 
 
 --
@@ -362,10 +519,24 @@ ALTER TABLE ONLY public."Product" ALTER COLUMN id SET DEFAULT nextval('public."P
 
 
 --
+-- Name: ProductView id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ProductView" ALTER COLUMN id SET DEFAULT nextval('public."ProductView_id_seq"'::regclass);
+
+
+--
 -- Name: SubCategory id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."SubCategory" ALTER COLUMN id SET DEFAULT nextval('public."SubCategory_id_seq"'::regclass);
+
+
+--
+-- Name: SubcategotyType id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."SubcategotyType" ALTER COLUMN id SET DEFAULT nextval('public."SubcategotyType_id_seq"'::regclass);
 
 
 --
@@ -389,7 +560,14 @@ COPY public."Category" (id, name) FROM stdin;
 --
 
 COPY public."Chat" (id, "productId", "buyerId", "sellerId", "unreadCountBuyer", "unreadCountSeller", "lastMessageId", "lastMessageAt", "createdAt", "updatedAt") FROM stdin;
-1	1	2	1	1	1	2	2025-11-03 13:50:11.551	2025-11-03 13:28:43.595	2025-11-03 13:50:11.554
+\.
+
+
+--
+-- Data for Name: FavoriteAction; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."FavoriteAction" (id, "userId", "productId", "addedAt") FROM stdin;
 \.
 
 
@@ -398,8 +576,15 @@ COPY public."Chat" (id, "productId", "buyerId", "sellerId", "unreadCountBuyer", 
 --
 
 COPY public."Message" (id, content, "senderId", "chatId", "isRead", "readAt", "createdAt", "updatedAt") FROM stdin;
-1	Hello from test client!	1	1	f	\N	2025-11-03 13:42:35.748	2025-11-03 13:42:35.748
-2	Hello from test client!	2	1	f	\N	2025-11-03 13:50:11.53	2025-11-03 13:50:11.53
+\.
+
+
+--
+-- Data for Name: PhoneNumberView; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."PhoneNumberView" (id, "viewedById", "viewedUserId", "viewedAt") FROM stdin;
+1	2	1	2025-11-04 12:17:15.834
 \.
 
 
@@ -408,7 +593,15 @@ COPY public."Message" (id, content, "senderId", "chatId", "isRead", "readAt", "c
 --
 
 COPY public."Product" (id, name, price, state, brand, model, description, address, images, "categoryId", "subCategoryId", "userId", "createdAt", "updatedAt") FROM stdin;
-1	iPhone 15 Pro	120000	NEW	Apple	iPhone 15 Pro	Новый iPhone 15 Pro в отличном состоянии	г. Москва, ул. Тверская, д. 1	{/uploads/product/images-1760269333731-299683840.jpeg,/uploads/product/images-1760269333732-380494733.jpg,/uploads/product/images-1760269333732-312665044.jpg}	1	9	1	2025-10-12 11:42:13.752	2025-10-12 11:42:13.752
+1	Ручка шариковая	40	NEW	RYCHKA	Rychka 15 pro max	Новый Rychka 15 Pro max в отличном состоянии	г. Москва, ул. Тверская, д. 1	{/uploads/product/images-1762275324649-128468681.jpg}	1	6	1	2025-11-04 16:55:24.669	2025-11-04 16:55:24.669
+\.
+
+
+--
+-- Data for Name: ProductView; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."ProductView" (id, "viewedById", "productId", "viewedAt") FROM stdin;
 \.
 
 
@@ -417,16 +610,98 @@ COPY public."Product" (id, name, price, state, brand, model, description, addres
 --
 
 COPY public."SubCategory" (id, name, "categoryId") FROM stdin;
-1	Мужская и женская одежда	1
-2	Мужская и женская обувь	1
-3	Детская одежда	1
-4	Спец. одежда	1
-5	Тех. средства реабилитации	1
-6	Медицинские изделия	1
-7	Уход и гигиена	1
-8	Парфюмерия	1
-9	Приборы и аксессуары	1
-10	Косметические средства	1
+1	Одежда	1
+2	Детские товары	1
+3	Красота и Здоровье (уход и гигиена, средства, приборы и аксессуары, парфюмерия)	1
+4	Медицинские товары	1
+5	Средства реабилитации	1
+6	Школьные товары	1
+7	Украшения	1
+8	Продукты питания	1
+9	Животные, растения	1
+10	Бытовая техника	1
+11	Посуда	1
+12	Мебель	1
+\.
+
+
+--
+-- Data for Name: SubcategotyType; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."SubcategotyType" (id, name, "subcategoryId") FROM stdin;
+1	Мужская	1
+2	Женская	1
+3	Детская девочки	1
+4	Детская мальчики	1
+5	Ткани, текстиль и фурнитура	1
+6	Сумки, рюкзаки	1
+7	Аксессуары	1
+8	Обувь	1
+9	Игрушки	2
+10	Детская мебель	2
+11	Коляски детские	2
+12	Велосипеды и самокаты	2
+13	Детское питание и посуда	2
+14	Образовательные товары	2
+15	Уход и гигиена	2
+16	Косметика для ухода за кожей	3
+17	Средства для ухода за волосами	3
+18	Уход и гигиена	3
+19	Приборы и аксессуары	3
+20	Парфюмерия	3
+21	Макияж	3
+22	Бады	3
+23	Диагностическое оборудование	4
+24	Оборудование для клиник	4
+25	Медицинская мебель	4
+26	Измерительные приборы	5
+27	Ортопедия (бандажи, корсеты)	5
+28	Уходовая косметика	5
+29	Кресла-коляски	5
+30	Спецодежда, трикотаж, компрессионное белье	5
+31	Подгузники, пеленки, прокладки	5
+32	Катетеры	5
+33	Средства ухода за стомой	5
+34	Кресла-стулья санитарные	5
+35	Специальные устройства	5
+36	Калоприемники, уроприемники	5
+37	Трости, костыли	5
+38	Вертикализаторы, опоры	5
+39	Матрасы	5
+40	Кровати медицинские	5
+41	Письменные принадлежности	6
+42	Бумажная продукция	6
+43	Принадлежности для рисования и творчества	6
+44	Органайзеры и хранение	6
+45	Учебные пособия и инструменты	6
+46	Рюкзаки и сумки	6
+47	Прочее	6
+48	Ювелирные изделия	7
+49	Бижутерия	7
+50	Часы	7
+51	Готовые продукты	8
+52	Напитки	8
+53	Заморозки, полуфабрикаты	8
+54	Домашние животные	9
+55	С/х животные	9
+56	Рептилии	9
+57	Растения комнатные	9
+58	Культурные растения	9
+59	Декоративные уличные растения	9
+60	Доп товары (горшки, грунт, кормилки, поилки, средства по уходу за растениями, инструменты, корма, игрушки, клетки, аксессуары)	9
+61	Кухонная	10
+62	Бытовая	10
+63	Для приготовления пищи	11
+64	Для хранения	11
+65	Для сервировки	11
+66	Для приёма пищи	11
+67	Мягкая мебель	12
+68	Корпусная мебель	12
+69	Мебель для кухни	12
+70	Мебель для спальни	12
+71	Садовая мебель	12
+72	Офисная мебель	12
 \.
 
 
@@ -435,8 +710,8 @@ COPY public."SubCategory" (id, name, "categoryId") FROM stdin;
 --
 
 COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "refreshToken", "refreshTokenExpiresAt", "createdAt", "updatedAt", rating, "isResetVerified") FROM stdin;
-2	Садиков Виталий Дмитриевич	vitaly.sadikov2@yandex.ru	+79510341676	$2b$10$dhu7m2XZsbBAU/5mFDE2suAGRnTv8SgKKzZW66dfXBcVCq3GfHiUG	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImlhdCI6MTc2MjE3NzgyNSwiZXhwIjoxNzYyNzgyNjI1fQ.RKcsoaJMQYiGJxDt8Q1Ox4j5QalHloFApEQ5z1MJM2Q	2025-11-10 13:50:25.431	2025-11-02 17:12:47.122	2025-11-03 13:50:25.432	\N	f
-1	Садиков Виталий Дмитриевич	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$n49kuHdMIY8WvXnghWqlPuf6f7GxgE4SqUmoUpUPh0Y7PNKSLGTDC	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImlhdCI6MTc2MjE3NjQ2MCwiZXhwIjoxNzYyNzgxMjYwfQ.pLP6sEB57MMbZOT6qpeqhqSUqCa0V2bgWYS1wgV_woM	2025-11-10 13:27:40.151	2025-10-12 11:07:42.847	2025-11-03 13:27:40.161	\N	f
+2	Садиков Виталий Дмитриевич	vitaly.sadikov2@yandex.ru	+79510341676	$2b$10$5C4dgckQJEBbOtu7ElWeHuMA438DcqEzfJKsuFWwITAsLLOd3HsZC	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImlhdCI6MTc2MjI1ODYxMCwiZXhwIjoxNzYyODYzNDEwfQ.ZoP5DQQYndcZL4cyWH3aDS-iXsui-6jGctnDPNKHEvA	2025-11-11 12:16:50.798	2025-11-04 12:16:46.707	2025-11-04 12:16:50.801	\N	f
+1	Садиков Виталий Дмитриевич	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$X2estm9N44tB2hHPYAqbnecrXM/NF9iiSlJBIgL2opsHeO8t8J9n6	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImlhdCI6MTc2MjI3NDk0MiwiZXhwIjoxNzYyODc5NzQyfQ.-1itCC6BjmxDekPHJHcJHg-9Isjvx28t8o6PDU-qXvQ	2025-11-11 16:49:02.891	2025-11-04 12:16:36.672	2025-11-04 16:49:02.895	\N	f
 \.
 
 
@@ -453,9 +728,10 @@ COPY public."_UserFavorites" ("A", "B") FROM stdin;
 --
 
 COPY public._prisma_migrations (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count) FROM stdin;
-c6ffc524-0e4d-4d5f-8142-97f71d9d2fd4	9a97e81893bf2ec4fc3cbb193511b77b89e82561206c399240ad61a1ef3f5411	2025-10-12 13:54:36.542249+03	20251008175218_add_refresh_token_to_user	\N	\N	2025-10-12 13:54:36.533327+03	1
-6f3360a1-5fc1-4a6c-9933-df6b23853a96	cb65e46beba4ea36f2090bc28cb45f2d037cd9ceda9b5f126c4cae06f4c46b68	2025-10-12 13:55:19.034128+03	20251012105519_add_product_categories_images	\N	\N	2025-10-12 13:55:19.015688+03	1
-98cd9435-b268-4e42-95c2-c36c89047dd1	f1c9c744537ed418b626a499157343dd8afb663cdb8c6b3252b271c2c8c9f603	2025-10-14 08:24:38.761087+03	20251014052438_add_user_favorites	\N	\N	2025-10-14 08:24:38.737825+03	1
+677d62ff-b994-413b-95cc-1e84acebc01a	9a97e81893bf2ec4fc3cbb193511b77b89e82561206c399240ad61a1ef3f5411	2025-11-04 14:10:04.704194+02	20251008175218_add_refresh_token_to_user	\N	\N	2025-11-04 14:10:04.69034+02	1
+19a6379e-4e35-46d4-9f7c-e26039da52f6	cb65e46beba4ea36f2090bc28cb45f2d037cd9ceda9b5f126c4cae06f4c46b68	2025-11-04 14:10:04.730779+02	20251012105519_add_product_categories_images	\N	\N	2025-11-04 14:10:04.70509+02	1
+2fa6215e-913c-49c2-b810-2a3e54e4c771	f1c9c744537ed418b626a499157343dd8afb663cdb8c6b3252b271c2c8c9f603	2025-11-04 14:10:04.742188+02	20251014052438_add_user_favorites	\N	\N	2025-11-04 14:10:04.731824+02	1
+414c4d82-d2d0-4784-bf25-ac6de655e60c	03d3193b4270d1c37aa9f566c2eef2d9ee62ab10ef42ef75f3af96f130928504	2025-11-04 14:10:14.808667+02	20251104121014_add_phone_number_view_stats	\N	\N	2025-11-04 14:10:14.749453+02	1
 \.
 
 
@@ -470,14 +746,35 @@ SELECT pg_catalog.setval('public."Category_id_seq"', 1, true);
 -- Name: Chat_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Chat_id_seq"', 1, true);
+SELECT pg_catalog.setval('public."Chat_id_seq"', 1, false);
+
+
+--
+-- Name: FavoriteAction_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."FavoriteAction_id_seq"', 1, false);
 
 
 --
 -- Name: Message_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Message_id_seq"', 2, true);
+SELECT pg_catalog.setval('public."Message_id_seq"', 1, false);
+
+
+--
+-- Name: PhoneNumberView_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."PhoneNumberView_id_seq"', 1, true);
+
+
+--
+-- Name: ProductView_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."ProductView_id_seq"', 1, false);
 
 
 --
@@ -491,7 +788,14 @@ SELECT pg_catalog.setval('public."Product_id_seq"', 1, true);
 -- Name: SubCategory_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."SubCategory_id_seq"', 10, true);
+SELECT pg_catalog.setval('public."SubCategory_id_seq"', 12, true);
+
+
+--
+-- Name: SubcategotyType_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."SubcategotyType_id_seq"', 72, true);
 
 
 --
@@ -518,11 +822,35 @@ ALTER TABLE ONLY public."Chat"
 
 
 --
+-- Name: FavoriteAction FavoriteAction_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."FavoriteAction"
+    ADD CONSTRAINT "FavoriteAction_pkey" PRIMARY KEY (id);
+
+
+--
 -- Name: Message Message_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."Message"
     ADD CONSTRAINT "Message_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: PhoneNumberView PhoneNumberView_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."PhoneNumberView"
+    ADD CONSTRAINT "PhoneNumberView_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: ProductView ProductView_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ProductView"
+    ADD CONSTRAINT "ProductView_pkey" PRIMARY KEY (id);
 
 
 --
@@ -539,6 +867,14 @@ ALTER TABLE ONLY public."Product"
 
 ALTER TABLE ONLY public."SubCategory"
     ADD CONSTRAINT "SubCategory_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: SubcategotyType SubcategotyType_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."SubcategotyType"
+    ADD CONSTRAINT "SubcategotyType_pkey" PRIMARY KEY (id);
 
 
 --
@@ -570,6 +906,27 @@ ALTER TABLE ONLY public._prisma_migrations
 --
 
 CREATE UNIQUE INDEX "Chat_buyerId_sellerId_productId_key" ON public."Chat" USING btree ("buyerId", "sellerId", "productId");
+
+
+--
+-- Name: FavoriteAction_userId_productId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "FavoriteAction_userId_productId_key" ON public."FavoriteAction" USING btree ("userId", "productId");
+
+
+--
+-- Name: PhoneNumberView_viewedById_viewedUserId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "PhoneNumberView_viewedById_viewedUserId_key" ON public."PhoneNumberView" USING btree ("viewedById", "viewedUserId");
+
+
+--
+-- Name: ProductView_viewedById_productId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "ProductView_viewedById_productId_key" ON public."ProductView" USING btree ("viewedById", "productId");
 
 
 --
@@ -626,6 +983,22 @@ ALTER TABLE ONLY public."Chat"
 
 
 --
+-- Name: FavoriteAction FavoriteAction_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."FavoriteAction"
+    ADD CONSTRAINT "FavoriteAction_productId_fkey" FOREIGN KEY ("productId") REFERENCES public."Product"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: FavoriteAction FavoriteAction_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."FavoriteAction"
+    ADD CONSTRAINT "FavoriteAction_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: Message Message_chatId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -639,6 +1012,38 @@ ALTER TABLE ONLY public."Message"
 
 ALTER TABLE ONLY public."Message"
     ADD CONSTRAINT "Message_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: PhoneNumberView PhoneNumberView_viewedById_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."PhoneNumberView"
+    ADD CONSTRAINT "PhoneNumberView_viewedById_fkey" FOREIGN KEY ("viewedById") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: PhoneNumberView PhoneNumberView_viewedUserId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."PhoneNumberView"
+    ADD CONSTRAINT "PhoneNumberView_viewedUserId_fkey" FOREIGN KEY ("viewedUserId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ProductView ProductView_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ProductView"
+    ADD CONSTRAINT "ProductView_productId_fkey" FOREIGN KEY ("productId") REFERENCES public."Product"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ProductView ProductView_viewedById_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ProductView"
+    ADD CONSTRAINT "ProductView_viewedById_fkey" FOREIGN KEY ("viewedById") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -671,6 +1076,14 @@ ALTER TABLE ONLY public."Product"
 
 ALTER TABLE ONLY public."SubCategory"
     ADD CONSTRAINT "SubCategory_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES public."Category"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: SubcategotyType SubcategotyType_subcategoryId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."SubcategotyType"
+    ADD CONSTRAINT "SubcategotyType_subcategoryId_fkey" FOREIGN KEY ("subcategoryId") REFERENCES public."SubCategory"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --

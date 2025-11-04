@@ -8,6 +8,7 @@ import { CategoryModule } from './category/category.module';
 import { MailModule } from './mail/mail.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ChatModule } from './chat/chat.module';
+import { StatisticsModule } from './statistics/statistics.module';
 import * as redisStore from 'cache-manager-ioredis';
 
 @Module({
@@ -25,11 +26,12 @@ import * as redisStore from 'cache-manager-ioredis';
       ttl: 60 * 60 * 100,
       isGlobal: true,
       store: redisStore,
-      // host: 'localhost',
-      host: 'redis',
+      host: 'localhost',
+      // host: 'redis',
       port: 6379,
     }),
     ChatModule,
+    StatisticsModule,
   ],
 })
 export class AppModule {}
