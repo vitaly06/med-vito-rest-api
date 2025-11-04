@@ -52,6 +52,10 @@ model User {
 
   // Статистика добавлений в избранное (какие товары добавлял в избранное)
   favoriteActions FavoriteAction[] @relation("FavoriteActions")
+  // Люди, которые писали отзывы
+  reviews Review[] @relation("ReviewedBy")
+  // Отзывы, которые писал пользователь
+  reviewsUser Review[] @relation("ReviewedUser")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -197,6 +201,24 @@ model PhoneNumberView {
   viewedAt DateTime @default(now())
 
   @@unique([viewedById, viewedUserId]) 
+}
+
+model Review {
+  id Int @id @default(autoincrement())
+
+  reviewedById Int
+  reviewedBy User @relation("ReviewedBy", fields: [reviewedById], references: [id], onDelete: Cascade)
+
+  text String? 
+  rating Float
+
+  reviewedUserId Int
+  reviewedUser User @relation("ReviewedUser", fields: [reviewedUserId], references: [id], onDelete: Cascade)
+
+  reviewedAt DateTime @default(now())
+
+  @@unique([reviewedById, reviewedUserId])
+
 }
 
 model ProductView {
