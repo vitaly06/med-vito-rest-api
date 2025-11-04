@@ -15,8 +15,9 @@ import { ProductService } from './product.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from 'src/auth/guards/optional-jwt-auth.guard';
 import { createProductDto } from './dto/create-product.dto';
+import { SearchProductsDto } from './dto/search-products.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { Request } from 'express';
+import type { Request } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -279,4 +280,90 @@ export class ProductController {
   //     +limit,
   //   );
   // }
+
+  @Get('search')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiOperation({
+    summary: 'Поиск товаров',
+    description: 'Поиск товаров с фильтрацией по различным параметрам',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Результаты поиска товаров',
+    schema: {
+      type: 'object',
+      properties: {
+        products: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              price: { type: 'number' },
+              state: { type: 'string' },
+              brand: { type: 'string' },
+              model: { type: 'string' },
+              description: { type: 'string' },
+              address: { type: 'string' },
+              images: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+              category: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  name: { type: 'string' },
+                },
+              },
+              subCategory: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  name: { type: 'string' },
+                },
+              },
+              seller: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  fullName: { type: 'string' },
+                  rating: { type: 'number' },
+                },
+              },
+              stats: {
+                type: 'object',
+                properties: {
+                  views: { type: 'number' },
+                  favorites: { type: 'number' },
+                },
+              },
+              createdAt: { type: 'string', format: 'date-time' },
+              isInFavorites: { type: 'boolean' },
+            },
+          },
+        },
+        pagination: {
+          type: 'object',
+          properties: {
+            currentPage: { type: 'number' },
+            totalPages: { type: 'number' },
+            totalItems: { type: 'number' },
+            hasNextPage: { type: 'boolean' },
+            hasPrevPage: { type: 'boolean' },
+          },
+        },
+      },
+    },
+  })
+  async searchProducts(
+    @Query() searchDto: SearchProductsDto,
+    @Req() req: Request,
+  ) {
+    return await this.productService.searchProducts(
+      searchDto,
+      (req.user as any)?.id,
+    );
+  }
 }
