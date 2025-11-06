@@ -294,104 +294,11 @@ export class ProductService {
     return {
       ...product,
       images: product?.images.map((img) => `${this.baseUrl}${img}`),
+      isFavorited: userId
+        ? await this.isProductInUserFavorites(product.id, userId)
+        : false,
     };
   }
-
-  // Получить статистику просмотров товаров пользователя
-  // async getProductViewStats(
-  //   userId: number,
-  //   page: number = 1,
-  //   limit: number = 20,
-  // ) {
-  //   // Получаем товары пользователя с количеством просмотров
-  //   const products = await this.prisma.product.findMany({
-  //     where: { userId },
-  //     include: {
-  //       views: {
-  //         include: {
-  //           viewedBy: {
-  //             select: {
-  //               id: true,
-  //               fullName: true,
-  //               email: true,
-  //             },
-  //           },
-  //         },
-  //         orderBy: {
-  //           viewedAt: 'desc',
-  //         },
-  //         take: limit,
-  //         skip: (page - 1) * limit,
-  //       },
-  //       _count: {
-  //         select: {
-  //           views: true,
-  //         },
-  //       },
-  //     },
-  //     orderBy: {
-  //       createdAt: 'desc',
-  //     },
-  //   });
-
-  //   return products.map((product) => ({
-  //     id: product.id,
-  //     name: product.name,
-  //     price: product.price,
-  //     image: product.images[0] ? `${this.baseUrl}${product.images[0]}` : null,
-  //     totalViews: product._count.views,
-  //     recentViews: product.views.map((view) => ({
-  //       user: view.viewedBy,
-  //       viewedAt: view.viewedAt,
-  //     })),
-  //   }));
-  // }
-
-  // Получить статистику добавлений в избранное для товаров пользователя
-  // async getFavoriteStats(userId: number, page: number = 1, limit: number = 20) {
-  //   // Получаем товары пользователя с количеством добавлений в избранное
-  //   const products = await this.prisma.product.findMany({
-  //     where: { userId },
-  //     include: {
-  //       favoriteActions: {
-  //         include: {
-  //           user: {
-  //             select: {
-  //               id: true,
-  //               fullName: true,
-  //               email: true,
-  //             },
-  //           },
-  //         },
-  //         orderBy: {
-  //           addedAt: 'desc',
-  //         },
-  //         take: limit,
-  //         skip: (page - 1) * limit,
-  //       },
-  //       _count: {
-  //         select: {
-  //           favoriteActions: true,
-  //         },
-  //       },
-  //     },
-  //     orderBy: {
-  //       createdAt: 'desc',
-  //     },
-  //   });
-
-  //   return products.map((product) => ({
-  //     id: product.id,
-  //     name: product.name,
-  //     price: product.price,
-  //     image: product.images[0] ? `${this.baseUrl}${product.images[0]}` : null,
-  //     totalFavorites: product._count.favoriteActions,
-  //     recentFavorites: product.favoriteActions.map((action) => ({
-  //       user: action.user,
-  //       addedAt: action.addedAt,
-  //     })),
-  //   }));
-  // }
 
   // Поиск товаров с фильтрацией и сортировкой
   async searchProducts(searchDto: any, userId?: number) {

@@ -35,9 +35,9 @@ export class SignUpDto {
   @IsNotEmpty({ message: 'Пароль обязателен для заполнения' })
   @MinLength(6, { message: 'Длина пароля не менее 6 символов' })
   password: string;
-  @ApiProperty({
-    example: 'INDIVIDUAL',
-  })
-  @IsEnum(ProfileType, { message: 'Неверный тип профиля' })
-  profileType: ProfileType;
+  // @ApiProperty({
+  //   example: 'INDIVIDUAL',
+  // })
+  // @IsEnum(ProfileType, { message: 'Неверный тип профиля' })
+  // profileType: ProfileType;
 }

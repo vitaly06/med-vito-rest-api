@@ -25,6 +25,13 @@ export class UserService {
       },
     });
 
+    const reviews = await this.prisma.review.findMany({
+      where: { reviewedUserId: id },
+      select: {
+        rating: true,
+      },
+    });
+
     if (!checkUser) {
       throw new BadRequestException('Пользователь не найден');
     }
@@ -32,6 +39,10 @@ export class UserService {
     return {
       ...checkUser,
       profileType: this.profileTypes[checkUser.profileType],
+      rating:
+        reviews.reduce((sum, review) => sum + review.rating, 0) /
+        reviews.length,
+      reviewsCount: reviews.length,
     };
   }
 

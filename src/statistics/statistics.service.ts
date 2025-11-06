@@ -149,11 +149,16 @@ export class StatisticsService {
 
   // Получить статистику добавлений в избранное
   private async getFavoriteStats(productFilter: any, dateFilter: any) {
+    // Создаем фильтр с правильным полем для FavoriteAction (addedAt вместо viewedAt)
+    const favoriteFilter = dateFilter.viewedAt
+      ? { addedAt: dateFilter.viewedAt }
+      : {};
+
     const favorites = await this.prisma.favoriteAction.groupBy({
       by: ['productId'],
       where: {
         product: productFilter,
-        ...dateFilter,
+        ...favoriteFilter,
       },
       _count: {
         id: true,

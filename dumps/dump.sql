@@ -613,6 +613,7 @@ COPY public."Chat" (id, "productId", "buyerId", "sellerId", "unreadCountBuyer", 
 --
 
 COPY public."FavoriteAction" (id, "userId", "productId", "addedAt") FROM stdin;
+1	4	1	2025-11-06 10:16:19.389
 \.
 
 
@@ -647,6 +648,7 @@ COPY public."Product" (id, name, price, state, brand, model, description, addres
 --
 
 COPY public."ProductView" (id, "viewedById", "productId", "viewedAt") FROM stdin;
+1	4	1	2025-11-06 10:16:22.404
 \.
 
 
@@ -765,9 +767,10 @@ COPY public."SubcategotyType" (id, name, "subcategoryId") FROM stdin;
 --
 
 COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "refreshToken", "refreshTokenExpiresAt", "createdAt", "updatedAt", rating, "isResetVerified") FROM stdin;
-1	Садиков Виталий Дмитриевич	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$X2estm9N44tB2hHPYAqbnecrXM/NF9iiSlJBIgL2opsHeO8t8J9n6	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImlhdCI6MTc2MjI5MDY0MCwiZXhwIjoxNzYyODk1NDQwfQ.0vwdYFk-GzxmCR2B5TjROMu8fqdRXaG_K0fvJ1nmcuY	2025-11-11 21:10:40.674	2025-11-04 12:16:36.672	2025-11-04 21:10:40.679	\N	f
 3	Садиков Виталий Дмитриевич	vitaly.sadikov3@yandex.ru	+79510341675	$2b$10$M2j5JoP.BteJNzPie9k/X.NyAEJHzGbOzwekVf2jXCSRAQmdddQ2q	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjMsImlhdCI6MTc2MjI5MDkzNCwiZXhwIjoxNzYyODk1NzM0fQ.y2ZlwL4Vfr3z6tDOeVeHnaXqB8YDIoWTmZgaWT0YPAA	2025-11-11 21:15:34.856	2025-11-04 21:15:12.141	2025-11-04 21:15:34.861	\N	f
-2	Садиков Виталий Дмитриевич	vitaly.sadikov2@yandex.ru	+79510341676	$2b$10$5C4dgckQJEBbOtu7ElWeHuMA438DcqEzfJKsuFWwITAsLLOd3HsZC	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImlhdCI6MTc2MjI5MDk3NCwiZXhwIjoxNzYyODk1Nzc0fQ.6c_Hzo16e2E3idzrSCfN8VLQBZeP2Mt1X3pGOUntSJg	2025-11-11 21:16:14.133	2025-11-04 12:16:46.707	2025-11-04 21:16:14.137	\N	f
+1	Садиков Виталий Дмитриевич	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$X2estm9N44tB2hHPYAqbnecrXM/NF9iiSlJBIgL2opsHeO8t8J9n6	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImlhdCI6MTc2MjI5NDA4MiwiZXhwIjoxNzYyODk4ODgyfQ.Rhs9Ek2hwosQzKCY45_7pxSaf9fEU-rYbNF0bIg2Dig	2025-11-11 22:08:02.265	2025-11-04 12:16:36.672	2025-11-04 22:08:02.268	\N	f
+2	Садиков Виталий Дмитриевич	vitaly.sadikov2@yandex.ru	+79510341676	$2b$10$5C4dgckQJEBbOtu7ElWeHuMA438DcqEzfJKsuFWwITAsLLOd3HsZC	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImlhdCI6MTc2MjQyMzc2MSwiZXhwIjoxNzYzMDI4NTYxfQ.r0PB-X2iQA97e4-egx7RVL-fRbiYqWoMsMRM9HTzYpI	2025-11-13 10:09:21.884	2025-11-04 12:16:46.707	2025-11-06 10:09:21.89	\N	f
+4	Садиков Виталий Дмитриевич	vitaly.sadikov4@yandex.ru	+79510341679	$2b$10$cqLxuDDSu4dQldhlaZHSd.XFkhV9S8723.r.dsvAD36QjCevzIG4i	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImlhdCI6MTc2MjQyNDM4MywiZXhwIjoxNzYzMDI5MTgzfQ.isN0zGLk914Lf4eKHeV2pjDU8KeNaPlMvF4aOkk3zlI	2025-11-13 10:19:43.274	2025-11-06 10:02:41.769	2025-11-06 10:19:43.276	\N	f
 \.
 
 
@@ -776,6 +779,7 @@ COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType
 --
 
 COPY public."_UserFavorites" ("A", "B") FROM stdin;
+1	4
 \.
 
 
@@ -809,7 +813,7 @@ SELECT pg_catalog.setval('public."Chat_id_seq"', 1, false);
 -- Name: FavoriteAction_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."FavoriteAction_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."FavoriteAction_id_seq"', 1, true);
 
 
 --
@@ -830,7 +834,7 @@ SELECT pg_catalog.setval('public."PhoneNumberView_id_seq"', 1, true);
 -- Name: ProductView_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."ProductView_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."ProductView_id_seq"', 3, true);
 
 
 --
@@ -865,7 +869,7 @@ SELECT pg_catalog.setval('public."SubcategotyType_id_seq"', 72, true);
 -- Name: User_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."User_id_seq"', 3, true);
+SELECT pg_catalog.setval('public."User_id_seq"', 4, true);
 
 
 --

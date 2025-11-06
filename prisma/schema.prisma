@@ -20,7 +20,7 @@ enum ProductState {
 
 model User {
   id                    Int         @id @default(autoincrement())
-  fullName              String
+  fullName              String      
   email                 String      @unique
   phoneNumber           String      @unique
   password              String
