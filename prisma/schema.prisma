@@ -29,6 +29,9 @@ model User {
   refreshToken          String?
   refreshTokenExpiresAt DateTime?
 
+  roleId Int?
+  role Role? @relation(fields: [roleId], references: [id])
+
   isResetVerified Boolean @default(false)
 
   products  Product[]
@@ -57,8 +60,23 @@ model User {
   // Отзывы, которые писал пользователь
   reviewsUser Review[] @relation("ReviewedUser")
 
+  // Система поддержки
+  // Тикеты, созданные пользователем
+  supportTickets SupportTicket[] @relation("UserSupportTickets")
+  // Тикеты, назначенные модератору
+  moderatorTickets SupportTicket[] @relation("ModeratorSupportTickets")
+  // Сообщения в системе поддержки
+  supportMessages SupportMessage[] @relation("SupportMessageAuthor")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Role {
+  id Int @id @default(autoincrement())
+  name String @unique
+  users User[]
+
 }
 
 model Product {
@@ -253,5 +271,80 @@ model FavoriteAction {
   addedAt DateTime @default(now())
 
   @@unique([userId, productId])
+}
+
+// Энумы для системы поддержки
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketTheme {
+  TECHNICAL_ISSUE
+  ACCOUNT_PROBLEM
+  PAYMENT_ISSUE
+  PRODUCT_QUESTION
+  COMPLAINT
+  SUGGESTION
+  OTHER
+}
+
+// Тикет поддержки
+model SupportTicket {
+  id Int @id @default(autoincrement())
+
+  // Тема тикета
+  theme TicketTheme
+  
+  // Заголовок тикета
+  subject String
+  
+  // Статус тикета
+  status TicketStatus @default(OPEN)
+  
+  // Приоритет
+  priority TicketPriority @default(MEDIUM)
+
+  // Пользователь, создавший тикет
+  userId Int
+  user   User @relation("UserSupportTickets", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Модератор, назначенный на тикет (может быть null)
+  moderatorId Int?
+  moderator   User? @relation("ModeratorSupportTickets", fields: [moderatorId], references: [id], onDelete: SetNull)
+
+  // Сообщения в тикете
+  messages SupportMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Сообщения в тикете поддержки
+model SupportMessage {
+  id Int @id @default(autoincrement())
+
+  // Тикет, к которому относится сообщение
+  ticketId Int
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  // Автор сообщения
+  authorId Int
+  author   User @relation("SupportMessageAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Текст сообщения
+  text String
+
+  // Время отправки
+  sentAt DateTime @default(now())
 }
 

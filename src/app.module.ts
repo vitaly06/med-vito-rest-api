@@ -10,6 +10,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { ChatModule } from './chat/chat.module';
 import { StatisticsModule } from './statistics/statistics.module';
 import { ReviewModule } from './review/review.module';
+import { SupportModule } from './support/support.module';
 import * as redisStore from 'cache-manager-ioredis';
 
 @Module({
@@ -34,6 +35,7 @@ import * as redisStore from 'cache-manager-ioredis';
     ChatModule,
     StatisticsModule,
     ReviewModule,
+    SupportModule,
   ],
 })
 export class AppModule {}

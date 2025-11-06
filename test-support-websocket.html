@@ -1,0 +1,397 @@
+<!doctype html>
+<html>
+  <head>
+    <title>WebSocket Support Test</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+  </head>
+  <body>
+    <h1>WebSocket Support System Test</h1>
+
+    <!-- Авторизация -->
+    <div style="border: 1px solid #ccc; padding: 10px; margin: 10px 0">
+      <h3>Step 1: Login first</h3>
+      <input
+        type="email"
+        id="email"
+        placeholder="Email"
+        value="test@example.com"
+      />
+      <input
+        type="password"
+        id="password"
+        placeholder="Password"
+        value="password"
+      />
+      <button onclick="login()">Login</button>
+      <div id="loginStatus"></div>
+    </div>
+
+    <!-- Тестирование REST API -->
+    <div style="border: 1px solid #ccc; padding: 10px; margin: 10px 0">
+      <h3>Step 2: Test REST API</h3>
+      <button onclick="createTicket()">Create Test Ticket</button>
+      <button onclick="getMyTickets()">Get My Tickets</button>
+      <div id="restApiResults"></div>
+    </div>
+
+    <!-- WebSocket тестирование -->
+    <div style="border: 1px solid #ccc; padding: 10px; margin: 10px 0">
+      <h3>Step 3: Test WebSocket</h3>
+      <div id="status">Not connected</div>
+      <button onclick="connectWS()">Connect Support WebSocket</button>
+
+      <div style="margin: 10px 0">
+        <input type="number" id="ticketId" placeholder="Ticket ID" value="1" />
+        <button onclick="joinTicket()">Join Ticket</button>
+        <button onclick="leaveTicket()">Leave Ticket</button>
+      </div>
+
+      <div style="margin: 10px 0">
+        <input
+          type="text"
+          id="messageText"
+          placeholder="Message text"
+          value="Hello from support test!"
+        />
+        <button onclick="sendSupportMessage()">Send Message</button>
+      </div>
+
+      <div style="margin: 10px 0">
+        <button onclick="startTyping()">Start Typing</button>
+        <button onclick="stopTyping()">Stop Typing</button>
+      </div>
+
+      <div
+        id="messages"
+        style="
+          border: 1px solid #eee;
+          padding: 10px;
+          height: 200px;
+          overflow-y: auto;
+        "
+      ></div>
+    </div>
+
+    <script>
+      let socket = null;
+      let currentTicketId = null;
+
+      // Функция для логина
+      async function login() {
+        const login = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+
+        try {
+          const response = await fetch('http://localhost:3000/auth/sign-in', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include', // Важно для куков
+            body: JSON.stringify({ login, password }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            document.getElementById('loginStatus').innerHTML =
+              '<span style="color: green;">Login successful! You can now use Support API and WebSocket.</span>';
+            console.log('Login successful:', data);
+          } else {
+            const error = await response.json();
+            document.getElementById('loginStatus').innerHTML =
+              '<span style="color: red;">Login failed: ' +
+              (error.message || 'Unknown error') +
+              '</span>';
+          }
+        } catch (error) {
+          console.error('Login error:', error);
+          document.getElementById('loginStatus').innerHTML =
+            '<span style="color: red;">Login error: ' +
+            error.message +
+            '</span>';
+        }
+      }
+
+      // Создание тестового тикета
+      async function createTicket() {
+        try {
+          const response = await fetch(
+            'http://localhost:3000/support/tickets',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+              body: JSON.stringify({
+                theme: 'TECHNICAL_ISSUE',
+                subject: 'Тестовая проблема',
+                message:
+                  'Это тестовое сообщение для проверки системы поддержки',
+                priority: 'MEDIUM',
+              }),
+            },
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            document.getElementById('restApiResults').innerHTML =
+              '<div style="color: green;">Ticket created: ID = ' +
+              data.id +
+              '</div>';
+            document.getElementById('ticketId').value = data.id;
+            console.log('Ticket created:', data);
+          } else {
+            const error = await response.json();
+            document.getElementById('restApiResults').innerHTML =
+              '<div style="color: red;">Failed to create ticket: ' +
+              (error.message || 'Unknown error') +
+              '</div>';
+          }
+        } catch (error) {
+          console.error('Create ticket error:', error);
+          document.getElementById('restApiResults').innerHTML =
+            '<div style="color: red;">Create ticket error: ' +
+            error.message +
+            '</div>';
+        }
+      }
+
+      // Получение тикетов пользователя
+      async function getMyTickets() {
+        try {
+          const response = await fetch(
+            'http://localhost:3000/support/tickets/my',
+            {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+            },
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            document.getElementById('restApiResults').innerHTML =
+              '<div style="color: green;">My tickets: ' +
+              JSON.stringify(data, null, 2) +
+              '</div>';
+            console.log('My tickets:', data);
+          } else {
+            const error = await response.json();
+            document.getElementById('restApiResults').innerHTML =
+              '<div style="color: red;">Failed to get tickets: ' +
+              (error.message || 'Unknown error') +
+              '</div>';
+          }
+        } catch (error) {
+          console.error('Get tickets error:', error);
+          document.getElementById('restApiResults').innerHTML =
+            '<div style="color: red;">Get tickets error: ' +
+            error.message +
+            '</div>';
+        }
+      }
+
+      // Функция для подключения WebSocket
+      function connectWS() {
+        if (socket) {
+          socket.disconnect();
+        }
+
+        // Подключение к WebSocket серверу с namespace для поддержки
+        socket = io('http://localhost:3000/support', {
+          transports: ['websocket'],
+          upgrade: false,
+          withCredentials: true, // Важно для передачи куков
+        });
+
+        socket.on('connect', () => {
+          document.getElementById('status').innerHTML =
+            '<span style="color: green;">Connected! Socket ID: ' +
+            socket.id +
+            '</span>';
+          console.log('Connected to Support WebSocket server');
+        });
+
+        socket.on('disconnect', () => {
+          document.getElementById('status').innerHTML =
+            '<span style="color: red;">Disconnected</span>';
+          console.log('Disconnected from Support WebSocket server');
+        });
+
+        socket.on('error', (error) => {
+          console.error('Socket error:', error);
+          document.getElementById('status').innerHTML =
+            '<span style="color: red;">Error: ' + error + '</span>';
+          addMessage('Socket Error: ' + JSON.stringify(error), 'error');
+        });
+
+        // Обработчики событий поддержки
+        socket.on('joinedTicket', (data) => {
+          console.log('Joined ticket:', data);
+          addMessage('✅ Joined ticket: ' + JSON.stringify(data), 'success');
+        });
+
+        socket.on('leftTicket', (data) => {
+          console.log('Left ticket:', data);
+          addMessage('❌ Left ticket: ' + JSON.stringify(data), 'info');
+        });
+
+        socket.on('newSupportMessage', (data) => {
+          console.log('New support message:', data);
+          addMessage('💬 New message: ' + JSON.stringify(data), 'message');
+        });
+
+        socket.on('moderatorResponse', (data) => {
+          console.log('Moderator response:', data);
+          addMessage(
+            '👨‍💼 Moderator response: ' + JSON.stringify(data),
+            'moderator',
+          );
+        });
+
+        socket.on('supportUserTyping', (data) => {
+          console.log('User typing:', data);
+          addMessage(
+            '⌨️ User typing: ' +
+              data.userName +
+              ' is ' +
+              (data.isTyping ? 'typing...' : 'stopped typing'),
+            'typing',
+          );
+        });
+
+        socket.on('ticketStatusUpdated', (data) => {
+          console.log('Ticket status updated:', data);
+          addMessage('🔄 Status updated: ' + JSON.stringify(data), 'status');
+        });
+
+        socket.on('newSupportTicket', (data) => {
+          console.log('New support ticket:', data);
+          addMessage('🎫 New ticket: ' + JSON.stringify(data), 'info');
+        });
+
+        socket.on('ticketAssigned', (data) => {
+          console.log('Ticket assigned:', data);
+          addMessage('👥 Ticket assigned: ' + JSON.stringify(data), 'info');
+        });
+      }
+
+      // Присоединение к тикету
+      function joinTicket() {
+        if (!socket) {
+          addMessage('Please connect WebSocket first', 'error');
+          return;
+        }
+
+        const ticketId = parseInt(document.getElementById('ticketId').value);
+        if (!ticketId) {
+          addMessage('Please enter ticket ID', 'error');
+          return;
+        }
+
+        currentTicketId = ticketId;
+        console.log('Sending joinTicket event');
+        socket.emit('joinTicket', { ticketId });
+      }
+
+      // Покидание тикета
+      function leaveTicket() {
+        if (!socket) {
+          addMessage('Please connect WebSocket first', 'error');
+          return;
+        }
+
+        const ticketId = parseInt(document.getElementById('ticketId').value);
+        if (!ticketId) {
+          addMessage('Please enter ticket ID', 'error');
+          return;
+        }
+
+        console.log('Sending leaveTicket event');
+        socket.emit('leaveTicket', { ticketId });
+        currentTicketId = null;
+      }
+
+      // Отправка сообщения в поддержку
+      function sendSupportMessage() {
+        if (!socket) {
+          addMessage('Please connect WebSocket first', 'error');
+          return;
+        }
+
+        const ticketId = parseInt(document.getElementById('ticketId').value);
+        const text = document.getElementById('messageText').value;
+
+        if (!ticketId || !text) {
+          addMessage('Please enter ticket ID and message text', 'error');
+          return;
+        }
+
+        console.log('Sending sendSupportMessage event');
+        socket.emit('sendSupportMessage', {
+          ticketId,
+          message: { text },
+        });
+
+        // Очищаем поле ввода
+        document.getElementById('messageText').value = '';
+      }
+
+      // Уведомление о наборе текста
+      function startTyping() {
+        if (!socket || !currentTicketId) {
+          addMessage(
+            'Please connect WebSocket and join a ticket first',
+            'error',
+          );
+          return;
+        }
+
+        socket.emit('supportTyping', {
+          ticketId: currentTicketId,
+          isTyping: true,
+        });
+      }
+
+      function stopTyping() {
+        if (!socket || !currentTicketId) {
+          addMessage(
+            'Please connect WebSocket and join a ticket first',
+            'error',
+          );
+          return;
+        }
+
+        socket.emit('supportTyping', {
+          ticketId: currentTicketId,
+          isTyping: false,
+        });
+      }
+
+      // Добавление сообщения в лог
+      function addMessage(text, type = 'info') {
+        const messages = document.getElementById('messages');
+        const colors = {
+          error: 'red',
+          success: 'green',
+          info: 'blue',
+          message: 'purple',
+          moderator: 'orange',
+          typing: 'gray',
+          status: 'brown',
+        };
+
+        const time = new Date().toLocaleTimeString();
+        messages.innerHTML +=
+          `<div style="color: ${colors[type] || 'black'}; margin: 2px 0;">` +
+          `<strong>${time}:</strong> ${text}</div>`;
+
+        // Автопрокрутка вниз
+        messages.scrollTop = messages.scrollHeight;
+      }
+    </script>
+  </body>
+</html>

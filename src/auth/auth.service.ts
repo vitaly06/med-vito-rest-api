@@ -39,11 +39,19 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
+
+    const role = await this.prisma.role.findUnique({
+      where: { name: 'default' },
+    });
+    if (!role) {
+      throw new NotFoundException('Роль default не найдена');
+    }
     try {
       await this.prisma.user.create({
         data: {
           ...dto,
           password: hashedPassword,
+          roleId: role?.id,
         },
       });
 

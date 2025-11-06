@@ -58,6 +58,51 @@ CREATE TYPE public."ProfileType" AS ENUM (
 
 ALTER TYPE public."ProfileType" OWNER TO postgres;
 
+--
+-- Name: TicketPriority; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public."TicketPriority" AS ENUM (
+    'LOW',
+    'MEDIUM',
+    'HIGH',
+    'URGENT'
+);
+
+
+ALTER TYPE public."TicketPriority" OWNER TO postgres;
+
+--
+-- Name: TicketStatus; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public."TicketStatus" AS ENUM (
+    'OPEN',
+    'IN_PROGRESS',
+    'RESOLVED',
+    'CLOSED'
+);
+
+
+ALTER TYPE public."TicketStatus" OWNER TO postgres;
+
+--
+-- Name: TicketTheme; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public."TicketTheme" AS ENUM (
+    'TECHNICAL_ISSUE',
+    'ACCOUNT_PROBLEM',
+    'PAYMENT_ISSUE',
+    'PRODUCT_QUESTION',
+    'COMPLAINT',
+    'SUGGESTION',
+    'OTHER'
+);
+
+
+ALTER TYPE public."TicketTheme" OWNER TO postgres;
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -371,6 +416,40 @@ ALTER SEQUENCE public."Review_id_seq" OWNED BY public."Review".id;
 
 
 --
+-- Name: Role; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Role" (
+    id integer NOT NULL,
+    name text NOT NULL
+);
+
+
+ALTER TABLE public."Role" OWNER TO postgres;
+
+--
+-- Name: Role_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Role_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Role_id_seq" OWNER TO postgres;
+
+--
+-- Name: Role_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Role_id_seq" OWNED BY public."Role".id;
+
+
+--
 -- Name: SubCategory; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -441,6 +520,84 @@ ALTER SEQUENCE public."SubcategotyType_id_seq" OWNED BY public."SubcategotyType"
 
 
 --
+-- Name: SupportMessage; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."SupportMessage" (
+    id integer NOT NULL,
+    "ticketId" integer NOT NULL,
+    "authorId" integer NOT NULL,
+    text text NOT NULL,
+    "sentAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."SupportMessage" OWNER TO postgres;
+
+--
+-- Name: SupportMessage_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."SupportMessage_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."SupportMessage_id_seq" OWNER TO postgres;
+
+--
+-- Name: SupportMessage_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."SupportMessage_id_seq" OWNED BY public."SupportMessage".id;
+
+
+--
+-- Name: SupportTicket; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."SupportTicket" (
+    id integer NOT NULL,
+    theme public."TicketTheme" NOT NULL,
+    subject text NOT NULL,
+    status public."TicketStatus" DEFAULT 'OPEN'::public."TicketStatus" NOT NULL,
+    priority public."TicketPriority" DEFAULT 'MEDIUM'::public."TicketPriority" NOT NULL,
+    "userId" integer NOT NULL,
+    "moderatorId" integer,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."SupportTicket" OWNER TO postgres;
+
+--
+-- Name: SupportTicket_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."SupportTicket_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."SupportTicket_id_seq" OWNER TO postgres;
+
+--
+-- Name: SupportTicket_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."SupportTicket_id_seq" OWNED BY public."SupportTicket".id;
+
+
+--
 -- Name: User; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -456,7 +613,8 @@ CREATE TABLE public."User" (
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "updatedAt" timestamp(3) without time zone NOT NULL,
     rating integer,
-    "isResetVerified" boolean DEFAULT false NOT NULL
+    "isResetVerified" boolean DEFAULT false NOT NULL,
+    "roleId" integer
 );
 
 
@@ -571,6 +729,13 @@ ALTER TABLE ONLY public."Review" ALTER COLUMN id SET DEFAULT nextval('public."Re
 
 
 --
+-- Name: Role id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Role" ALTER COLUMN id SET DEFAULT nextval('public."Role_id_seq"'::regclass);
+
+
+--
 -- Name: SubCategory id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -582,6 +747,20 @@ ALTER TABLE ONLY public."SubCategory" ALTER COLUMN id SET DEFAULT nextval('publi
 --
 
 ALTER TABLE ONLY public."SubcategotyType" ALTER COLUMN id SET DEFAULT nextval('public."SubcategotyType_id_seq"'::regclass);
+
+
+--
+-- Name: SupportMessage id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."SupportMessage" ALTER COLUMN id SET DEFAULT nextval('public."SupportMessage_id_seq"'::regclass);
+
+
+--
+-- Name: SupportTicket id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."SupportTicket" ALTER COLUMN id SET DEFAULT nextval('public."SupportTicket_id_seq"'::regclass);
 
 
 --
@@ -613,7 +792,6 @@ COPY public."Chat" (id, "productId", "buyerId", "sellerId", "unreadCountBuyer", 
 --
 
 COPY public."FavoriteAction" (id, "userId", "productId", "addedAt") FROM stdin;
-1	4	1	2025-11-06 10:16:19.389
 \.
 
 
@@ -630,7 +808,6 @@ COPY public."Message" (id, content, "senderId", "chatId", "isRead", "readAt", "c
 --
 
 COPY public."PhoneNumberView" (id, "viewedById", "viewedUserId", "viewedAt") FROM stdin;
-1	2	1	2025-11-04 12:17:15.834
 \.
 
 
@@ -639,7 +816,6 @@ COPY public."PhoneNumberView" (id, "viewedById", "viewedUserId", "viewedAt") FRO
 --
 
 COPY public."Product" (id, name, price, state, brand, model, description, address, images, "categoryId", "subCategoryId", "userId", "createdAt", "updatedAt") FROM stdin;
-1	Ручка шариковая	40	NEW	RYCHKA	Rychka 15 pro max	Новый Rychka 15 Pro max в отличном состоянии	г. Москва, ул. Тверская, д. 1	{/uploads/product/images-1762275324649-128468681.jpg}	1	6	1	2025-11-04 16:55:24.669	2025-11-04 16:55:24.669
 \.
 
 
@@ -648,7 +824,6 @@ COPY public."Product" (id, name, price, state, brand, model, description, addres
 --
 
 COPY public."ProductView" (id, "viewedById", "productId", "viewedAt") FROM stdin;
-1	4	1	2025-11-06 10:16:22.404
 \.
 
 
@@ -657,8 +832,17 @@ COPY public."ProductView" (id, "viewedById", "productId", "viewedAt") FROM stdin
 --
 
 COPY public."Review" (id, "reviewedById", text, rating, "reviewedUserId", "reviewedAt") FROM stdin;
-1	1	Коляска очень вместительная! 5 звёзд!	5	2	2025-11-04 21:12:15.924
-2	3	Коляска пришла в плохом состоянии!	3.5	2	2025-11-04 21:15:55.997
+\.
+
+
+--
+-- Data for Name: Role; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Role" (id, name) FROM stdin;
+1	default
+2	moderator
+3	admin
 \.
 
 
@@ -763,14 +947,28 @@ COPY public."SubcategotyType" (id, name, "subcategoryId") FROM stdin;
 
 
 --
+-- Data for Name: SupportMessage; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."SupportMessage" (id, "ticketId", "authorId", text, "sentAt") FROM stdin;
+\.
+
+
+--
+-- Data for Name: SupportTicket; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."SupportTicket" (id, theme, subject, status, priority, "userId", "moderatorId", "createdAt", "updatedAt") FROM stdin;
+\.
+
+
+--
 -- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "refreshToken", "refreshTokenExpiresAt", "createdAt", "updatedAt", rating, "isResetVerified") FROM stdin;
-3	Садиков Виталий Дмитриевич	vitaly.sadikov3@yandex.ru	+79510341675	$2b$10$M2j5JoP.BteJNzPie9k/X.NyAEJHzGbOzwekVf2jXCSRAQmdddQ2q	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjMsImlhdCI6MTc2MjI5MDkzNCwiZXhwIjoxNzYyODk1NzM0fQ.y2ZlwL4Vfr3z6tDOeVeHnaXqB8YDIoWTmZgaWT0YPAA	2025-11-11 21:15:34.856	2025-11-04 21:15:12.141	2025-11-04 21:15:34.861	\N	f
-1	Садиков Виталий Дмитриевич	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$X2estm9N44tB2hHPYAqbnecrXM/NF9iiSlJBIgL2opsHeO8t8J9n6	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImlhdCI6MTc2MjI5NDA4MiwiZXhwIjoxNzYyODk4ODgyfQ.Rhs9Ek2hwosQzKCY45_7pxSaf9fEU-rYbNF0bIg2Dig	2025-11-11 22:08:02.265	2025-11-04 12:16:36.672	2025-11-04 22:08:02.268	\N	f
-2	Садиков Виталий Дмитриевич	vitaly.sadikov2@yandex.ru	+79510341676	$2b$10$5C4dgckQJEBbOtu7ElWeHuMA438DcqEzfJKsuFWwITAsLLOd3HsZC	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImlhdCI6MTc2MjQyMzc2MSwiZXhwIjoxNzYzMDI4NTYxfQ.r0PB-X2iQA97e4-egx7RVL-fRbiYqWoMsMRM9HTzYpI	2025-11-13 10:09:21.884	2025-11-04 12:16:46.707	2025-11-06 10:09:21.89	\N	f
-4	Садиков Виталий Дмитриевич	vitaly.sadikov4@yandex.ru	+79510341679	$2b$10$cqLxuDDSu4dQldhlaZHSd.XFkhV9S8723.r.dsvAD36QjCevzIG4i	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImlhdCI6MTc2MjQyNDM4MywiZXhwIjoxNzYzMDI5MTgzfQ.isN0zGLk914Lf4eKHeV2pjDU8KeNaPlMvF4aOkk3zlI	2025-11-13 10:19:43.274	2025-11-06 10:02:41.769	2025-11-06 10:19:43.276	\N	f
+COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "refreshToken", "refreshTokenExpiresAt", "createdAt", "updatedAt", rating, "isResetVerified", "roleId") FROM stdin;
+6	Садиков Виталий Дмитриевич	vitaly.sadikov2@yandex.ru	+79510341676	$2b$10$Tsi0whXkdERT2AvjSe6Jn.v6ba.K3sTDPXT6AzWMlkpahIY.LxDSS	INDIVIDUAL	\N	\N	2025-11-06 19:33:55.742	2025-11-06 19:33:55.742	\N	f	1
+5	Садиков Виталий Дмитриевич	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C	INDIVIDUAL	\N	\N	2025-11-06 19:33:46.625	2025-11-06 19:34:20.828	\N	f	2
 \.
 
 
@@ -779,7 +977,6 @@ COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType
 --
 
 COPY public."_UserFavorites" ("A", "B") FROM stdin;
-1	4
 \.
 
 
@@ -788,6 +985,11 @@ COPY public."_UserFavorites" ("A", "B") FROM stdin;
 --
 
 COPY public._prisma_migrations (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count) FROM stdin;
+6c3c162d-a2a2-429c-a947-535a7d1ce19e	9a97e81893bf2ec4fc3cbb193511b77b89e82561206c399240ad61a1ef3f5411	2025-11-06 21:13:06.102356+02	20251008175218_add_refresh_token_to_user	\N	\N	2025-11-06 21:13:06.059517+02	1
+e3b26ca6-1680-4576-bcfe-22ede4738205	cb65e46beba4ea36f2090bc28cb45f2d037cd9ceda9b5f126c4cae06f4c46b68	2025-11-06 21:13:06.165458+02	20251012105519_add_product_categories_images	\N	\N	2025-11-06 21:13:06.105344+02	1
+f261c8c3-3a9f-4cd1-9edb-77561e67b37f	f1c9c744537ed418b626a499157343dd8afb663cdb8c6b3252b271c2c8c9f603	2025-11-06 21:13:06.180541+02	20251014052438_add_user_favorites	\N	\N	2025-11-06 21:13:06.167153+02	1
+bfb3baed-143f-4caf-8d65-c07bdd63a80f	03d3193b4270d1c37aa9f566c2eef2d9ee62ab10ef42ef75f3af96f130928504	2025-11-06 21:13:06.237422+02	20251104121014_add_phone_number_view_stats	\N	\N	2025-11-06 21:13:06.181534+02	1
+df00ed7f-80fe-4458-8f8b-83fe88304cc8	8d8cfe1eacb1a375fc8254a31aa50217e946af0d14f48f9a25000d7ccec5bfcc	2025-11-06 21:13:16.694481+02	20251106191316_add_support_system	\N	\N	2025-11-06 21:13:16.57959+02	1
 677d62ff-b994-413b-95cc-1e84acebc01a	9a97e81893bf2ec4fc3cbb193511b77b89e82561206c399240ad61a1ef3f5411	2025-11-04 14:10:04.704194+02	20251008175218_add_refresh_token_to_user	\N	\N	2025-11-04 14:10:04.69034+02	1
 19a6379e-4e35-46d4-9f7c-e26039da52f6	cb65e46beba4ea36f2090bc28cb45f2d037cd9ceda9b5f126c4cae06f4c46b68	2025-11-04 14:10:04.730779+02	20251012105519_add_product_categories_images	\N	\N	2025-11-04 14:10:04.70509+02	1
 2fa6215e-913c-49c2-b810-2a3e54e4c771	f1c9c744537ed418b626a499157343dd8afb663cdb8c6b3252b271c2c8c9f603	2025-11-04 14:10:04.742188+02	20251014052438_add_user_favorites	\N	\N	2025-11-04 14:10:04.731824+02	1
@@ -852,6 +1054,13 @@ SELECT pg_catalog.setval('public."Review_id_seq"', 2, true);
 
 
 --
+-- Name: Role_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Role_id_seq"', 3, true);
+
+
+--
 -- Name: SubCategory_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -866,10 +1075,24 @@ SELECT pg_catalog.setval('public."SubcategotyType_id_seq"', 72, true);
 
 
 --
+-- Name: SupportMessage_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."SupportMessage_id_seq"', 1, false);
+
+
+--
+-- Name: SupportTicket_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."SupportTicket_id_seq"', 1, false);
+
+
+--
 -- Name: User_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."User_id_seq"', 4, true);
+SELECT pg_catalog.setval('public."User_id_seq"', 6, true);
 
 
 --
@@ -937,6 +1160,14 @@ ALTER TABLE ONLY public."Review"
 
 
 --
+-- Name: Role Role_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Role"
+    ADD CONSTRAINT "Role_pkey" PRIMARY KEY (id);
+
+
+--
 -- Name: SubCategory SubCategory_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -950,6 +1181,22 @@ ALTER TABLE ONLY public."SubCategory"
 
 ALTER TABLE ONLY public."SubcategotyType"
     ADD CONSTRAINT "SubcategotyType_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: SupportMessage SupportMessage_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."SupportMessage"
+    ADD CONSTRAINT "SupportMessage_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: SupportTicket SupportTicket_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."SupportTicket"
+    ADD CONSTRAINT "SupportTicket_pkey" PRIMARY KEY (id);
 
 
 --
@@ -1009,6 +1256,13 @@ CREATE UNIQUE INDEX "ProductView_viewedById_productId_key" ON public."ProductVie
 --
 
 CREATE UNIQUE INDEX "Review_reviewedById_reviewedUserId_key" ON public."Review" USING btree ("reviewedById", "reviewedUserId");
+
+
+--
+-- Name: Role_name_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "Role_name_key" ON public."Role" USING btree (name);
 
 
 --
@@ -1182,6 +1436,46 @@ ALTER TABLE ONLY public."SubCategory"
 
 ALTER TABLE ONLY public."SubcategotyType"
     ADD CONSTRAINT "SubcategotyType_subcategoryId_fkey" FOREIGN KEY ("subcategoryId") REFERENCES public."SubCategory"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: SupportMessage SupportMessage_authorId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."SupportMessage"
+    ADD CONSTRAINT "SupportMessage_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: SupportMessage SupportMessage_ticketId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."SupportMessage"
+    ADD CONSTRAINT "SupportMessage_ticketId_fkey" FOREIGN KEY ("ticketId") REFERENCES public."SupportTicket"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: SupportTicket SupportTicket_moderatorId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."SupportTicket"
+    ADD CONSTRAINT "SupportTicket_moderatorId_fkey" FOREIGN KEY ("moderatorId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: SupportTicket SupportTicket_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."SupportTicket"
+    ADD CONSTRAINT "SupportTicket_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: User User_roleId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."User"
+    ADD CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES public."Role"(id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 
 --
