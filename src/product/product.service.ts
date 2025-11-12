@@ -88,8 +88,8 @@ export class ProductService {
     }
   }
 
-  async findAll() {
-    const products = await this.prisma.product.findMany({
+  async findAll(userId?: number) {
+    let products = await this.prisma.product.findMany({
       select: {
         id: true,
         images: true,
@@ -97,10 +97,37 @@ export class ProductService {
         address: true,
         createdAt: true,
         price: true,
+        userId: true,
       },
     });
 
-    return this.formatProductsResponse(products);
+    if (userId) {
+      const result = products.map(async (product) => {
+        if (product.userId != userId) {
+          return {
+            ...product,
+            isFavorited: userId
+              ? await this.isProductInUserFavorites(product.id, userId)
+              : false,
+          };
+        }
+        return {
+          ...product,
+          isFavorited: false,
+        };
+      });
+
+      return this.formatProductsResponse(result);
+    }
+
+    return this.formatProductsResponse(
+      products.map((product) => {
+        return {
+          ...product,
+          isFavorited: false,
+        };
+      }),
+    );
   }
 
   async getProductsByUserId(id: number) {

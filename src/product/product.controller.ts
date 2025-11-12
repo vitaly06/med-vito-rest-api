@@ -179,9 +179,10 @@ export class ProductController {
   @ApiOperation({
     summary: 'Возвращает все товары для главной страницы',
   })
+  @UseGuards(OptionalJwtAuthGuard)
   @Get('all-products')
-  async findAll() {
-    return await this.productService.findAll();
+  async findAll(req: Request & { user: any }) {
+    return await this.productService.findAll(req?.user?.Id);
   }
 
   @ApiOperation({
