@@ -792,6 +792,7 @@ COPY public."Chat" (id, "productId", "buyerId", "sellerId", "unreadCountBuyer", 
 --
 
 COPY public."FavoriteAction" (id, "userId", "productId", "addedAt") FROM stdin;
+2	6	2	2025-11-14 11:42:45.616
 \.
 
 
@@ -816,6 +817,7 @@ COPY public."PhoneNumberView" (id, "viewedById", "viewedUserId", "viewedAt") FRO
 --
 
 COPY public."Product" (id, name, price, state, brand, model, description, address, images, "categoryId", "subCategoryId", "userId", "createdAt", "updatedAt") FROM stdin;
+2	iPhone 15 Pro	120000	NEW	Apple	iPhone 15 Pro	Новый iPhone 15 Pro в отличном состоянии	г. Москва, ул. Тверская, д. 1	{/uploads/product/images-1762934382600-525832298.jpg}	1	1	5	2025-11-12 07:59:42.638	2025-11-12 07:59:42.638
 \.
 
 
@@ -824,6 +826,7 @@ COPY public."Product" (id, name, price, state, brand, model, description, addres
 --
 
 COPY public."ProductView" (id, "viewedById", "productId", "viewedAt") FROM stdin;
+4	6	2	2025-11-14 11:42:49.53
 \.
 
 
@@ -967,8 +970,8 @@ COPY public."SupportTicket" (id, theme, subject, status, priority, "userId", "mo
 --
 
 COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "refreshToken", "refreshTokenExpiresAt", "createdAt", "updatedAt", rating, "isResetVerified", "roleId") FROM stdin;
-6	Садиков Виталий Дмитриевич	vitaly.sadikov2@yandex.ru	+79510341676	$2b$10$Tsi0whXkdERT2AvjSe6Jn.v6ba.K3sTDPXT6AzWMlkpahIY.LxDSS	INDIVIDUAL	\N	\N	2025-11-06 19:33:55.742	2025-11-06 19:33:55.742	\N	f	1
-5	Садиков Виталий Дмитриевич	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C	INDIVIDUAL	\N	\N	2025-11-06 19:33:46.625	2025-11-06 19:34:20.828	\N	f	2
+5	Садиков Виталий Дмитриевич	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjUsImlhdCI6MTc2MzExOTYzMSwiZXhwIjoxNzYzNzI0NDMxfQ.1JUYr54107yREkb3LWC4pw8RA6YNlm87XkdeFsEAhFw	2025-11-21 11:27:11.257	2025-11-06 19:33:46.625	2025-11-14 11:27:11.264	\N	f	2
+6	Садиков Виталий Дмитриевич	vitaly.sadikov2@yandex.ru	+79510341676	$2b$10$Tsi0whXkdERT2AvjSe6Jn.v6ba.K3sTDPXT6AzWMlkpahIY.LxDSS	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImlhdCI6MTc2MzEyODI4MywiZXhwIjoxNzYzNzMzMDgzfQ.voamrexihPG-5jJlWTXnrxwNvivoFoGPCm6T-DezAbM	2025-11-21 13:51:23.081	2025-11-06 19:33:55.742	2025-11-14 13:51:23.082	\N	f	1
 \.
 
 
@@ -977,6 +980,7 @@ COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType
 --
 
 COPY public."_UserFavorites" ("A", "B") FROM stdin;
+2	6
 \.
 
 
@@ -1015,7 +1019,7 @@ SELECT pg_catalog.setval('public."Chat_id_seq"', 1, false);
 -- Name: FavoriteAction_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."FavoriteAction_id_seq"', 1, true);
+SELECT pg_catalog.setval('public."FavoriteAction_id_seq"', 2, true);
 
 
 --
@@ -1036,14 +1040,14 @@ SELECT pg_catalog.setval('public."PhoneNumberView_id_seq"', 1, true);
 -- Name: ProductView_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."ProductView_id_seq"', 3, true);
+SELECT pg_catalog.setval('public."ProductView_id_seq"', 4, true);
 
 
 --
 -- Name: Product_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Product_id_seq"', 1, true);
+SELECT pg_catalog.setval('public."Product_id_seq"', 2, true);
 
 
 --

@@ -41,7 +41,7 @@ export class UserService {
       profileType: this.profileTypes[checkUser.profileType],
       rating:
         reviews.reduce((sum, review) => sum + review.rating, 0) /
-        reviews.length,
+          reviews.length || 0,
       reviewsCount: reviews.length,
     };
   }

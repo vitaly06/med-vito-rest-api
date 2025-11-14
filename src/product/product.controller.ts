@@ -26,6 +26,7 @@ import {
   ApiBearerAuth,
   ApiResponse,
 } from '@nestjs/swagger';
+import { request } from 'https';
 
 @ApiTags('Products')
 @Controller('product')
@@ -181,8 +182,8 @@ export class ProductController {
   })
   @UseGuards(OptionalJwtAuthGuard)
   @Get('all-products')
-  async findAll(req: Request & { user: any }) {
-    return await this.productService.findAll(req?.user?.Id);
+  async findAll(@Req() req: Request & { user: any }) {
+    return await this.productService.findAll(req?.user?.id);
   }
 
   @ApiOperation({
@@ -242,9 +243,10 @@ export class ProductController {
   @Get('product-card/:id')
   async getProductCard(
     @Param('id') id: string,
-    @Req() req: Request & { user: any },
+    @Req() req?: Request & { user: any },
   ) {
-    return await this.productService.getProductCard(+id, req.user?.id);
+    console.log(req);
+    return await this.productService.getProductCard(+id, req?.user?.id);
   }
 
   // @ApiOperation({
@@ -360,11 +362,8 @@ export class ProductController {
   })
   async searchProducts(
     @Query() searchDto: SearchProductsDto,
-    @Req() req: Request,
+    @Req() req: Request & { user: any },
   ) {
-    return await this.productService.searchProducts(
-      searchDto,
-      (req.user as any)?.id,
-    );
+    return await this.productService.searchProducts(searchDto, req?.user?.id);
   }
 }

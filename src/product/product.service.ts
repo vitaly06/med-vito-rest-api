@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { createProductDto } from './dto/create-product.dto';
 import { ConfigService } from '@nestjs/config';
+import { UserService } from 'src/user/user.service';
 
 @Injectable()
 export class ProductService {
@@ -9,6 +10,7 @@ export class ProductService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly userService: UserService,
   ) {
     this.baseUrl = this.configService.get<string>(
       'BASE_URL',
@@ -102,21 +104,23 @@ export class ProductService {
     });
 
     if (userId) {
-      const result = products.map(async (product) => {
-        if (product.userId != userId) {
+      const result = await Promise.all(
+        products.map(async (product) => {
+          if (product.userId != userId) {
+            return {
+              ...product,
+              isFavorited: await this.isProductInUserFavorites(
+                product.id,
+                userId,
+              ),
+            };
+          }
           return {
             ...product,
-            isFavorited: userId
-              ? await this.isProductInUserFavorites(product.id, userId)
-              : false,
+            isFavorited: false,
           };
-        }
-        return {
-          ...product,
-          isFavorited: false,
-        };
-      });
-
+        }),
+      );
       return this.formatProductsResponse(result);
     }
 
@@ -165,7 +169,9 @@ export class ProductService {
 
       return {
         ...product,
-        images: product.images.map((img) => `${this.baseUrl}${img}`),
+        images: product.images
+          ? product.images.map((img) => `${this.baseUrl}${img}`)
+          : [],
         createdAt: `${day}.${month}.${year} в ${hours}:${minutes}`,
       };
     });
@@ -324,10 +330,10 @@ export class ProductService {
       isFavorited: userId
         ? await this.isProductInUserFavorites(product.id, userId)
         : false,
+      seller: await this.userService.getUserInfo(product.userId),
     };
   }
 
-  // Поиск товаров с фильтрацией и сортировкой
   async searchProducts(searchDto: any, userId?: number) {
     const {
       search,
