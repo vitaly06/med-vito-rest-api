@@ -186,6 +186,10 @@ export class ProductService {
       throw new BadRequestException('Товар не найден');
     }
 
+    if (checkProduct.userId == userId) {
+      throw new BadRequestException('Нельзя добавить свой товар в избранное');
+    }
+
     const existingFavorite = await this.prisma.user.findFirst({
       where: {
         id: userId,
@@ -287,6 +291,7 @@ export class ProductService {
       select: {
         id: true,
         name: true,
+        description: true,
         price: true,
         images: true,
         address: true,
