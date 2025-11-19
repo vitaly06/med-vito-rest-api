@@ -65,7 +65,32 @@ export class CategoryService {
   }
 
   async findAllCategories() {
-    return await this.prisma.category.findMany();
+    const categoires = await this.prisma.category.findMany({
+      select: {
+        id: true,
+        name: true,
+        subCategories: {
+          select: {
+            id: true,
+            name: true,
+            subcategoryTypes: {
+              select: {
+                id: true,
+                name: true,
+                fields: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return categoires;
   }
 
   async findById(id: number) {

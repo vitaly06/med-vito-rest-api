@@ -49,6 +49,8 @@ export class ProductService {
 
       // Валидация fieldValues - проверяем что все поля существуют
       if (dto.fieldValues) {
+        console.log('fieldValues type:', typeof dto.fieldValues);
+        console.log('fieldValues value:', dto.fieldValues);
         const fieldIds = Object.keys(dto.fieldValues).map((id) => parseInt(id));
 
         if (fieldIds.length > 0) {

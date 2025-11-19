@@ -84,6 +84,11 @@ export class ProductController {
           description: 'ID подкатегории',
           example: 1,
         },
+        typeId: {
+          type: 'number',
+          description: 'ID типа подкатегории (например: Измерительные приборы)',
+          example: 1,
+        },
         fieldValues: {
           type: 'string',
           description:
