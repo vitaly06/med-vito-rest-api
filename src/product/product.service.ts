@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { createProductDto } from './dto/create-product.dto';
 import { ConfigService } from '@nestjs/config';
@@ -126,6 +130,29 @@ export class ProductService {
     }
   }
 
+  async deleteProduct(productId, userId: number) {
+    const checkProduct = await this.prisma.product.findUnique({
+      where: { id: productId },
+      select: {
+        userId: true,
+      },
+    });
+
+    if (!checkProduct) {
+      throw new BadRequestException('Товар для удаления не найден');
+    }
+
+    if (checkProduct.userId != userId) {
+      throw new ForbiddenException('Вы не можете удалить чужой товар');
+    }
+
+    await this.prisma.product.delete({
+      where: { id: productId },
+    });
+
+    return { message: 'Товар успешно удалён' };
+  }
+
   async findAll(userId?: number) {
     let products = await this.prisma.product.findMany({
       select: {
@@ -157,7 +184,16 @@ export class ProductService {
           };
         }),
       );
-      return this.formatProductsResponse(result);
+      return this.formatProductsResponse(
+        result
+          .map((product) => {
+            return {
+              ...product,
+              isFavorited: true,
+            };
+          })
+          .reverse(),
+      );
     }
 
     return this.formatProductsResponse(
@@ -167,7 +203,7 @@ export class ProductService {
           isFavorited: false,
         };
       }),
-    );
+    ).reverse();
   }
 
   async getProductsByUserId(id: number) {
@@ -220,10 +256,6 @@ export class ProductService {
 
     if (!checkProduct) {
       throw new BadRequestException('Товар не найден');
-    }
-
-    if (checkProduct.userId == userId) {
-      throw new BadRequestException('Нельзя добавить свой товар в избранное');
     }
 
     const existingFavorite = await this.prisma.user.findFirst({

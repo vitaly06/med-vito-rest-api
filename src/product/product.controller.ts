@@ -174,6 +174,18 @@ export class ProductController {
   }
 
   @ApiOperation({
+    summary: 'Удаление продукта',
+  })
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  async deleteProduct(
+    @Param('id') id: string,
+    @Req() req: Request & { user: any },
+  ) {
+    return await this.productService.deleteProduct(+id, req.user.id);
+  }
+
+  @ApiOperation({
     summary: 'Возвращает все товары для главной страницы',
   })
   @UseGuards(OptionalJwtAuthGuard)
