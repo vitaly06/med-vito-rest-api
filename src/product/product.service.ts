@@ -218,7 +218,14 @@ export class ProductService {
       },
     });
 
-    return this.formatProductsResponse(products);
+    const result = products.map(async (product) => {
+      return {
+        ...product,
+        isFavorited: await this.isProductInUserFavorites(product.id, id),
+      };
+    });
+
+    return this.formatProductsResponse(result);
   }
 
   private formatProductsResponse(products: any[]) {
