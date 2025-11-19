@@ -169,19 +169,19 @@ export class ProductService {
     if (userId) {
       const result = await Promise.all(
         products.map(async (product) => {
-          if (product.userId != userId) {
-            return {
-              ...product,
-              isFavorited: await this.isProductInUserFavorites(
-                product.id,
-                userId,
-              ),
-            };
-          }
+          // if (product.userId != userId) {
           return {
             ...product,
-            isFavorited: false,
+            isFavorited: await this.isProductInUserFavorites(
+              product.id,
+              userId,
+            ),
           };
+          // }
+          // return {
+          //   ...product,
+          //   isFavorited: await this.isProductInUserFavorites(product.id,),
+          // };
         }),
       );
       return this.formatProductsResponse(result.reverse());
