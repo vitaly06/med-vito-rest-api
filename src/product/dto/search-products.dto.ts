@@ -4,7 +4,7 @@ import { Transform } from 'class-transformer';
 
 export class SearchProductsDto {
   @ApiPropertyOptional({
-    description: 'Поисковый запрос по названию, описанию или бренду товара',
+    description: 'Поисковый запрос по названию или описанию товара',
     example: 'iPhone 15 Pro',
   })
   @IsOptional()
@@ -63,14 +63,6 @@ export class SearchProductsDto {
   @IsOptional()
   @IsString()
   region?: string;
-
-  @ApiPropertyOptional({
-    description: 'Бренд товара',
-    example: 'Apple',
-  })
-  @IsOptional()
-  @IsString()
-  brand?: string;
 
   @ApiPropertyOptional({
     description: 'Сортировка результатов',

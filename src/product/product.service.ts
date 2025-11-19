@@ -43,6 +43,27 @@ export class ProductService {
         );
       }
 
+      // Валидация fieldValues - проверяем что все поля существуют
+      if (dto.fieldValues) {
+        const fieldIds = Object.keys(dto.fieldValues).map((id) => parseInt(id));
+
+        if (fieldIds.length > 0) {
+          const fields = await this.prisma.typeField.findMany({
+            where: {
+              id: { in: fieldIds },
+            },
+          });
+
+          if (fields.length !== fieldIds.length) {
+            const foundIds = fields.map((f) => f.id);
+            const missingIds = fieldIds.filter((id) => !foundIds.includes(id));
+            throw new BadRequestException(
+              `Поля с ID ${missingIds.join(', ')} не найдены. Проверьте fieldValues.`,
+            );
+          }
+        }
+      }
+
       // Создаем массив путей к изображениям
       const imagePaths = fileNames.map(
         (fileName) => `/uploads/product/${fileName}`,
@@ -53,14 +74,24 @@ export class ProductService {
           name: dto.name,
           price: +dto.price,
           state: dto.state,
-          brand: dto.brand,
-          model: dto.model,
           description: dto.description,
           address: dto.address,
           images: imagePaths,
           categoryId: +dto.categoryId,
           subCategoryId: +dto.subcategoryId,
+          typeId: dto.typeId ? +dto.typeId : null,
           userId: userId,
+          // Создаем связанные значения полей, если они переданы
+          fieldValues: dto.fieldValues
+            ? {
+                create: Object.entries(dto.fieldValues).map(
+                  ([fieldId, value]) => ({
+                    fieldId: parseInt(fieldId),
+                    value: value,
+                  }),
+                ),
+              }
+            : undefined,
         },
         include: {
           category: true,
@@ -71,6 +102,11 @@ export class ProductService {
               fullName: true,
               email: true,
               rating: true,
+            },
+          },
+          fieldValues: {
+            include: {
+              field: true,
             },
           },
         },
@@ -295,9 +331,12 @@ export class ProductService {
         price: true,
         images: true,
         address: true,
-        brand: true,
-        model: true,
         userId: true, // Добавляем для проверки, что пользователь не смотрит свой товар
+        fieldValues: {
+          include: {
+            field: true,
+          },
+        },
       },
     });
 
@@ -348,7 +387,6 @@ export class ProductService {
       maxPrice,
       state,
       region,
-      brand,
       sortBy = 'relevance',
       page = 1,
       limit = 20,
@@ -357,7 +395,7 @@ export class ProductService {
     // Строим условия для фильтрации
     const whereConditions: any = {};
 
-    // Поиск по тексту (название, описание, бренд)
+    // Поиск по тексту (название, описание)
     if (search) {
       whereConditions.OR = [
         {
@@ -368,18 +406,6 @@ export class ProductService {
         },
         {
           description: {
-            contains: search,
-            mode: 'insensitive',
-          },
-        },
-        {
-          brand: {
-            contains: search,
-            mode: 'insensitive',
-          },
-        },
-        {
-          model: {
             contains: search,
             mode: 'insensitive',
           },
@@ -413,14 +439,6 @@ export class ProductService {
     if (region) {
       whereConditions.address = {
         contains: region,
-        mode: 'insensitive',
-      };
-    }
-
-    // Фильтр по бренду
-    if (brand) {
-      whereConditions.brand = {
-        contains: brand,
         mode: 'insensitive',
       };
     }
@@ -508,8 +526,6 @@ export class ProductService {
         name: product.name,
         price: product.price,
         state: product.state,
-        brand: product.brand,
-        model: product.model,
         description: product.description,
         address: product.address,
         images: product.images.map((img) => `${this.baseUrl}${img}`),
@@ -548,7 +564,6 @@ export class ProductService {
         maxPrice: maxPrice || null,
         state: state || null,
         region: region || null,
-        brand: brand || null,
         sortBy,
       },
     };

@@ -33,6 +33,14 @@ export class AuthController {
     return await this.authService.signIn(dto, response);
   }
 
+  @Post('admin/sign-in')
+  async adminSignIn(
+    @Body() dto: SignInDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    return await this.authService.adminSignIn(dto, response);
+  }
+
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   async logout(

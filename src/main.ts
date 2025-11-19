@@ -23,7 +23,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
 
   const config = new DocumentBuilder()
-    .setTitle('Grinar REST API')
+    .setTitle('Medvito REST API')
     .setDescription('Rest API for Medvito')
     .setVersion('1.0.0')
     .setContact(

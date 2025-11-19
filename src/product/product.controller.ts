@@ -64,16 +64,6 @@ export class ProductController {
           description: 'Состояние товара',
           example: 'NEW',
         },
-        brand: {
-          type: 'string',
-          description: 'Бренд',
-          example: 'Apple',
-        },
-        model: {
-          type: 'string',
-          description: 'Модель',
-          example: 'iPhone 15 Pro',
-        },
         description: {
           type: 'string',
           description: 'Описание товара',
@@ -93,6 +83,12 @@ export class ProductController {
           type: 'number',
           description: 'ID подкатегории',
           example: 1,
+        },
+        fieldValues: {
+          type: 'string',
+          description:
+            'Дополнительные поля в формате JSON объекта (fieldId: значение). Например: {"1":"Тонометр","2":"Omron"}',
+          example: '{"1":"Тонометр","2":"Omron"}',
         },
         images: {
           type: 'array',

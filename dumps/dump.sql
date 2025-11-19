@@ -304,8 +304,6 @@ CREATE TABLE public."Product" (
     name text NOT NULL,
     price integer NOT NULL,
     state public."ProductState" NOT NULL,
-    brand text,
-    model text,
     description text,
     address text,
     images text[] DEFAULT ARRAY[]::text[],
@@ -313,11 +311,48 @@ CREATE TABLE public."Product" (
     "subCategoryId" integer NOT NULL,
     "userId" integer NOT NULL,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updatedAt" timestamp(3) without time zone NOT NULL
+    "updatedAt" timestamp(3) without time zone NOT NULL,
+    "typeId" integer
 );
 
 
 ALTER TABLE public."Product" OWNER TO postgres;
+
+--
+-- Name: ProductFieldValue; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."ProductFieldValue" (
+    id integer NOT NULL,
+    value text NOT NULL,
+    "fieldId" integer NOT NULL,
+    "productId" integer NOT NULL
+);
+
+
+ALTER TABLE public."ProductFieldValue" OWNER TO postgres;
+
+--
+-- Name: ProductFieldValue_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."ProductFieldValue_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."ProductFieldValue_id_seq" OWNER TO postgres;
+
+--
+-- Name: ProductFieldValue_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."ProductFieldValue_id_seq" OWNED BY public."ProductFieldValue".id;
+
 
 --
 -- Name: ProductView; Type: TABLE; Schema: public; Owner: postgres
@@ -598,6 +633,42 @@ ALTER SEQUENCE public."SupportTicket_id_seq" OWNED BY public."SupportTicket".id;
 
 
 --
+-- Name: TypeField; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."TypeField" (
+    id integer NOT NULL,
+    name text NOT NULL,
+    "isRequired" boolean DEFAULT false NOT NULL,
+    "typeId" integer NOT NULL
+);
+
+
+ALTER TABLE public."TypeField" OWNER TO postgres;
+
+--
+-- Name: TypeField_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."TypeField_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."TypeField_id_seq" OWNER TO postgres;
+
+--
+-- Name: TypeField_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."TypeField_id_seq" OWNED BY public."TypeField".id;
+
+
+--
 -- Name: User; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -715,6 +786,13 @@ ALTER TABLE ONLY public."Product" ALTER COLUMN id SET DEFAULT nextval('public."P
 
 
 --
+-- Name: ProductFieldValue id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ProductFieldValue" ALTER COLUMN id SET DEFAULT nextval('public."ProductFieldValue_id_seq"'::regclass);
+
+
+--
 -- Name: ProductView id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -764,6 +842,13 @@ ALTER TABLE ONLY public."SupportTicket" ALTER COLUMN id SET DEFAULT nextval('pub
 
 
 --
+-- Name: TypeField id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."TypeField" ALTER COLUMN id SET DEFAULT nextval('public."TypeField_id_seq"'::regclass);
+
+
+--
 -- Name: User id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -776,6 +861,7 @@ ALTER TABLE ONLY public."User" ALTER COLUMN id SET DEFAULT nextval('public."User
 
 COPY public."Category" (id, name) FROM stdin;
 1	Личные вещи
+2	Автомобили
 \.
 
 
@@ -816,8 +902,16 @@ COPY public."PhoneNumberView" (id, "viewedById", "viewedUserId", "viewedAt") FRO
 -- Data for Name: Product; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Product" (id, name, price, state, brand, model, description, address, images, "categoryId", "subCategoryId", "userId", "createdAt", "updatedAt") FROM stdin;
-2	iPhone 15 Pro	120000	NEW	Apple	iPhone 15 Pro	Новый iPhone 15 Pro в отличном состоянии	г. Москва, ул. Тверская, д. 1	{/uploads/product/images-1762934382600-525832298.jpg}	1	1	5	2025-11-12 07:59:42.638	2025-11-12 07:59:42.638
+COPY public."Product" (id, name, price, state, description, address, images, "categoryId", "subCategoryId", "userId", "createdAt", "updatedAt", "typeId") FROM stdin;
+2	iPhone 15 Pro	120000	NEW	Новый iPhone 15 Pro в отличном состоянии	г. Москва, ул. Тверская, д. 1	{/uploads/product/images-1762934382600-525832298.jpg}	1	1	5	2025-11-12 07:59:42.638	2025-11-12 07:59:42.638	\N
+\.
+
+
+--
+-- Data for Name: ProductFieldValue; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."ProductFieldValue" (id, value, "fieldId", "productId") FROM stdin;
 \.
 
 
@@ -966,12 +1060,26 @@ COPY public."SupportTicket" (id, theme, subject, status, priority, "userId", "mo
 
 
 --
+-- Data for Name: TypeField; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."TypeField" (id, name, "isRequired", "typeId") FROM stdin;
+1	Размер	f	1
+2	Цвет	f	1
+3	Материал	f	1
+4	Бренд	f	1
+5	Название	f	1
+6	Вид	f	1
+\.
+
+
+--
 -- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "refreshToken", "refreshTokenExpiresAt", "createdAt", "updatedAt", rating, "isResetVerified", "roleId") FROM stdin;
-5	Садиков Виталий Дмитриевич	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjUsImlhdCI6MTc2MzExOTYzMSwiZXhwIjoxNzYzNzI0NDMxfQ.1JUYr54107yREkb3LWC4pw8RA6YNlm87XkdeFsEAhFw	2025-11-21 11:27:11.257	2025-11-06 19:33:46.625	2025-11-14 11:27:11.264	\N	f	2
-6	Садиков Виталий Дмитриевич	vitaly.sadikov2@yandex.ru	+79510341676	$2b$10$Tsi0whXkdERT2AvjSe6Jn.v6ba.K3sTDPXT6AzWMlkpahIY.LxDSS	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImlhdCI6MTc2MzEyODI4MywiZXhwIjoxNzYzNzMzMDgzfQ.voamrexihPG-5jJlWTXnrxwNvivoFoGPCm6T-DezAbM	2025-11-21 13:51:23.081	2025-11-06 19:33:55.742	2025-11-14 13:51:23.082	\N	f	1
+5	Садиков Виталий Дмитриевич	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjUsImlhdCI6MTc2MzQ5MDA4OCwiZXhwIjoxNzY0MDk0ODg4fQ.w1nKHK1iz7rwVZZZUQ6aYWxXyPpEdGxN0zAp8K_d3WM	2025-11-25 18:21:28.041	2025-11-06 19:33:46.625	2025-11-18 18:21:28.044	\N	f	3
+6	Садиков Виталий Дмитриевич	vitaly.sadikov2@yandex.ru	+79510341676	$2b$10$Tsi0whXkdERT2AvjSe6Jn.v6ba.K3sTDPXT6AzWMlkpahIY.LxDSS	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImlhdCI6MTc2MzQ5MDExOSwiZXhwIjoxNzY0MDk0OTE5fQ.s1jMGUBsjV1fSnz3poOh5GsnCnQnzFkcNvA23Vg4EDE	2025-11-25 18:21:59.416	2025-11-06 19:33:55.742	2025-11-18 18:21:59.418	\N	f	1
 \.
 
 
@@ -1005,7 +1113,7 @@ df00ed7f-80fe-4458-8f8b-83fe88304cc8	8d8cfe1eacb1a375fc8254a31aa50217e946af0d14f
 -- Name: Category_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Category_id_seq"', 1, true);
+SELECT pg_catalog.setval('public."Category_id_seq"', 2, true);
 
 
 --
@@ -1037,6 +1145,13 @@ SELECT pg_catalog.setval('public."PhoneNumberView_id_seq"', 1, true);
 
 
 --
+-- Name: ProductFieldValue_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."ProductFieldValue_id_seq"', 25, true);
+
+
+--
 -- Name: ProductView_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -1047,7 +1162,7 @@ SELECT pg_catalog.setval('public."ProductView_id_seq"', 4, true);
 -- Name: Product_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Product_id_seq"', 2, true);
+SELECT pg_catalog.setval('public."Product_id_seq"', 3, true);
 
 
 --
@@ -1090,6 +1205,13 @@ SELECT pg_catalog.setval('public."SupportMessage_id_seq"', 1, false);
 --
 
 SELECT pg_catalog.setval('public."SupportTicket_id_seq"', 1, false);
+
+
+--
+-- Name: TypeField_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."TypeField_id_seq"', 6, true);
 
 
 --
@@ -1137,6 +1259,14 @@ ALTER TABLE ONLY public."Message"
 
 ALTER TABLE ONLY public."PhoneNumberView"
     ADD CONSTRAINT "PhoneNumberView_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: ProductFieldValue ProductFieldValue_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ProductFieldValue"
+    ADD CONSTRAINT "ProductFieldValue_pkey" PRIMARY KEY (id);
 
 
 --
@@ -1204,6 +1334,14 @@ ALTER TABLE ONLY public."SupportTicket"
 
 
 --
+-- Name: TypeField TypeField_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."TypeField"
+    ADD CONSTRAINT "TypeField_pkey" PRIMARY KEY (id);
+
+
+--
 -- Name: User User_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1246,6 +1384,13 @@ CREATE UNIQUE INDEX "FavoriteAction_userId_productId_key" ON public."FavoriteAct
 --
 
 CREATE UNIQUE INDEX "PhoneNumberView_viewedById_viewedUserId_key" ON public."PhoneNumberView" USING btree ("viewedById", "viewedUserId");
+
+
+--
+-- Name: ProductFieldValue_fieldId_productId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "ProductFieldValue_fieldId_productId_key" ON public."ProductFieldValue" USING btree ("fieldId", "productId");
 
 
 --
@@ -1371,6 +1516,22 @@ ALTER TABLE ONLY public."PhoneNumberView"
 
 
 --
+-- Name: ProductFieldValue ProductFieldValue_fieldId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ProductFieldValue"
+    ADD CONSTRAINT "ProductFieldValue_fieldId_fkey" FOREIGN KEY ("fieldId") REFERENCES public."TypeField"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ProductFieldValue ProductFieldValue_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ProductFieldValue"
+    ADD CONSTRAINT "ProductFieldValue_productId_fkey" FOREIGN KEY ("productId") REFERENCES public."Product"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: ProductView ProductView_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1400,6 +1561,14 @@ ALTER TABLE ONLY public."Product"
 
 ALTER TABLE ONLY public."Product"
     ADD CONSTRAINT "Product_subCategoryId_fkey" FOREIGN KEY ("subCategoryId") REFERENCES public."SubCategory"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Product Product_typeId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Product"
+    ADD CONSTRAINT "Product_typeId_fkey" FOREIGN KEY ("typeId") REFERENCES public."SubcategotyType"(id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 
 --
@@ -1472,6 +1641,14 @@ ALTER TABLE ONLY public."SupportTicket"
 
 ALTER TABLE ONLY public."SupportTicket"
     ADD CONSTRAINT "SupportTicket_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: TypeField TypeField_typeId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."TypeField"
+    ADD CONSTRAINT "TypeField_typeId_fkey" FOREIGN KEY ("typeId") REFERENCES public."SubcategotyType"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --

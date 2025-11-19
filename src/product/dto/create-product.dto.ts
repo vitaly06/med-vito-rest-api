@@ -38,24 +38,6 @@ export class createProductDto {
   state: ProductState;
 
   @ApiProperty({
-    description: 'Бренд товара',
-    example: 'Apple',
-    required: false,
-  })
-  @IsOptional()
-  @IsString({ message: 'Бренд должен быть строкой' })
-  brand?: string;
-
-  @ApiProperty({
-    description: 'Модель товара',
-    example: 'iPhone 15 Pro',
-    required: false,
-  })
-  @IsOptional()
-  @IsString({ message: 'Модель должна быть строкой' })
-  model?: string;
-
-  @ApiProperty({
     description: 'Описание товара',
     example: 'Новый iPhone 15 Pro в отличном состоянии. Полная комплектация.',
     required: false,
@@ -88,4 +70,32 @@ export class createProductDto {
   @Transform(({ value }) => parseInt(value))
   @IsNumber({}, { message: 'Id подкатегории должно быть числом' })
   subcategoryId: number;
+
+  @ApiProperty({
+    description: 'ID типа подкатегории (например: Измерительные приборы)',
+    example: 1,
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
+  @IsNumber({}, { message: 'Id типа должно быть числом' })
+  typeId?: number;
+
+  @ApiProperty({
+    description: 'Дополнительные поля товара (fieldId: value)',
+    example: { '1': 'Тонометр', '2': 'Omron' },
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return value;
+      }
+    }
+    return value;
+  })
+  fieldValues?: Record<string, string>;
 }

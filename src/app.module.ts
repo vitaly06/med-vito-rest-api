@@ -11,6 +11,7 @@ import { ChatModule } from './chat/chat.module';
 import { StatisticsModule } from './statistics/statistics.module';
 import { ReviewModule } from './review/review.module';
 import { SupportModule } from './support/support.module';
+import { SubcategoryModule } from './subcategory/subcategory.module';
 import * as redisStore from 'cache-manager-ioredis';
 
 @Module({
@@ -36,6 +37,7 @@ import * as redisStore from 'cache-manager-ioredis';
     StatisticsModule,
     ReviewModule,
     SupportModule,
+    SubcategoryModule,
   ],
 })
 export class AppModule {}

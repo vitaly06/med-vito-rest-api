@@ -84,8 +84,6 @@ model Product {
   name        String
   price       Int
   state       ProductState
-  brand       String?
-  model       String?
   description String?
   address     String?
   images      String[]     @default([])
@@ -94,6 +92,10 @@ model Product {
 
   subCategoryId Int
   subCategory   SubCategory @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+
+  // Тип подкатегории (например: "Измерительные приборы", "Ортопедия")
+  typeId Int?
+  type   SubcategotyType? @relation(fields: [typeId], references: [id], onDelete: SetNull)
 
   userId Int
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -107,6 +109,9 @@ model Product {
 
   // Статистика добавлений в избранное этого товара
   favoriteActions FavoriteAction[] @relation("FavoriteActions")
+
+  // Значения дополнительных полей для товара
+  fieldValues ProductFieldValue[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -141,6 +146,39 @@ model SubcategotyType {
 
   subcategoryId Int
   subcategory SubCategory @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
+
+  // Поля (атрибуты) для этого типа подкатегории
+  fields TypeField[]
+  
+  // Товары этого типа
+  products Product[]
+}
+
+// Поля (атрибуты) для типа подкатегории
+model TypeField {
+  id Int @id @default(autoincrement())
+  name String // Название поля (например: "Вид", "Производитель")
+  isRequired Boolean @default(false) // Обязательное ли поле
+  
+  typeId Int
+  type SubcategotyType @relation(fields: [typeId], references: [id], onDelete: Cascade)
+
+  // Значения этого поля для конкретных товаров
+  values ProductFieldValue[]
+}
+
+// Значения полей для конкретного товара
+model ProductFieldValue {
+  id Int @id @default(autoincrement())
+  value String // Значение поля (например: "Тонометр", "Omron")
+
+  fieldId Int
+  field TypeField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  productId Int
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([fieldId, productId]) // Одно значение для каждого поля у товара
 }
 
 // Чат между покупателем и продавцом по конкретному товару
