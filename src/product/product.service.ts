@@ -184,16 +184,7 @@ export class ProductService {
           };
         }),
       );
-      return this.formatProductsResponse(
-        result
-          .map((product) => {
-            return {
-              ...product,
-              isFavorited: true,
-            };
-          })
-          .reverse(),
-      );
+      return this.formatProductsResponse(result.reverse());
     }
 
     return this.formatProductsResponse(
@@ -348,7 +339,14 @@ export class ProductService {
       },
     });
 
-    return this.formatProductsResponse(checkUser?.favorites || []);
+    return this.formatProductsResponse(
+      checkUser?.favorites.map((product) => {
+        return {
+          ...product,
+          isFavorited: true,
+        };
+      }) || [],
+    );
   }
 
   async getProductCard(id: number, userId?: number) {
