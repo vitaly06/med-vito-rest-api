@@ -6,6 +6,7 @@ import {
   Req,
   UseGuards,
   Query,
+  Get,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignUpDto } from './dto/sign-up.dto';
@@ -15,6 +16,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { AdminJwtAuthGuard } from './guards/admin-jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -33,12 +35,10 @@ export class AuthController {
     return await this.authService.signIn(dto, response);
   }
 
-  @Post('admin/sign-in')
-  async adminSignIn(
-    @Body() dto: SignInDto,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    return await this.authService.adminSignIn(dto, response);
+  @Get('isAdmin')
+  @UseGuards(AdminJwtAuthGuard)
+  async isAdmin() {
+    return { isAdmin: true };
   }
 
   @Post('logout')
