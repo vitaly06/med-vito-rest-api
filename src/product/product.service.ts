@@ -220,14 +220,16 @@ export class ProductService {
       },
     });
 
-    const result = products.map(async (product) => {
-      return {
-        ...product,
-        isFavorited: await this.isProductInUserFavorites(product.id, id),
-      };
-    });
+    const result = Promise.all(
+      products.map(async (product) => {
+        return {
+          ...product,
+          isFavorited: await this.isProductInUserFavorites(product.id, id),
+        };
+      }),
+    );
 
-    return this.formatProductsResponse(result);
+    return this.formatProductsResponse(await result);
   }
 
   private formatProductsResponse(products: any[]) {
@@ -370,7 +372,25 @@ export class ProductService {
         price: true,
         images: true,
         address: true,
-        userId: true, // Добавляем для проверки, что пользователь не смотрит свой товар
+        userId: true,
+        category: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        subCategory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        type: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         fieldValues: {
           include: {
             field: true,
@@ -409,6 +429,12 @@ export class ProductService {
 
     return {
       ...product,
+      fieldValues: product.fieldValues.map((field) => {
+        return {
+          id: field.id,
+          [field.field.name]: field.value,
+        };
+      }),
       images: product?.images.map((img) => `${this.baseUrl}${img}`),
       isFavorited: userId
         ? await this.isProductInUserFavorites(product.id, userId)
