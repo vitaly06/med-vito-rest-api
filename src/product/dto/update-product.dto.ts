@@ -1,6 +1,5 @@
 import {
   IsString,
-  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsEnum,
@@ -11,32 +10,37 @@ import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { ProductState } from '../enum/product-state.enum';
 
-export class createProductDto {
+export class UpdateProductDto {
   @ApiProperty({
     description: 'Название продукта',
     example: 'iPhone 15 Pro',
+    required: false,
   })
+  @IsOptional()
   @IsString({ message: 'Название должно быть строкой' })
-  @IsNotEmpty({ message: 'Название обязательно для заполнения' })
-  name: string;
+  name?: string;
 
   @ApiProperty({
     description: 'Цена в рублях',
     example: 120000,
     minimum: 1,
+    required: false,
   })
+  @IsOptional()
   @Transform(({ value }) => parseInt(value))
   @IsNumber({}, { message: 'Цена должна быть числом' })
   @Min(1, { message: 'Цена должна быть больше 0' })
-  price: number;
+  price?: number;
 
   @ApiProperty({
     description: 'Состояние товара',
     enum: ProductState,
     example: ProductState.NEW,
+    required: false,
   })
+  @IsOptional()
   @IsEnum(ProductState, { message: 'Состояние должно быть NEW или USED' })
-  state: ProductState;
+  state?: ProductState;
 
   @ApiProperty({
     description: 'Описание товара',
@@ -57,33 +61,17 @@ export class createProductDto {
   address?: string;
 
   @ApiProperty({
-    description: 'ID категории товара',
-    example: 1,
-  })
-  @Transform(({ value }) => parseInt(value))
-  @IsNumber({}, { message: 'Id категории должно быть числом' })
-  categoryId: number;
-
-  @ApiProperty({
-    description: 'ID подкатегории товара',
-    example: 1,
-  })
-  @Transform(({ value }) => parseInt(value))
-  @IsNumber({}, { message: 'Id подкатегории должно быть числом' })
-  subcategoryId: number;
-
-  @ApiProperty({
-    description: 'ID типа подкатегории (например: Измерительные приборы)',
-    example: 1,
+    description: 'Ссылка на видео товара (YouTube, VK и т.д.)',
+    example: 'https://www.youtube.com/watch?v=8u6xaEYGLa0',
     required: false,
   })
   @IsOptional()
-  @Transform(({ value }) => (value ? parseInt(value) : undefined))
-  @IsNumber({}, { message: 'Id типа должно быть числом' })
-  typeId?: number;
+  @IsUrl({}, { message: 'Неверный формат url' })
+  videoUrl?: string;
 
   @ApiProperty({
-    description: 'Дополнительные поля товара (fieldId: value)',
+    description:
+      'Дополнительные поля товара для добавления или обновления (fieldId: value)',
     example: { '1': 'Тонометр', '2': 'Omron' },
     required: false,
   })
@@ -99,12 +87,4 @@ export class createProductDto {
     return value;
   })
   fieldValues?: Record<string, string>;
-  @ApiProperty({
-    description: 'Ссылка на видео товара',
-    example: 'https://www.youtube.com/watch?v=8u6xaEYGLa0',
-    required: false,
-  })
-  @IsOptional()
-  @IsUrl({}, { message: 'Неверный формат url' })
-  videoUrl?: string;
 }

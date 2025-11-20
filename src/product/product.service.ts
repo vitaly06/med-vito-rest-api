@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { createProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 import { ConfigService } from '@nestjs/config';
 import { UserService } from 'src/user/user.service';
 
@@ -87,6 +88,7 @@ export class ProductService {
           subCategoryId: +dto.subcategoryId,
           typeId: dto.typeId ? +dto.typeId : null,
           userId: userId,
+          videoUrl: dto.videoUrl || null,
           // Создаем связанные значения полей, если они переданы
           fieldValues: dto.fieldValues
             ? {
@@ -155,6 +157,170 @@ export class ProductService {
     return { message: 'Товар успешно удалён' };
   }
 
+  async updateProduct(
+    productId: number,
+    dto: UpdateProductDto,
+    fileNames: string[],
+    userId: number,
+  ) {
+    try {
+      // Проверяем, что товар существует и принадлежит пользователю
+      const existingProduct = await this.prisma.product.findUnique({
+        where: { id: productId },
+        include: {
+          fieldValues: true,
+          type: {
+            include: {
+              fields: true,
+            },
+          },
+        },
+      });
+
+      if (!existingProduct) {
+        throw new BadRequestException('Товар не найден');
+      }
+
+      if (existingProduct.userId !== userId) {
+        throw new ForbiddenException('Вы не можете редактировать чужой товар');
+      }
+
+      // Валидация fieldValues - проверяем что все поля существуют и принадлежат типу товара
+      if (dto.fieldValues) {
+        const fieldIds = Object.keys(dto.fieldValues).map((id) => parseInt(id));
+
+        if (fieldIds.length > 0) {
+          const fields = await this.prisma.typeField.findMany({
+            where: {
+              id: { in: fieldIds },
+            },
+          });
+
+          if (fields.length !== fieldIds.length) {
+            const foundIds = fields.map((f) => f.id);
+            const missingIds = fieldIds.filter((id) => !foundIds.includes(id));
+            throw new BadRequestException(
+              `Поля с ID ${missingIds.join(', ')} не найдены. Проверьте fieldValues.`,
+            );
+          }
+
+          // Проверяем, что все поля принадлежат типу этого товара
+          if (existingProduct.typeId) {
+            const invalidFields = fields.filter(
+              (f) => f.typeId !== existingProduct.typeId,
+            );
+            if (invalidFields.length > 0) {
+              throw new BadRequestException(
+                `Поля ${invalidFields.map((f) => f.name).join(', ')} не принадлежат типу этого товара`,
+              );
+            }
+          }
+        }
+      }
+
+      // Подготовка данных для обновления
+      const updateData: any = {};
+
+      if (dto.name !== undefined) updateData.name = dto.name;
+      if (dto.price !== undefined) updateData.price = +dto.price;
+      if (dto.state !== undefined) updateData.state = dto.state;
+      if (dto.description !== undefined)
+        updateData.description = dto.description;
+      if (dto.address !== undefined) updateData.address = dto.address;
+      if (dto.videoUrl !== undefined) updateData.videoUrl = dto.videoUrl;
+
+      // Обработка новых изображений
+      if (fileNames && fileNames.length > 0) {
+        const newImagePaths = fileNames.map(
+          (fileName) => `/uploads/product/${fileName}`,
+        );
+        // Добавляем новые изображения к существующим
+        updateData.images = [...existingProduct.images, ...newImagePaths];
+      }
+
+      // Обновляем товар
+      const product = await this.prisma.product.update({
+        where: { id: productId },
+        data: updateData,
+        include: {
+          category: true,
+          subCategory: true,
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              rating: true,
+            },
+          },
+          fieldValues: {
+            include: {
+              field: true,
+            },
+          },
+        },
+      });
+
+      // Обработка fieldValues - добавляем или обновляем
+      if (dto.fieldValues) {
+        for (const [fieldId, value] of Object.entries(dto.fieldValues)) {
+          await this.prisma.productFieldValue.upsert({
+            where: {
+              fieldId_productId: {
+                fieldId: parseInt(fieldId),
+                productId: productId,
+              },
+            },
+            update: {
+              value: value,
+            },
+            create: {
+              fieldId: parseInt(fieldId),
+              productId: productId,
+              value: value,
+            },
+          });
+        }
+      }
+
+      // Получаем обновленный товар с новыми fieldValues
+      const updatedProduct = await this.prisma.product.findUnique({
+        where: { id: productId },
+        include: {
+          category: true,
+          subCategory: true,
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              rating: true,
+            },
+          },
+          fieldValues: {
+            include: {
+              field: true,
+            },
+          },
+        },
+      });
+
+      return {
+        message: 'Товар успешно обновлён',
+        product: {
+          ...updatedProduct!,
+          images: updatedProduct!.images.map(
+            (path) => `${this.baseUrl}${path}`,
+          ),
+        },
+      };
+    } catch (error) {
+      throw new BadRequestException(
+        `Ошибка при обновлении товара: ${error.message}`,
+      );
+    }
+  }
+
   async findAll(userId?: number) {
     let products = await this.prisma.product.findMany({
       select: {
@@ -165,6 +331,7 @@ export class ProductService {
         createdAt: true,
         price: true,
         userId: true,
+        videoUrl: true,
       },
     });
 
@@ -217,6 +384,7 @@ export class ProductService {
         address: true,
         createdAt: true,
         price: true,
+        videoUrl: true,
       },
     });
 
@@ -345,6 +513,7 @@ export class ProductService {
             address: true,
             createdAt: true,
             price: true,
+            videoUrl: true,
           },
         },
       },
@@ -373,6 +542,7 @@ export class ProductService {
         images: true,
         address: true,
         userId: true,
+        videoUrl: true,
         category: {
           select: {
             id: true,

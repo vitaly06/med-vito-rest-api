@@ -10,11 +10,13 @@ import {
   Param,
   Delete,
   Query,
+  Patch,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from 'src/auth/guards/optional-jwt-auth.guard';
 import { createProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 import { SearchProductsDto } from './dto/search-products.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
@@ -26,7 +28,6 @@ import {
   ApiBearerAuth,
   ApiResponse,
 } from '@nestjs/swagger';
-import { request } from 'https';
 
 @ApiTags('Products')
 @Controller('product')
@@ -102,6 +103,11 @@ export class ProductController {
             format: 'binary',
           },
           description: 'Изображения продукта (до 8 файлов)',
+        },
+        videoUrl: {
+          type: 'string',
+          description: 'Ссылка на видео',
+          example: 'https://www.youtube.com/watch?v=8u6xaEYGLa0',
         },
       },
       required: ['name', 'price', 'state', 'categoryId', 'subcategoryId'],
@@ -188,6 +194,101 @@ export class ProductController {
     @Req() req: Request & { user: any },
   ) {
     return await this.productService.deleteProduct(+id, req.user.id);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FilesInterceptor('images', 8))
+  @ApiOperation({
+    summary: 'Обновление товара',
+    description:
+      'Обновляет данные товара. Можно добавить новые характеристики (fieldValues) к существующим или обновить их значения.',
+  })
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Данные для обновления товара',
+    schema: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'Название продукта',
+          example: 'iPhone 15 Pro Max',
+        },
+        price: {
+          type: 'number',
+          description: 'Цена в рублях',
+          example: 130000,
+        },
+        state: {
+          type: 'string',
+          enum: ['NEW', 'USED'],
+          description: 'Состояние товара',
+          example: 'NEW',
+        },
+        description: {
+          type: 'string',
+          description: 'Описание товара',
+          example: 'Обновленное описание товара',
+        },
+        address: {
+          type: 'string',
+          description: 'Адрес продавца',
+          example: 'г. Москва, ул. Пушкина, д. 10',
+        },
+        videoUrl: {
+          type: 'string',
+          description: 'Ссылка на видео',
+          example: 'https://www.youtube.com/watch?v=newvideo',
+        },
+        fieldValues: {
+          type: 'string',
+          description:
+            'Дополнительные поля для добавления/обновления в формате JSON. Существующие поля будут обновлены, новые - добавлены. Например: {"3":"Новая характеристика"}',
+          example: '{"1":"XXL","2":"Красный"}',
+        },
+        images: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary',
+          },
+          description:
+            'Дополнительные изображения (будут добавлены к существующим)',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Товар успешно обновлён',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Ошибка валидации данных',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Не авторизован',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Нет прав для редактирования этого товара',
+  })
+  async updateProduct(
+    @Param('id') id: string,
+    @Body() dto: UpdateProductDto,
+    @UploadedFiles() images: Express.Multer.File[],
+    @Req() req: Request & { user: any },
+  ) {
+    const fileNames = images ? images.map((file) => file.filename) : [];
+    return await this.productService.updateProduct(
+      +id,
+      dto,
+      fileNames,
+      req.user.id,
+    );
   }
 
   @ApiOperation({

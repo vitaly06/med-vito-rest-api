@@ -89,6 +89,7 @@ model Product {
   state       ProductState
   description String?
   address     String?
+  videoUrl String?
   images      String[]     @default([])
   categoryId  Int
   category    Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
