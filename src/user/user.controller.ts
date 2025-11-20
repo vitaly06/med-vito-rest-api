@@ -17,6 +17,7 @@ import { Request } from 'express';
 import { ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
+import { ProfileType } from '@prisma/client';
 
 @Controller('user')
 export class UserController {
@@ -60,9 +61,15 @@ export class UserController {
           example: '+79510341677',
         },
         isAnswersCall: {
-          type: 'boolean',
+          type: 'string',
           description: 'Отвечаете ли вы на звонки?',
-          example: true,
+          example: 'true',
+        },
+        profileType: {
+          type: 'string',
+          enum: ['INDIVIDUAL', 'OOO', 'IP'],
+          description: 'Тип профиля',
+          example: 'INDIVIDUAL',
         },
         photo: {
           type: 'string',
@@ -85,5 +92,14 @@ export class UserController {
       req.user.id,
       photo?.filename || null,
     );
+  }
+
+  @ApiOperation({
+    summary: 'Получение настроек пользователя',
+  })
+  @UseGuards(JwtAuthGuard)
+  @Get('profile-settings')
+  async getProfileSettings(@Req() req: Request & { user: any }) {
+    return await this.userService.getProfileSettings(req.user.id);
   }
 }

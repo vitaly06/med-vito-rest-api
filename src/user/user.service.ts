@@ -34,6 +34,7 @@ export class UserService {
         fullName: true,
         profileType: true,
         phoneNumber: true,
+        photo: true,
       },
     });
 
@@ -122,6 +123,29 @@ export class UserService {
     }
 
     return { ...updatedData };
+  }
+
+  async getProfileSettings(userId: number) {
+    const checkUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        fullName: true,
+        phoneNumber: true,
+        isAnswersCall: true,
+        profileType: true,
+        photo: true,
+      },
+    });
+
+    if (!userId) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+
+    return {
+      ...checkUser,
+      photo: `${this.baseUrl}${checkUser?.photo}` || null,
+    };
   }
 
   // Получить статистику просмотров номеров

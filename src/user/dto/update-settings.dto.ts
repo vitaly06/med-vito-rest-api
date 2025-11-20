@@ -1,5 +1,6 @@
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
+import { ProfileType } from 'src/auth/enum/profile-type.enum';
 
 export class UpdateSettingsDto {
   @IsOptional()
@@ -14,4 +15,10 @@ export class UpdateSettingsDto {
     message: 'Поле "Отвечаете ли вы на звонки?" должно быть true/false',
   })
   isAnswersCall?: boolean;
+
+  @IsOptional()
+  @IsEnum(ProfileType, {
+    message: 'Неверный тип профиля. Доступные: INDIVIDUAL, OOO, IP',
+  })
+  profileType?: ProfileType;
 }

@@ -30,7 +30,7 @@ model User {
   refreshTokenExpiresAt DateTime?
 
   photo String?
-  isAnswersCall Boolean?
+  isAnswersCall Boolean? @default(false)
 
   roleId Int?
   role Role? @relation(fields: [roleId], references: [id])
