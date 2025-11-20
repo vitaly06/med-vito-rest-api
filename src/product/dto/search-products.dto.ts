@@ -30,6 +30,15 @@ export class SearchProductsDto {
   subCategoryId?: number;
 
   @ApiPropertyOptional({
+    description: 'ID типа подкатегории для фильтрации',
+    example: 1,
+  })
+  @IsOptional()
+  @IsNumberString()
+  @Transform(({ value }) => (value ? parseInt(value, 10) : undefined))
+  typeId?: number;
+
+  @ApiPropertyOptional({
     description: 'Минимальная цена',
     example: 1000,
   })
@@ -63,6 +72,33 @@ export class SearchProductsDto {
   @IsOptional()
   @IsString()
   region?: string;
+
+  @ApiPropertyOptional({
+    description: 'Тип продавца',
+    enum: ['INDIVIDUAL', 'OOO', 'IP'],
+    example: 'INDIVIDUAL',
+  })
+  @IsOptional()
+  @IsIn(['INDIVIDUAL', 'OOO', 'IP'])
+  profileType?: 'INDIVIDUAL' | 'OOO' | 'IP';
+
+  @ApiPropertyOptional({
+    description:
+      'Фильтр по характеристикам товара в формате JSON. Например: {"1":"XXL","2":"Чёрный"} где ключ - ID поля, значение - искомое значение',
+    example: '{"1":"XXL","2":"Чёрный"}',
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return undefined;
+      }
+    }
+    return value;
+  })
+  fieldValues?: Record<string, string>;
 
   @ApiPropertyOptional({
     description: 'Сортировка результатов',

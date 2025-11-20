@@ -618,10 +618,13 @@ export class ProductService {
       search,
       categoryId,
       subCategoryId,
+      typeId,
       minPrice,
       maxPrice,
       state,
       region,
+      profileType,
+      fieldValues,
       sortBy = 'relevance',
       page = 1,
       limit = 20,
@@ -658,6 +661,11 @@ export class ProductService {
       whereConditions.subCategoryId = subCategoryId;
     }
 
+    // Фильтр по типу подкатегории
+    if (typeId) {
+      whereConditions.typeId = typeId;
+    }
+
     // Фильтр по цене
     if (minPrice || maxPrice) {
       whereConditions.price = {};
@@ -675,6 +683,28 @@ export class ProductService {
       whereConditions.address = {
         contains: region,
         mode: 'insensitive',
+      };
+    }
+
+    // Фильтр по типу продавца
+    if (profileType) {
+      whereConditions.user = {
+        profileType: profileType,
+      };
+    }
+
+    // Фильтр по характеристикам товара (fieldValues)
+    if (fieldValues && Object.keys(fieldValues).length > 0) {
+      whereConditions.fieldValues = {
+        some: {
+          OR: Object.entries(fieldValues).map(([fieldId, value]) => ({
+            fieldId: parseInt(fieldId),
+            value: {
+              contains: value,
+              mode: 'insensitive',
+            },
+          })),
+        },
       };
     }
 
@@ -731,11 +761,28 @@ export class ProductService {
               name: true,
             },
           },
+          type: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
           user: {
             select: {
               id: true,
               fullName: true,
               rating: true,
+              profileType: true,
+            },
+          },
+          fieldValues: {
+            include: {
+              field: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
             },
           },
           _count: {
@@ -766,11 +813,18 @@ export class ProductService {
         images: product.images.map((img) => `${this.baseUrl}${img}`),
         category: product.category,
         subCategory: product.subCategory,
+        type: product.type,
         seller: {
           id: product.user.id,
           fullName: product.user.fullName,
           rating: product.user.rating,
+          profileType: product.user.profileType,
         },
+        fieldValues: product.fieldValues.map((fv) => ({
+          fieldId: fv.field.id,
+          fieldName: fv.field.name,
+          value: fv.value,
+        })),
         stats: {
           views: product._count.views,
           favorites: product._count.favoriteActions,
@@ -795,10 +849,13 @@ export class ProductService {
         search: search || null,
         categoryId: categoryId || null,
         subCategoryId: subCategoryId || null,
+        typeId: typeId || null,
         minPrice: minPrice || null,
         maxPrice: maxPrice || null,
         state: state || null,
         region: region || null,
+        profileType: profileType || null,
+        fieldValues: fieldValues || null,
         sortBy,
       },
     };
