@@ -4,15 +4,27 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { UpdateSettingsDto } from './dto/update-settings.dto';
+import { use } from 'passport';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UserService {
+  baseUrl: string;
   profileTypes = {
     IP: 'Индивидуальный предприниматель',
     OOO: 'Юридическое лицо',
     INDIVIDUAL: 'Физическое лицо',
   };
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {
+    this.baseUrl = this.configService.get<string>(
+      'BASE_URL',
+      'http://localhost:3000',
+    );
+  }
 
   async getUserInfo(id: number) {
     const checkUser = await this.prisma.user.findUnique({
@@ -82,6 +94,34 @@ export class UserService {
     return {
       phoneNumber: checkUser.phoneNumber,
     };
+  }
+
+  async updateSettings(
+    dto: UpdateSettingsDto,
+    userId: number,
+    fileName: string | null,
+  ) {
+    const updatedData = { ...dto };
+
+    if (fileName) {
+      updatedData['photo'] = `/uploads/user/${fileName}`;
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...updatedData,
+      },
+    });
+
+    if (fileName) {
+      return {
+        ...updatedData,
+        photo: `${this.baseUrl}${updatedData['photo']}`,
+      };
+    }
+
+    return { ...updatedData };
   }
 
   // Получить статистику просмотров номеров

@@ -685,7 +685,9 @@ CREATE TABLE public."User" (
     "updatedAt" timestamp(3) without time zone NOT NULL,
     rating integer,
     "isResetVerified" boolean DEFAULT false NOT NULL,
-    "roleId" integer
+    "roleId" integer,
+    "isAnswersCall" boolean,
+    photo text
 );
 
 
@@ -904,6 +906,7 @@ COPY public."PhoneNumberView" (id, "viewedById", "viewedUserId", "viewedAt") FRO
 
 COPY public."Product" (id, name, price, state, description, address, images, "categoryId", "subCategoryId", "userId", "createdAt", "updatedAt", "typeId") FROM stdin;
 2	iPhone 15 Pro	120000	NEW	Новый iPhone 15 Pro в отличном состоянии	г. Москва, ул. Тверская, д. 1	{/uploads/product/images-1762934382600-525832298.jpg}	1	1	5	2025-11-12 07:59:42.638	2025-11-12 07:59:42.638	\N
+4	Футболка Ronaldo	359999	NEW	Футболка Ronaldo с автографом месси	г. Москва, ул. Тверская, д. 1	{/uploads/product/images-1763556943231-999932093.jpg,/uploads/product/images-1763556943232-639717408.jpg}	1	1	5	2025-11-19 12:55:43.255	2025-11-19 12:55:43.255	1
 \.
 
 
@@ -912,6 +915,8 @@ COPY public."Product" (id, name, price, state, description, address, images, "ca
 --
 
 COPY public."ProductFieldValue" (id, value, "fieldId", "productId") FROM stdin;
+26	XXL	1	4
+27	Чёрный	2	4
 \.
 
 
@@ -1077,9 +1082,9 @@ COPY public."TypeField" (id, name, "isRequired", "typeId") FROM stdin;
 -- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "refreshToken", "refreshTokenExpiresAt", "createdAt", "updatedAt", rating, "isResetVerified", "roleId") FROM stdin;
-5	Садиков Виталий Дмитриевич	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjUsImlhdCI6MTc2MzQ5MDA4OCwiZXhwIjoxNzY0MDk0ODg4fQ.w1nKHK1iz7rwVZZZUQ6aYWxXyPpEdGxN0zAp8K_d3WM	2025-11-25 18:21:28.041	2025-11-06 19:33:46.625	2025-11-18 18:21:28.044	\N	f	3
-6	Садиков Виталий Дмитриевич	vitaly.sadikov2@yandex.ru	+79510341676	$2b$10$Tsi0whXkdERT2AvjSe6Jn.v6ba.K3sTDPXT6AzWMlkpahIY.LxDSS	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImlhdCI6MTc2MzQ5MDExOSwiZXhwIjoxNzY0MDk0OTE5fQ.s1jMGUBsjV1fSnz3poOh5GsnCnQnzFkcNvA23Vg4EDE	2025-11-25 18:21:59.416	2025-11-06 19:33:55.742	2025-11-18 18:21:59.418	\N	f	1
+COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "refreshToken", "refreshTokenExpiresAt", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo) FROM stdin;
+5	Попов Матвей Иванович	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjUsImlhdCI6MTc2MzYyNzQ2MSwiZXhwIjoxNzY0MjMyMjYxfQ.g-eWuma3Cbi8WYx6LMQR477WTAwWSZeLzphjgfUfc5U	2025-11-27 08:31:01.689	2025-11-06 19:33:46.625	2025-11-20 08:31:01.697	\N	f	3	\N	/uploads/user/photo-1763627456668-926795266.png
+6	Садиков Виталий Дмитриевич	vitaly.sadikov2@yandex.ru	+79510341676	$2b$10$Tsi0whXkdERT2AvjSe6Jn.v6ba.K3sTDPXT6AzWMlkpahIY.LxDSS	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImlhdCI6MTc2MzYyMzUxNiwiZXhwIjoxNzY0MjI4MzE2fQ.Zaq_RCqkQqG3afjGnecJfuhc7HlVjcbHJzgjsh9FS8U	2025-11-27 07:25:16.021	2025-11-06 19:33:55.742	2025-11-20 07:25:16.031	\N	f	1	\N	\N
 \.
 
 
@@ -1148,7 +1153,7 @@ SELECT pg_catalog.setval('public."PhoneNumberView_id_seq"', 1, true);
 -- Name: ProductFieldValue_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."ProductFieldValue_id_seq"', 25, true);
+SELECT pg_catalog.setval('public."ProductFieldValue_id_seq"', 27, true);
 
 
 --
@@ -1162,7 +1167,7 @@ SELECT pg_catalog.setval('public."ProductView_id_seq"', 4, true);
 -- Name: Product_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Product_id_seq"', 3, true);
+SELECT pg_catalog.setval('public."Product_id_seq"', 4, true);
 
 
 --

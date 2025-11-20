@@ -29,6 +29,9 @@ model User {
   refreshToken          String?
   refreshTokenExpiresAt DateTime?
 
+  photo String?
+  isAnswersCall Boolean?
+
   roleId Int?
   role Role? @relation(fields: [roleId], references: [id])
 

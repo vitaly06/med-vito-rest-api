@@ -16,16 +16,24 @@ import { Response } from 'express';
 import { MailerService } from '@nestjs-modules/mailer';
 import * as cacheManager_1 from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
+  baseUrl: string;
   private readonly logger = new Logger('Auth');
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
     private readonly mailerSerivce: MailerService,
     @Inject(CACHE_MANAGER) private cacheManager: cacheManager_1.Cache,
-  ) {}
+  ) {
+    this.baseUrl = this.configService.get<string>(
+      'BASE_URL',
+      'http://localhost:3000',
+    );
+  }
 
   async signUp(dto: SignUpDto) {
     const checkUser = await this.prisma.user.findFirst({
@@ -109,62 +117,7 @@ export class AuthService {
         fullName: checkUser.fullName,
         phoneNumber: checkUser.phoneNumber,
         profileType: checkUser.profileType,
-      },
-    };
-  }
-
-  async adminSignIn(dto: SignInDto, response: Response) {
-    const { login, password } = { ...dto };
-    // Проверка на почту / телефон
-    const checkUser = await this.prisma.user.findFirst({
-      where: {
-        OR: [{ phoneNumber: login }, { email: login }],
-      },
-    });
-
-    if (!checkUser) {
-      throw new UnauthorizedException('Неверные данные для входа');
-    }
-
-    const passwordIsMatch = await bcrypt.compare(password, checkUser.password);
-
-    if (!passwordIsMatch) {
-      throw new UnauthorizedException('Неверные данные для входа');
-    }
-
-    const role = await this.prisma.role.findUnique({
-      where: { name: 'admin' },
-    });
-
-    if (checkUser.roleId != role?.id) {
-      throw new ForbiddenException('Недостаточно прав для входа');
-    }
-
-    // Генерируем токены
-    const tokens = await this.generateTokens(checkUser.id, checkUser.email);
-
-    // Сохраняем refresh токен в БД
-    const refreshTokenExpiresAt = new Date();
-    refreshTokenExpiresAt.setDate(refreshTokenExpiresAt.getDate() + 7);
-
-    await this.prisma.user.update({
-      where: { id: checkUser.id },
-      data: {
-        refreshToken: tokens.refreshToken,
-        refreshTokenExpiresAt,
-      },
-    });
-
-    this.setTokenCookies(response, tokens);
-
-    this.logger.log(`Успешная авторизация админа: ${login}`);
-
-    return {
-      message: 'Вы успешно авторизовались!',
-      user: {
-        id: checkUser.id,
-        email: checkUser.email,
-        fullName: checkUser.fullName,
+        photo: checkUser.photo ? `${this.baseUrl}${checkUser.photo}` : null,
       },
     };
   }
