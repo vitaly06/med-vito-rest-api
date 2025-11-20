@@ -36,6 +36,7 @@ model User {
   role Role? @relation(fields: [roleId], references: [id])
 
   isResetVerified Boolean @default(false)
+  isEmailVerified Boolean @default(false)
 
   products  Product[]
   favorites Product[] @relation("UserFavorites")

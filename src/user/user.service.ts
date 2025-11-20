@@ -1,12 +1,16 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
-import { use } from 'passport';
 import { ConfigService } from '@nestjs/config';
+import { MailerService } from '@nestjs-modules/mailer';
+import * as cacheManager_1 from 'cache-manager';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 @Injectable()
 export class UserService {
@@ -16,9 +20,12 @@ export class UserService {
     OOO: 'Юридическое лицо',
     INDIVIDUAL: 'Физическое лицо',
   };
+  private readonly logger = new Logger('Auth');
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly mailerSerivce: MailerService,
+    @Inject(CACHE_MANAGER) private cacheManager: cacheManager_1.Cache,
   ) {
     this.baseUrl = this.configService.get<string>(
       'BASE_URL',
@@ -146,6 +153,96 @@ export class UserService {
       ...checkUser,
       photo: `${this.baseUrl}${checkUser?.photo}` || null,
     };
+  }
+
+  async verifyCode(code: string) {
+    const cachedDataStr = await this.cacheManager.get<string>(
+      `verify-email:${code}`,
+    );
+    const cachedData = cachedDataStr ? JSON.parse(cachedDataStr) : null;
+
+    if (!cachedData) {
+      console.log('Данные не найдены в кеше');
+    }
+    if (cachedData.code !== code) {
+      throw new BadRequestException('Неверный код подтверждения');
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { id: +cachedData.id },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Такого пользователя не существует');
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        isEmailVerified: true,
+      },
+    });
+
+    await this.cacheManager.del(`verify-email:${code}`);
+    return { message: 'Почта успешно подтверждена' };
+  }
+
+  async verifyEmail(userId: number) {
+    const currentUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!currentUser) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+
+    const code = await this.generateVerifyCode();
+
+    await this.cacheManager.set(
+      `verify-email:${code}`,
+      JSON.stringify({
+        id: currentUser.id.toString(),
+        code,
+      }),
+      3600 * 1000,
+    );
+
+    await this.sendVerificationEmail(
+      currentUser.email,
+      'Код подтверждения почты - Торгуй Сам',
+      code,
+      'verify-email',
+    );
+
+    return { message: 'Письмо с кодом подтверждения отправлено на почту' };
+  }
+
+  private async sendVerificationEmail(
+    email: string,
+    text: string,
+    code: string,
+    template: string,
+  ) {
+    try {
+      this.logger.log(`Отправка письма на ${email} с кодом ${code}`);
+
+      const result = await this.mailerSerivce.sendMail({
+        to: email,
+        subject: text,
+        template,
+        context: {
+          code,
+        },
+      });
+
+      this.logger.log('Письмо успешно отправлено:', result);
+    } catch (error) {
+      this.logger.error('Ошибка отправки письма:', error);
+      throw new BadRequestException(`Ошибка отправки письма: ${error.message}`);
+    }
+  }
+
+  async generateVerifyCode(): Promise<string> {
+    return Math.floor(100000 + Math.random() * 900000).toString(); // Генерирует 6 цифр (от 100000 до 999999)
   }
 
   // Получить статистику просмотров номеров

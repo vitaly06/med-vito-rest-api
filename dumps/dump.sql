@@ -688,7 +688,8 @@ CREATE TABLE public."User" (
     "isResetVerified" boolean DEFAULT false NOT NULL,
     "roleId" integer,
     "isAnswersCall" boolean DEFAULT false,
-    photo text
+    photo text,
+    "isEmailVerified" boolean DEFAULT false NOT NULL
 );
 
 
@@ -1083,9 +1084,9 @@ COPY public."TypeField" (id, name, "isRequired", "typeId") FROM stdin;
 -- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "refreshToken", "refreshTokenExpiresAt", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo) FROM stdin;
-5	Попов Матвей Иванович	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjUsImlhdCI6MTc2MzYzMTgxMCwiZXhwIjoxNzY0MjM2NjEwfQ.HA-oK7HfQJwqjjKzrZOv_C_fZfTchFSwSvsC6KssaV0	2025-11-27 09:43:30.872	2025-11-06 19:33:46.625	2025-11-20 09:43:30.874	\N	f	3	\N	/uploads/user/photo-1763627456668-926795266.png
-6	Садиков Виталий Дмитриевич	vitaly.sadikov2@yandex.ru	+79510341676	$2b$10$Tsi0whXkdERT2AvjSe6Jn.v6ba.K3sTDPXT6AzWMlkpahIY.LxDSS	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImlhdCI6MTc2MzYyMzUxNiwiZXhwIjoxNzY0MjI4MzE2fQ.Zaq_RCqkQqG3afjGnecJfuhc7HlVjcbHJzgjsh9FS8U	2025-11-27 07:25:16.021	2025-11-06 19:33:55.742	2025-11-20 07:25:16.031	\N	f	1	\N	\N
+COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "refreshToken", "refreshTokenExpiresAt", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified") FROM stdin;
+5	Попов Матвей Иванович	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjUsImlhdCI6MTc2MzY0NDU0MCwiZXhwIjoxNzY0MjQ5MzQwfQ.olhsHykkbhIVVnvO8jC6YIZw7XfGZmHIGJTUCezkUkA	2025-11-27 13:15:40.03	2025-11-06 19:33:46.625	2025-11-20 13:31:39.524	\N	f	3	\N	/uploads/user/photo-1763627456668-926795266.png	t
+6	Садиков Виталий Дмитриевич	vitaly.sadikov2@yandex.ru	+79510341676	$2b$10$Tsi0whXkdERT2AvjSe6Jn.v6ba.K3sTDPXT6AzWMlkpahIY.LxDSS	INDIVIDUAL	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImlhdCI6MTc2MzYyMzUxNiwiZXhwIjoxNzY0MjI4MzE2fQ.Zaq_RCqkQqG3afjGnecJfuhc7HlVjcbHJzgjsh9FS8U	2025-11-27 07:25:16.021	2025-11-06 19:33:55.742	2025-11-20 07:25:16.031	\N	f	1	\N	\N	f
 \.
 
 

@@ -102,4 +102,21 @@ export class UserController {
   async getProfileSettings(@Req() req: Request & { user: any }) {
     return await this.userService.getProfileSettings(req.user.id);
   }
+
+  @ApiOperation({
+    summary: 'Отправка пиьсма на почту для подтверждения почты',
+  })
+  @UseGuards(JwtAuthGuard)
+  @Post('verify-email')
+  async verifyEmail(@Req() req: Request & { user: any }) {
+    return await this.userService.verifyEmail(req.user.id);
+  }
+
+  @ApiOperation({
+    summary: 'Проверка кода из письма для верификации почты',
+  })
+  @Post('verify-code')
+  async verifyCode(@Query('code') code: string) {
+    return await this.userService.verifyCode(code);
+  }
 }
