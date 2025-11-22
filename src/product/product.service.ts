@@ -321,7 +321,165 @@ export class ProductService {
     }
   }
 
-  async findAll(userId?: number) {
+  async findAll(userId?: number, searchDto?: any) {
+    // Если есть параметры поиска, используем расширенный поиск
+    if (searchDto && Object.keys(searchDto).length > 0) {
+      const {
+        search,
+        categoryId,
+        subCategoryId,
+        typeId,
+        minPrice,
+        maxPrice,
+        state,
+        region,
+        profileType,
+        fieldValues,
+        sortBy = 'date_desc',
+        page = 1,
+        limit = 20,
+      } = searchDto;
+
+      // Строим условия для фильтрации
+      const whereConditions: any = {};
+
+      // Поиск по тексту (название, описание)
+      if (search) {
+        whereConditions.OR = [
+          {
+            name: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+          {
+            description: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        ];
+      }
+
+      // Фильтр по категории
+      if (categoryId) {
+        whereConditions.categoryId = parseInt(categoryId);
+      }
+
+      // Фильтр по подкатегории
+      if (subCategoryId) {
+        whereConditions.subCategoryId = parseInt(subCategoryId);
+      }
+
+      // Фильтр по типу подкатегории
+      if (typeId) {
+        whereConditions.typeId = parseInt(typeId);
+      }
+
+      // Фильтр по цене
+      if (minPrice || maxPrice) {
+        whereConditions.price = {};
+        if (minPrice) whereConditions.price.gte = parseInt(minPrice);
+        if (maxPrice) whereConditions.price.lte = parseInt(maxPrice);
+      }
+
+      // Фильтр по состоянию
+      if (state) {
+        whereConditions.state = state;
+      }
+
+      // Фильтр по региону
+      if (region) {
+        whereConditions.address = {
+          contains: region,
+          mode: 'insensitive',
+        };
+      }
+
+      // Фильтр по типу продавца
+      if (profileType) {
+        whereConditions.user = {
+          profileType: profileType,
+        };
+      }
+
+      // Фильтр по характеристикам товара (fieldValues)
+      if (fieldValues && Object.keys(fieldValues).length > 0) {
+        whereConditions.fieldValues = {
+          some: {
+            OR: Object.entries(fieldValues).map(([fieldId, value]) => ({
+              fieldId: parseInt(fieldId),
+              value: {
+                contains: value as string,
+                mode: 'insensitive',
+              },
+            })),
+          },
+        };
+      }
+
+      // Настройка сортировки
+      let orderBy: any = {};
+      switch (sortBy) {
+        case 'price_asc':
+          orderBy = { price: 'asc' };
+          break;
+        case 'price_desc':
+          orderBy = { price: 'desc' };
+          break;
+        case 'date_desc':
+          orderBy = { createdAt: 'desc' };
+          break;
+        case 'date_asc':
+          orderBy = { createdAt: 'asc' };
+          break;
+        case 'relevance':
+        default:
+          orderBy = { createdAt: 'desc' };
+          break;
+      }
+
+      // Выполняем поиск
+      const products = await this.prisma.product.findMany({
+        where: whereConditions,
+        select: {
+          id: true,
+          images: true,
+          name: true,
+          address: true,
+          createdAt: true,
+          price: true,
+          userId: true,
+          videoUrl: true,
+        },
+        orderBy,
+        skip: (page - 1) * limit,
+        take: limit,
+      });
+
+      // Форматируем результат как в обычном findAll
+      if (userId) {
+        const result = await Promise.all(
+          products.map(async (product) => ({
+            ...product,
+            isFavorited: await this.isProductInUserFavorites(
+              product.id,
+              userId,
+            ),
+          })),
+        );
+        return this.formatProductsResponse(result);
+      }
+
+      return this.formatProductsResponse(
+        products.map((product) => ({
+          ...product,
+          isFavorited: false,
+        })),
+      );
+    }
+
+    // Если параметров поиска нет - возвращаем все товары (старая логика)
     let products = await this.prisma.product.findMany({
       select: {
         id: true,
@@ -333,12 +491,12 @@ export class ProductService {
         userId: true,
         videoUrl: true,
       },
+      orderBy: { createdAt: 'desc' },
     });
 
     if (userId) {
       const result = await Promise.all(
         products.map(async (product) => {
-          // if (product.userId != userId) {
           return {
             ...product,
             isFavorited: await this.isProductInUserFavorites(
@@ -346,14 +504,9 @@ export class ProductService {
               userId,
             ),
           };
-          // }
-          // return {
-          //   ...product,
-          //   isFavorited: await this.isProductInUserFavorites(product.id,),
-          // };
         }),
       );
-      return this.formatProductsResponse(result.reverse());
+      return this.formatProductsResponse(result);
     }
 
     return this.formatProductsResponse(
@@ -363,7 +516,7 @@ export class ProductService {
           isFavorited: false,
         };
       }),
-    ).reverse();
+    );
   }
 
   async getProductsByUserId(id: number) {
@@ -610,254 +763,6 @@ export class ProductService {
         ? await this.isProductInUserFavorites(product.id, userId)
         : false,
       seller: await this.userService.getUserInfo(product.userId),
-    };
-  }
-
-  async searchProducts(searchDto: any, userId?: number) {
-    const {
-      search,
-      categoryId,
-      subCategoryId,
-      typeId,
-      minPrice,
-      maxPrice,
-      state,
-      region,
-      profileType,
-      fieldValues,
-      sortBy = 'relevance',
-      page = 1,
-      limit = 20,
-    } = searchDto;
-
-    // Строим условия для фильтрации
-    const whereConditions: any = {};
-
-    // Поиск по тексту (название, описание)
-    if (search) {
-      whereConditions.OR = [
-        {
-          name: {
-            contains: search,
-            mode: 'insensitive',
-          },
-        },
-        {
-          description: {
-            contains: search,
-            mode: 'insensitive',
-          },
-        },
-      ];
-    }
-
-    // Фильтр по категории
-    if (categoryId) {
-      whereConditions.categoryId = categoryId;
-    }
-
-    // Фильтр по подкатегории
-    if (subCategoryId) {
-      whereConditions.subCategoryId = subCategoryId;
-    }
-
-    // Фильтр по типу подкатегории
-    if (typeId) {
-      whereConditions.typeId = typeId;
-    }
-
-    // Фильтр по цене
-    if (minPrice || maxPrice) {
-      whereConditions.price = {};
-      if (minPrice) whereConditions.price.gte = minPrice;
-      if (maxPrice) whereConditions.price.lte = maxPrice;
-    }
-
-    // Фильтр по состоянию
-    if (state) {
-      whereConditions.state = state;
-    }
-
-    // Фильтр по региону
-    if (region) {
-      whereConditions.address = {
-        contains: region,
-        mode: 'insensitive',
-      };
-    }
-
-    // Фильтр по типу продавца
-    if (profileType) {
-      whereConditions.user = {
-        profileType: profileType,
-      };
-    }
-
-    // Фильтр по характеристикам товара (fieldValues)
-    if (fieldValues && Object.keys(fieldValues).length > 0) {
-      whereConditions.fieldValues = {
-        some: {
-          OR: Object.entries(fieldValues).map(([fieldId, value]) => ({
-            fieldId: parseInt(fieldId),
-            value: {
-              contains: value,
-              mode: 'insensitive',
-            },
-          })),
-        },
-      };
-    }
-
-    // Настройка сортировки
-    let orderBy: any = {};
-    switch (sortBy) {
-      case 'price_asc':
-        orderBy = { price: 'asc' };
-        break;
-      case 'price_desc':
-        orderBy = { price: 'desc' };
-        break;
-      case 'date_desc':
-        orderBy = { createdAt: 'desc' };
-        break;
-      case 'date_asc':
-        orderBy = { createdAt: 'asc' };
-        break;
-      case 'relevance':
-      default:
-        // При поиске по тексту - сортировка по релевантности (сначала точные совпадения в названии)
-        if (search) {
-          orderBy = [
-            {
-              name: {
-                _relevance: {
-                  search: search,
-                  sort: 'desc',
-                },
-              },
-            },
-            { createdAt: 'desc' },
-          ];
-        } else {
-          orderBy = { createdAt: 'desc' };
-        }
-        break;
-    }
-
-    // Выполняем поиск с пагинацией
-    const [products, total] = await Promise.all([
-      this.prisma.product.findMany({
-        where: whereConditions,
-        include: {
-          category: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          subCategory: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          type: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          user: {
-            select: {
-              id: true,
-              fullName: true,
-              rating: true,
-              profileType: true,
-            },
-          },
-          fieldValues: {
-            include: {
-              field: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
-            },
-          },
-          _count: {
-            select: {
-              views: true,
-              favoriteActions: true,
-            },
-          },
-        },
-        orderBy,
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      this.prisma.product.count({
-        where: whereConditions,
-      }),
-    ]);
-
-    // Форматируем результат
-    const formattedProducts = await Promise.all(
-      products.map(async (product) => ({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        state: product.state,
-        description: product.description,
-        address: product.address,
-        images: product.images.map((img) => `${this.baseUrl}${img}`),
-        category: product.category,
-        subCategory: product.subCategory,
-        type: product.type,
-        seller: {
-          id: product.user.id,
-          fullName: product.user.fullName,
-          rating: product.user.rating,
-          profileType: product.user.profileType,
-        },
-        fieldValues: product.fieldValues.map((fv) => ({
-          fieldId: fv.field.id,
-          fieldName: fv.field.name,
-          value: fv.value,
-        })),
-        stats: {
-          views: product._count.views,
-          favorites: product._count.favoriteActions,
-        },
-        createdAt: product.createdAt,
-        // Отмечаем, добавлен ли в избранное текущим пользователем (если авторизован)
-        isInFavorites: userId
-          ? await this.isProductInUserFavorites(product.id, userId)
-          : false,
-      })),
-    );
-
-    return {
-      products: formattedProducts,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
-      filters: {
-        search: search || null,
-        categoryId: categoryId || null,
-        subCategoryId: subCategoryId || null,
-        typeId: typeId || null,
-        minPrice: minPrice || null,
-        maxPrice: maxPrice || null,
-        state: state || null,
-        region: region || null,
-        profileType: profileType || null,
-        fieldValues: fieldValues || null,
-        sortBy,
-      },
     };
   }
 

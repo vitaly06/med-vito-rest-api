@@ -292,12 +292,17 @@ export class ProductController {
   }
 
   @ApiOperation({
-    summary: 'Возвращает все товары для главной страницы',
+    summary: 'Получение всех товаров с возможностью фильтрации',
+    description:
+      'Возвращает все товары или фильтрует их по заданным параметрам. Если параметры не указаны, возвращаются все товары.',
   })
   @UseGuards(OptionalJwtAuthGuard)
   @Get('all-products')
-  async findAll(@Req() req: Request & { user: any }) {
-    return await this.productService.findAll(req?.user?.id);
+  async findAll(
+    @Req() req: Request & { user: any },
+    @Query() searchDto: SearchProductsDto,
+  ) {
+    return await this.productService.findAll(req?.user?.id, searchDto);
   }
 
   @ApiOperation({
@@ -397,87 +402,4 @@ export class ProductController {
   //     +limit,
   //   );
   // }
-
-  @Get('search')
-  @UseGuards(OptionalJwtAuthGuard)
-  @ApiOperation({
-    summary: 'Поиск товаров',
-    description: 'Поиск товаров с фильтрацией по различным параметрам',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Результаты поиска товаров',
-    schema: {
-      type: 'object',
-      properties: {
-        products: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'string' },
-              name: { type: 'string' },
-              price: { type: 'number' },
-              state: { type: 'string' },
-              brand: { type: 'string' },
-              model: { type: 'string' },
-              description: { type: 'string' },
-              address: { type: 'string' },
-              images: {
-                type: 'array',
-                items: { type: 'string' },
-              },
-              category: {
-                type: 'object',
-                properties: {
-                  id: { type: 'string' },
-                  name: { type: 'string' },
-                },
-              },
-              subCategory: {
-                type: 'object',
-                properties: {
-                  id: { type: 'string' },
-                  name: { type: 'string' },
-                },
-              },
-              seller: {
-                type: 'object',
-                properties: {
-                  id: { type: 'string' },
-                  fullName: { type: 'string' },
-                  rating: { type: 'number' },
-                },
-              },
-              stats: {
-                type: 'object',
-                properties: {
-                  views: { type: 'number' },
-                  favorites: { type: 'number' },
-                },
-              },
-              createdAt: { type: 'string', format: 'date-time' },
-              isInFavorites: { type: 'boolean' },
-            },
-          },
-        },
-        pagination: {
-          type: 'object',
-          properties: {
-            currentPage: { type: 'number' },
-            totalPages: { type: 'number' },
-            totalItems: { type: 'number' },
-            hasNextPage: { type: 'boolean' },
-            hasPrevPage: { type: 'boolean' },
-          },
-        },
-      },
-    },
-  })
-  async searchProducts(
-    @Query() searchDto: SearchProductsDto,
-    @Req() req: Request & { user: any },
-  ) {
-    return await this.productService.searchProducts(searchDto, req?.user?.id);
-  }
 }
