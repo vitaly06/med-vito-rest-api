@@ -19,6 +19,7 @@ services:
       - JWT_SECRET=ss3ZpIGPhT4qpL0LhwrSIjh3gxAey88i
       - JWT_REFRESH_SECRET=OvMAfvaZEtsEkj4utArLBMD7ia3gITaO
       - BASE_URL=http://localh1ost:3000
+      - DADATA_API_KEY=c45aa105fda578ee16110dd9c7601960ad84268d
     depends_on:
       - db
       - redis
