@@ -1,21 +1,27 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
-import { PassportModule } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { JwtStrategy } from './strategies/jwt.strategy';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { SessionAuthGuard } from './guards/session-auth.guard';
+import { AdminSessionAuthGuard } from './guards/admin-session-auth.guard';
+import { OptionalSessionAuthGuard } from './guards/optional-session-auth.guard';
+import { WsSessionAuthGuard } from './guards/ws-session-auth.guard';
 
 @Module({
-  imports: [
-    PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'fallback-secret',
-      signOptions: { expiresIn: '15m' },
-    }),
-  ],
+  imports: [],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtAuthGuard],
-  exports: [AuthService, JwtAuthGuard, JwtModule],
+  providers: [
+    AuthService,
+    SessionAuthGuard,
+    AdminSessionAuthGuard,
+    OptionalSessionAuthGuard,
+    WsSessionAuthGuard,
+  ],
+  exports: [
+    AuthService,
+    SessionAuthGuard,
+    AdminSessionAuthGuard,
+    OptionalSessionAuthGuard,
+    WsSessionAuthGuard,
+  ],
 })
 export class AuthModule {}

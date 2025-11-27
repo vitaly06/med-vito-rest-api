@@ -12,7 +12,7 @@ import {
   Patch,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
 import { Request } from 'express';
 import { ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -24,7 +24,7 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get('/info')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(SessionAuthGuard)
   async userInfo(@Req() req: Request & { user: any }) {
     return await this.userService.getUserInfo(req.user.id);
   }
@@ -32,7 +32,7 @@ export class UserController {
   @ApiOperation({
     summary: 'Получение номера телефона продавца',
   })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(SessionAuthGuard)
   @Get('show-number/:userId')
   async showNumber(
     @Param('userId') userId: string,
@@ -79,7 +79,7 @@ export class UserController {
       },
     },
   })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(SessionAuthGuard)
   @UseInterceptors(FileInterceptor('photo'))
   @Patch('update-settings')
   async updateSettings(
@@ -97,7 +97,7 @@ export class UserController {
   @ApiOperation({
     summary: 'Получение настроек пользователя',
   })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(SessionAuthGuard)
   @Get('profile-settings')
   async getProfileSettings(@Req() req: Request & { user: any }) {
     return await this.userService.getProfileSettings(req.user.id);
@@ -106,7 +106,7 @@ export class UserController {
   @ApiOperation({
     summary: 'Отправка пиьсма на почту для подтверждения почты',
   })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(SessionAuthGuard)
   @Post('verify-email')
   async verifyEmail(@Req() req: Request & { user: any }) {
     return await this.userService.verifyEmail(req.user.id);

@@ -12,11 +12,11 @@ import { AuthService } from './auth.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import { SignInDto } from './dto/sign-in.dto';
 import type { Response, Request } from 'express';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { SessionAuthGuard } from './guards/session-auth.guard';
+import { AdminSessionAuthGuard } from './guards/admin-session-auth.guard';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { AdminJwtAuthGuard } from './guards/admin-jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -35,31 +35,29 @@ export class AuthController {
     return await this.authService.signIn(dto, response);
   }
 
+  @ApiOperation({
+    summary: 'Данные сессии',
+  })
+  @Get('me')
+  @UseGuards(SessionAuthGuard)
+  async getCurrentUser(@Req() request: Request & { user: any }) {
+    return await this.authService.getCurrentUser(request.user.id);
+  }
+
   @Get('isAdmin')
-  @UseGuards(AdminJwtAuthGuard)
+  @UseGuards(AdminSessionAuthGuard)
   async isAdmin() {
     return { isAdmin: true };
   }
 
   @Post('logout')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(SessionAuthGuard)
   async logout(
-    @Req() request: Request & { user: any },
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    return await this.authService.logout(request.user.id, response);
-  }
-
-  @Post('refresh')
-  async refresh(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const refreshToken = request.cookies?.refresh_token;
-    if (!refreshToken) {
-      throw new Error('Refresh токен не найден');
-    }
-    return await this.authService.refreshTokens(refreshToken, response);
+    const sessionId = request.cookies?.session_id;
+    return await this.authService.logout(sessionId, response);
   }
 
   @ApiTags('Восстановление пароля')

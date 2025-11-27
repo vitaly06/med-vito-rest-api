@@ -11,7 +11,7 @@ import {
 import { UseGuards } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { SupportService } from './support.service';
-import { WsJwtAuthGuard } from '../auth/guards/ws-jwt-auth.guard';
+import { WsSessionAuthGuard } from '../auth/guards/ws-session-auth.guard';
 import { SendSupportMessageDto } from './dto';
 
 interface AuthenticatedSocket extends Socket {
@@ -136,7 +136,7 @@ export class SupportGateway
   }
 
   // Отправка сообщения в тикет
-  @UseGuards(WsJwtAuthGuard)
+  @UseGuards(WsSessionAuthGuard)
   @SubscribeMessage('sendSupportMessage')
   async handleSendMessage(
     @ConnectedSocket() client: AuthenticatedSocket,

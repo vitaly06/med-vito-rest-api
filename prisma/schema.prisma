@@ -26,8 +26,6 @@ model User {
   password              String
   rating                Int?
   profileType           ProfileType @default(INDIVIDUAL)
-  refreshToken          String?
-  refreshTokenExpiresAt DateTime?
 
   photo String?
   isAnswersCall Boolean? @default(false)

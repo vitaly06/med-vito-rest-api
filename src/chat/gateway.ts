@@ -11,7 +11,7 @@ import {
 import { UseGuards } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
-import { WsJwtAuthGuard } from 'src/auth/guards/ws-jwt-auth.guard';
+import { WsSessionAuthGuard } from 'src/auth/guards/ws-session-auth.guard';
 
 interface AuthenticatedSocket extends Socket {
   userId?: number;
@@ -123,7 +123,7 @@ export class ChatGateway
 
   // Подключиться к комнате чата
   @SubscribeMessage('joinChat')
-  @UseGuards(WsJwtAuthGuard)
+  @UseGuards(WsSessionAuthGuard)
   async handleJoinChat(
     @MessageBody() data: { chatId: number },
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -150,7 +150,7 @@ export class ChatGateway
 
   // Отправить сообщение через WebSocket
   @SubscribeMessage('sendMessage')
-  @UseGuards(WsJwtAuthGuard)
+  @UseGuards(WsSessionAuthGuard)
   async handleMessage(
     @MessageBody() data: { chatId: number; content: string },
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -197,7 +197,7 @@ export class ChatGateway
 
   // Отметить сообщения как прочитанные
   @SubscribeMessage('markAsRead')
-  @UseGuards(WsJwtAuthGuard)
+  @UseGuards(WsSessionAuthGuard)
   async handleMarkAsRead(
     @MessageBody() data: { chatId: number },
     @ConnectedSocket() client: AuthenticatedSocket,

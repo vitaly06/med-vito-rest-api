@@ -7,7 +7,6 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import * as bcrypt from 'bcrypt';
@@ -17,6 +16,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import * as cacheManager_1 from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -24,7 +24,6 @@ export class AuthService {
   private readonly logger = new Logger('Auth');
   constructor(
     private readonly prisma: PrismaService,
-    private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly mailerSerivce: MailerService,
     @Inject(CACHE_MANAGER) private cacheManager: cacheManager_1.Cache,
@@ -90,22 +89,27 @@ export class AuthService {
       throw new UnauthorizedException('Неверные данные для входа');
     }
 
-    // Генерируем токены
-    const tokens = await this.generateTokens(checkUser.id, checkUser.email);
+    // Генерируем ID сессии
+    const sessionId = this.generateSessionId();
 
-    // Сохраняем refresh токен в БД
-    const refreshTokenExpiresAt = new Date();
-    refreshTokenExpiresAt.setDate(refreshTokenExpiresAt.getDate() + 7);
+    // Сохраняем данные сессии в Redis (30 дней)
+    await this.cacheManager.set(
+      `session:${sessionId}`,
+      JSON.stringify({
+        userId: checkUser.id,
+        email: checkUser.email,
+        profileType: checkUser.profileType,
+      }),
+      30 * 24 * 60 * 60 * 1000, // 30 дней
+    );
 
-    await this.prisma.user.update({
-      where: { id: checkUser.id },
-      data: {
-        refreshToken: tokens.refreshToken,
-        refreshTokenExpiresAt,
-      },
+    // Устанавливаем session id в cookie
+    response.cookie('session_id', sessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 дней
     });
-
-    this.setTokenCookies(response, tokens);
 
     this.logger.log(`Успешная авторизация: ${login}`);
 
@@ -122,113 +126,51 @@ export class AuthService {
     };
   }
 
-  async logout(userId: number, response: Response) {
-    // Очищаем refresh токен в БД
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        refreshToken: null,
-        refreshTokenExpiresAt: null,
-      },
-    });
+  async logout(sessionId: string, response: Response) {
+    await this.cacheManager.del(`session:${sessionId}`);
 
-    response.clearCookie('access_token');
-    response.clearCookie('refresh_token');
+    response.clearCookie('session_id');
 
     return { message: 'Вы успешно вышли из системы!' };
   }
 
-  async refreshTokens(refreshToken: string, response: Response) {
-    try {
-      // Проверяем refresh токен
-      const payload = this.jwtService.verify(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret',
-      });
-
-      // Находим пользователя
-      const user = await this.prisma.user.findFirst({
-        where: {
-          id: payload.sub,
-          refreshToken: refreshToken,
-          refreshTokenExpiresAt: {
-            gt: new Date(),
-          },
-        },
-      });
-
-      if (!user) {
-        throw new UnauthorizedException('Недействительный refresh токен');
-      }
-
-      // Генерируем новые токены
-      const tokens = await this.generateTokens(user.id, user.email);
-
-      // Обновляем refresh токен в БД
-      const refreshTokenExpiresAt = new Date();
-      refreshTokenExpiresAt.setDate(refreshTokenExpiresAt.getDate() + 7);
-
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: {
-          refreshToken: tokens.refreshToken,
-          refreshTokenExpiresAt,
-        },
-      });
-
-      // Устанавливаем новые токены в cookies
-      this.setTokenCookies(response, tokens);
-
-      return {
-        message: 'Токены успешно обновлены!',
-        user: {
-          id: user.id,
-          email: user.email,
-          fullName: user.fullName,
-          phoneNumber: user.phoneNumber,
-          profileType: user.profileType,
-        },
-      };
-    } catch (error) {
-      throw new UnauthorizedException('Недействительный refresh токен');
-    }
-  }
-
-  private async generateTokens(userId: number, email: string) {
-    const payload = { sub: userId, email };
-
-    const accessToken = this.jwtService.sign(payload, {
-      secret: process.env.JWT_SECRET || 'fallback-secret',
-      expiresIn: '15m',
-    });
-
-    const refreshToken = this.jwtService.sign(
-      { sub: userId },
-      {
-        secret: process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret',
-        expiresIn: '7d',
-      },
+  async getSessionData(sessionId: string) {
+    const sessionDataStr = await this.cacheManager.get<string>(
+      `session:${sessionId}`,
     );
-
-    return { accessToken, refreshToken };
+    if (!sessionDataStr) {
+      return null;
+    }
+    return JSON.parse(sessionDataStr);
   }
 
-  private setTokenCookies(
-    response: Response,
-    tokens: { accessToken: string; refreshToken: string },
-  ) {
-    response.cookie('access_token', tokens.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 15 * 60 * 1000, // 15 минут
+  async getCurrentUser(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        role: true,
+      },
     });
 
-    response.cookie('refresh_token', tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
-    });
+    if (!user) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      phoneNumber: user.phoneNumber,
+      profileType: user.profileType,
+      photo: user.photo ? `${this.baseUrl}${user.photo}` : null,
+      rating: user.rating,
+      isAnswersCall: user.isAnswersCall,
+      role: user.role?.name,
+    };
+  }
+
+  private generateSessionId(): string {
+    return randomBytes(32).toString('hex');
   }
 
   async forgotPassword(email: string) {

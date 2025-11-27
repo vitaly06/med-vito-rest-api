@@ -8,7 +8,7 @@ import {
 } from '@nestjs/swagger';
 import { Request } from 'express';
 import { StatisticsService } from './statistics.service';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
 import { StatisticsQueryDto, PeriodEnum } from './dto/statistics-query.dto';
 
 @ApiTags('Statistics')
@@ -74,7 +74,7 @@ export class StatisticsController {
     status: 401,
     description: 'Неавторизован',
   })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(SessionAuthGuard)
   @Get('analytic')
   async getUserStatistics(
     @Query() query: StatisticsQueryDto,
@@ -86,7 +86,7 @@ export class StatisticsController {
   @ApiOperation({
     summary: 'Аналитика для каждого товара',
   })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(SessionAuthGuard)
   @Get('products-analytic')
   async getProductsAnalytic(@Req() req: Request & { user: any }) {
     return await this.statisticsService.getProductsAnalytic(req.user.id);

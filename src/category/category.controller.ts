@@ -11,7 +11,7 @@ import {
 import { CategoryService } from './category.service';
 import { ApiOperation } from '@nestjs/swagger';
 import { CreateCategoryDto } from './dto/create-category.dto';
-import { AdminJwtAuthGuard } from 'src/auth/guards/admin-jwt-auth.guard';
+import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @Controller('category')
@@ -21,7 +21,7 @@ export class CategoryController {
   @ApiOperation({
     summary: 'Создание категории',
   })
-  @UseGuards(AdminJwtAuthGuard)
+  @UseGuards(AdminSessionAuthGuard)
   @Post('create-category')
   async createCategory(@Body() dto: CreateCategoryDto) {
     return await this.categoryService.createCategory(dto);
@@ -30,7 +30,7 @@ export class CategoryController {
   @ApiOperation({
     summary: 'Обновление категории',
   })
-  @UseGuards(AdminJwtAuthGuard)
+  @UseGuards(AdminSessionAuthGuard)
   @Put('update-category/:id')
   async updateCategory(
     @Param('id') id: string,
@@ -42,7 +42,7 @@ export class CategoryController {
   @ApiOperation({
     summary: 'Удаление категории',
   })
-  @UseGuards(AdminJwtAuthGuard)
+  @UseGuards(AdminSessionAuthGuard)
   @Delete('delete-category/:id')
   async deleteCategory(@Param('id') id: string) {
     return await this.categoryService.deleteCategory(+id);

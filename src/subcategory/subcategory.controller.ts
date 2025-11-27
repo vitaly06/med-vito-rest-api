@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { SubcategoryService } from './subcategory.service';
 import { ApiOperation } from '@nestjs/swagger';
-import { AdminJwtAuthGuard } from 'src/auth/guards/admin-jwt-auth.guard';
+import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
 import { CreateSubcategoryDto } from './dto/create-subcategory.dto';
 import { UpdateSubcategoryDto } from './dto/update-subcategory.dto';
 
@@ -21,7 +21,7 @@ export class SubcategoryController {
   @ApiOperation({
     summary: 'Создание подкатегории',
   })
-  @UseGuards(AdminJwtAuthGuard)
+  @UseGuards(AdminSessionAuthGuard)
   @Post('create-subcategory')
   async createSubcategory(@Body() dto: CreateSubcategoryDto) {
     return await this.subcategoryService.createSubcategory(dto);
@@ -30,7 +30,7 @@ export class SubcategoryController {
   @ApiOperation({
     summary: 'Обновление подкатегории',
   })
-  @UseGuards(AdminJwtAuthGuard)
+  @UseGuards(AdminSessionAuthGuard)
   @Patch('update-subcategory/:id')
   async updateCategory(
     @Param('id') id: string,
@@ -42,7 +42,7 @@ export class SubcategoryController {
   @ApiOperation({
     summary: 'Удаление подкатегории',
   })
-  @UseGuards(AdminJwtAuthGuard)
+  @UseGuards(AdminSessionAuthGuard)
   @Delete('delete-subcategory/:id')
   async deleteSubcategory(@Param('id') id: string) {
     return await this.subcategoryService.deleteSubcategory(+id);

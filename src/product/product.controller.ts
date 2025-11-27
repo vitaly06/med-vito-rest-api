@@ -13,8 +13,8 @@ import {
   Patch,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { OptionalJwtAuthGuard } from 'src/auth/guards/optional-jwt-auth.guard';
+import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
+import { OptionalSessionAuthGuard } from 'src/auth/guards/optional-session-auth.guard';
 import { createProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { SearchProductsDto } from './dto/search-products.dto';
@@ -35,7 +35,7 @@ export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post('create')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(SessionAuthGuard)
   @UseInterceptors(FilesInterceptor('images', 8))
   @ApiOperation({
     summary: 'Создание нового продукта',
@@ -187,7 +187,7 @@ export class ProductController {
   @ApiOperation({
     summary: 'Удаление продукта',
   })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(SessionAuthGuard)
   @Delete(':id')
   async deleteProduct(
     @Param('id') id: string,
@@ -197,7 +197,7 @@ export class ProductController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(SessionAuthGuard)
   @UseInterceptors(FilesInterceptor('images', 8))
   @ApiOperation({
     summary: 'Обновление товара',
@@ -296,7 +296,7 @@ export class ProductController {
     description:
       'Возвращает все товары или фильтрует их по заданным параметрам. Если параметры не указаны, возвращаются все товары.',
   })
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(OptionalSessionAuthGuard)
   @Get('all-products')
   async findAll(
     @Req() req: Request & { user: any },
@@ -311,7 +311,7 @@ export class ProductController {
       'Возвращает список всех товаров, созданных текущим пользователем',
   })
   @Get('my-products')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(SessionAuthGuard)
   async getMyProducts(@Req() req: Request & { user: any }) {
     return await this.productService.getProductsByUserId(req.user.id);
   }
@@ -321,7 +321,7 @@ export class ProductController {
     summary: 'Добавление товара в избранное',
   })
   @Post('add-to-favorites/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(SessionAuthGuard)
   async addToFavorites(
     @Param('id') id: string,
     @Req() req: Request & { user: any },
@@ -334,7 +334,7 @@ export class ProductController {
     summary: 'Удаление товара из избранного',
   })
   @Delete('remove-from-favorites/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(SessionAuthGuard)
   async removeFromFavorites(
     @Req() req: Request & { user: any },
     @Param('id') id: string,
@@ -350,7 +350,7 @@ export class ProductController {
     summary: 'Получение всех товаров из избранного',
   })
   @Get('my-favorites')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(SessionAuthGuard)
   async getMyFavorites(@Req() req: Request & { user: any }) {
     return await this.productService.getMyFavorites(req.user.id);
   }
@@ -358,7 +358,7 @@ export class ProductController {
   @ApiOperation({
     summary: 'Получение данных товара для карточки по id',
   })
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(OptionalSessionAuthGuard)
   @Get('product-card/:id')
   async getProductCard(
     @Param('id') id: string,
@@ -371,7 +371,7 @@ export class ProductController {
   // @ApiOperation({
   //   summary: 'Получение статистики просмотров товаров пользователя',
   // })
-  // @UseGuards(JwtAuthGuard)
+  // @UseGuards(SessionAuthGuard)
   // @Get('view-stats')
   // async getProductViewStats(
   //   @Req() req: Request & { user: any },
@@ -389,7 +389,7 @@ export class ProductController {
   //   summary:
   //     'Получение статистики добавлений в избранное для товаров пользователя',
   // })
-  // @UseGuards(JwtAuthGuard)
+  // @UseGuards(SessionAuthGuard)
   // @Get('favorite-stats')
   // async getFavoriteStats(
   //   @Req() req: Request & { user: any },

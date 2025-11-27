@@ -18,10 +18,10 @@ import {
   GetTicketsQueryDto,
   UpdateTicketDto,
 } from './dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 
 @Controller('support')
-@UseGuards(JwtAuthGuard)
+@UseGuards(SessionAuthGuard)
 export class SupportController {
   constructor(private readonly supportService: SupportService) {}
 
