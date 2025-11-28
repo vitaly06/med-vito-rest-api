@@ -323,7 +323,11 @@ export class ProductService {
 
   async findAll(userId?: number, searchDto?: any) {
     // Если есть параметры поиска, используем расширенный поиск
-    if (searchDto && Object.keys(searchDto).length > 0) {
+    if (
+      searchDto &&
+      Object.keys(searchDto).length > 0 &&
+      Object.values(searchDto).some((val) => val !== undefined && val !== '')
+    ) {
       const {
         search,
         categoryId,
@@ -479,8 +483,10 @@ export class ProductService {
       );
     }
 
-    // Если параметров поиска нет - возвращаем все товары (старая логика)
-    let products = await this.prisma.product.findMany({
+    // Если параметров поиска нет - возвращаем все товары + 5 случайных товаров из разных подкатегорий
+
+    // Получаем все товары
+    const allProducts = await this.prisma.product.findMany({
       select: {
         id: true,
         images: true,
@@ -494,29 +500,85 @@ export class ProductService {
       orderBy: { createdAt: 'desc' },
     });
 
-    if (userId) {
-      const result = await Promise.all(
-        products.map(async (product) => {
-          return {
-            ...product,
-            isFavorited: await this.isProductInUserFavorites(
-              product.id,
-              userId,
-            ),
-          };
-        }),
-      );
-      return this.formatProductsResponse(result);
+    // Получаем 5 случайных подкатегорий, у которых есть товары
+    const randomSubCategories = await this.prisma.$queryRaw<
+      Array<{ id: number; name: string }>
+    >`
+      SELECT sc.id, sc.name
+      FROM "SubCategory" sc
+      WHERE EXISTS (
+        SELECT 1 FROM "Product" p WHERE p."subCategoryId" = sc.id
+      )
+      ORDER BY RANDOM()
+      LIMIT 5
+    `;
+
+    const randomProductsList: any[] = [];
+
+    // Для каждой подкатегории берём один случайный товар
+    for (const subCat of randomSubCategories) {
+      const products = await this.prisma.product.findMany({
+        where: { subCategoryId: subCat.id },
+        select: {
+          id: true,
+          images: true,
+          name: true,
+          address: true,
+          createdAt: true,
+          price: true,
+          userId: true,
+          videoUrl: true,
+        },
+      });
+
+      if (products.length > 0) {
+        // Берём случайный товар из этой подкатегории
+        const randomIndex = Math.floor(Math.random() * products.length);
+        randomProductsList.push({
+          ...products[randomIndex],
+          subCategoryName: subCat.name,
+        });
+      }
     }
 
-    return this.formatProductsResponse(
-      products.map((product) => {
-        return {
+    // Форматируем оба списка
+    if (userId) {
+      const allProductsWithFavorites = await Promise.all(
+        allProducts.map(async (product) => ({
+          ...product,
+          isFavorited: await this.isProductInUserFavorites(product.id, userId),
+        })),
+      );
+
+      const randomProductsWithFavorites = await Promise.all(
+        randomProductsList.map(async (product) => ({
+          ...product,
+          isFavorited: await this.isProductInUserFavorites(product.id, userId),
+        })),
+      );
+
+      return {
+        allProducts: this.formatProductsResponse(allProductsWithFavorites),
+        randomProducts: this.formatProductsResponse(
+          randomProductsWithFavorites,
+        ),
+      };
+    }
+
+    return {
+      allProducts: this.formatProductsResponse(
+        allProducts.map((product) => ({
           ...product,
           isFavorited: false,
-        };
-      }),
-    );
+        })),
+      ),
+      randomProducts: this.formatProductsResponse(
+        randomProductsList.map((product) => ({
+          ...product,
+          isFavorited: false,
+        })),
+      ),
+    };
   }
 
   async getProductsByUserId(id: number) {
