@@ -377,6 +377,7 @@ export class ProductController {
     return await this.productService.getProductCard(+id, req?.user?.id);
   }
 
+  @ApiOperation({ summary: 'Смена статуса видимости товара' })
   @UseGuards(SessionAuthGuard)
   @Put('toggle-product/:id')
   async toggleProduct(
