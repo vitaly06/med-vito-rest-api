@@ -90,6 +90,9 @@ model Product {
   address     String?
   videoUrl String?
   images      String[]     @default([])
+
+  isHide Boolean @default(false)
+
   categoryId  Int
   category    Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 

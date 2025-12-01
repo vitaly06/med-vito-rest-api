@@ -11,6 +11,7 @@ import {
   Delete,
   Query,
   Patch,
+  Put,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
@@ -373,8 +374,16 @@ export class ProductController {
     @Param('id') id: string,
     @Req() req?: Request & { user: any },
   ) {
-    console.log(req);
     return await this.productService.getProductCard(+id, req?.user?.id);
+  }
+
+  @UseGuards(SessionAuthGuard)
+  @Put('toggle-product/:id')
+  async toggleProduct(
+    @Param('id') id: string,
+    @Req() req: Request & { user: any },
+  ) {
+    return await this.productService.toggleProduct(+id, req.user.id);
   }
 
   // @ApiOperation({

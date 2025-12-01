@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { createProductDto } from './dto/create-product.dto';
@@ -493,9 +494,13 @@ export class ProductService {
         name: true,
         address: true,
         createdAt: true,
+        isHide: true,
         price: true,
         userId: true,
         videoUrl: true,
+      },
+      where: {
+        isHide: false,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -528,7 +533,7 @@ export class ProductService {
       SELECT sc.id, sc.name
       FROM "SubCategory" sc
       WHERE EXISTS (
-        SELECT 1 FROM "Product" p WHERE p."subCategoryId" = sc.id
+        SELECT 1 FROM "Product" p WHERE p."subCategoryId" = sc.id AND p."isHide" = false
       )
       ORDER BY RANDOM()
       LIMIT 5
@@ -596,6 +601,7 @@ export class ProductService {
         images: true,
         name: true,
         address: true,
+        isHide: true,
         createdAt: true,
         price: true,
         videoUrl: true,
@@ -753,6 +759,7 @@ export class ProductService {
         name: true,
         description: true,
         price: true,
+        isHide: true,
         images: true,
         address: true,
         userId: true,
@@ -842,5 +849,28 @@ export class ProductService {
     });
 
     return !!favorite;
+  }
+
+  async toggleProduct(productId: number, userId: number) {
+    const checkProduct = await this.prisma.product.findUnique({
+      where: { id: productId },
+    });
+
+    if (!checkProduct) {
+      throw new NotFoundException('Товар не надйен');
+    }
+
+    if (checkProduct.userId != userId) {
+      throw new ForbiddenException('Вы не можете редактировать не свой товар');
+    }
+
+    await this.prisma.product.update({
+      where: { id: productId },
+      data: {
+        isHide: !checkProduct.isHide,
+      },
+    });
+
+    return { message: 'Статус активности товара сменен' };
   }
 }
