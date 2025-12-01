@@ -306,6 +306,15 @@ export class ProductController {
   }
 
   @ApiOperation({
+    summary: 'Возвращает 5 рандомных товаров',
+  })
+  @UseGuards(OptionalSessionAuthGuard)
+  @Get('random-products')
+  async getRandomProducts(@Req() req: Request & { user: any }) {
+    return await this.productService.getRandomProducts(req?.user?.id);
+  }
+
+  @ApiOperation({
     summary: 'Получение товаров текущего пользователя',
     description:
       'Возвращает список всех товаров, созданных текущим пользователем',

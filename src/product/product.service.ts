@@ -500,6 +500,27 @@ export class ProductService {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Форматируем оба списка
+    if (userId) {
+      const allProductsWithFavorites = await Promise.all(
+        allProducts.map(async (product) => ({
+          ...product,
+          isFavorited: await this.isProductInUserFavorites(product.id, userId),
+        })),
+      );
+
+      return this.formatProductsResponse(allProductsWithFavorites);
+    }
+
+    return this.formatProductsResponse(
+      allProducts.map((product) => ({
+        ...product,
+        isFavorited: false,
+      })),
+    );
+  }
+
+  async getRandomProducts(userId?: number) {
     // Получаем 5 случайных подкатегорий, у которых есть товары
     const randomSubCategories = await this.prisma.$queryRaw<
       Array<{ id: number; name: string }>
@@ -541,44 +562,22 @@ export class ProductService {
       }
     }
 
-    // Форматируем оба списка
     if (userId) {
-      const allProductsWithFavorites = await Promise.all(
-        allProducts.map(async (product) => ({
-          ...product,
-          isFavorited: await this.isProductInUserFavorites(product.id, userId),
-        })),
-      );
-
       const randomProductsWithFavorites = await Promise.all(
         randomProductsList.map(async (product) => ({
           ...product,
           isFavorited: await this.isProductInUserFavorites(product.id, userId),
         })),
       );
-
-      return {
-        allProducts: this.formatProductsResponse(allProductsWithFavorites),
-        randomProducts: this.formatProductsResponse(
-          randomProductsWithFavorites,
-        ),
-      };
+      return this.formatProductsResponse(randomProductsWithFavorites);
     }
 
-    return {
-      allProducts: this.formatProductsResponse(
-        allProducts.map((product) => ({
-          ...product,
-          isFavorited: false,
-        })),
-      ),
-      randomProducts: this.formatProductsResponse(
-        randomProductsList.map((product) => ({
-          ...product,
-          isFavorited: false,
-        })),
-      ),
-    };
+    return this.formatProductsResponse(
+      randomProductsList.map((product) => ({
+        ...product,
+        isFavorited: false,
+      })),
+    );
   }
 
   async getProductsByUserId(id: number) {
