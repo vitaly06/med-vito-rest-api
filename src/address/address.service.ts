@@ -37,6 +37,8 @@ export class AddressService {
 
       return response.data.suggestions.map((suggestion) => ({
         value: suggestion.value,
+        lat: suggestion.data.geo_lat,
+        lon: suggestion.data.geo_lon,
       }));
     } catch (error) {
       console.error('DaData API Error:', error.response?.data || error.message);
