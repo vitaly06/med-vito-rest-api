@@ -3,9 +3,12 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  Inject,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import * as cacheManager from 'cache-manager';
 
 @Injectable()
 export class ChatService {
@@ -14,11 +17,29 @@ export class ChatService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    @Inject(CACHE_MANAGER) private cacheManager: cacheManager.Cache,
   ) {
     this.baseUrl = this.configService.get<string>(
       'BASE_URL',
       'http://localhost:3000',
     );
+  }
+
+  async getSessionData(sessionId: string) {
+    const sessionDataStr = await this.cacheManager.get<string>(
+      `session:${sessionId}`,
+    );
+    if (!sessionDataStr) {
+      return null;
+    }
+    return JSON.parse(sessionDataStr);
+  }
+
+  async getUserById(userId: number) {
+    return await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true },
+    });
   }
 
   // Начать чат по товару

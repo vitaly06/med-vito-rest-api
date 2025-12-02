@@ -39,78 +39,52 @@ export class ChatGateway
 
   async handleConnection(client: AuthenticatedSocket) {
     console.log('WebSocket client connected:', client.id);
-    console.log('Headers:', client.handshake.headers);
-    console.log('Auth:', client.handshake.auth);
-    console.log('Query:', client.handshake.query);
 
-    // Получаем токен из куков (приоритет) или из других источников
-    let token: string | null = null;
-
-    // 1. Пытаемся получить из куков (как в основной стратегии)
+    // Получаем session_id из cookies
     const cookies = client.handshake.headers.cookie;
+    let sessionId: string | null = null;
+
     if (cookies) {
-      console.log('Found cookies:', cookies);
-      const accessTokenMatch = cookies.match(/access_token=([^;]+)/);
-      if (accessTokenMatch) {
-        token = accessTokenMatch[1];
-        console.log('Found access_token in cookies');
+      console.log('Found cookies');
+      const sessionIdMatch = cookies.match(/session_id=([^;]+)/);
+      if (sessionIdMatch) {
+        sessionId = sessionIdMatch[1];
+        console.log('Found session_id in cookies');
       }
     }
 
-    // 2. Fallback к другим методам, если куки недоступны
-    if (!token) {
-      token =
-        (client.handshake.auth?.token as string) ||
-        client.handshake.headers?.authorization?.replace('Bearer ', '') ||
-        (client.handshake.query?.token as string);
-
-      if (token) {
-        console.log('Found token in auth/headers/query');
-      }
-    }
-
-    if (!token) {
-      console.log('No token provided. For development, you can:');
-      console.log(
-        '1. Open http://localhost:8080/test-websocket.html instead of file://',
-      );
-      console.log('2. Or provide token in query: ?token=YOUR_JWT_TOKEN');
-      console.log('Origin:', client.handshake.headers.origin);
-
-      // Для разработки временно разрешим подключение без токена, если origin = null
-      const origin = client.handshake.headers.origin;
-      if (origin === null || origin === 'null') {
-        console.log(
-          'Development mode: allowing connection without token for null origin',
-        );
-        client.userId = 1; // Заглушка для разработки
-        client.user = { id: 1 };
-        client.join(`user_${client.userId}`);
-        console.log(
-          `User ${client.userId} connected to chat (development mode)`,
-        );
-        return;
-      }
-
+    if (!sessionId) {
+      console.log('No session_id provided, disconnecting');
       client.disconnect();
       return;
     }
 
     try {
-      // Проверяем токен
-      const jwt = require('jsonwebtoken');
-      const payload = jwt.verify(
-        token,
-        process.env.JWT_SECRET || 'fallback-secret',
-      );
+      // Проверяем сессию через AuthService
+      const sessionData = await this.chatService.getSessionData(sessionId);
 
-      client.userId = payload.sub;
-      client.user = { id: payload.sub };
+      if (!sessionData) {
+        console.log('Invalid session, disconnecting');
+        client.disconnect();
+        return;
+      }
+
+      // Получаем пользователя
+      const user = await this.chatService.getUserById(sessionData.userId);
+
+      if (!user) {
+        console.log('User not found, disconnecting');
+        client.disconnect();
+        return;
+      }
+
+      client.userId = user.id;
+      client.user = user;
 
       // Подключаем пользователя к его личной комнате
       client.join(`user_${client.userId}`);
 
-      console.log(`User ${client.userId} connected to chat with valid token`);
+      console.log(`User ${client.userId} connected to chat with valid session`);
     } catch (error) {
       console.log('Authentication failed:', error.message);
       client.disconnect();

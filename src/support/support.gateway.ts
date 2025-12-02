@@ -41,39 +41,52 @@ export class SupportGateway
   async handleConnection(client: AuthenticatedSocket) {
     console.log('Support WebSocket client connected:', client.id);
 
-    // Получаем токен из куков
-    let token: string | null = null;
+    // Получаем session_id из cookies
     const cookies = client.handshake.headers.cookie;
+    let sessionId: string | null = null;
 
     if (cookies) {
-      const tokenMatch = cookies.match(/access_token=([^;]+)/);
-      if (tokenMatch) {
-        token = tokenMatch[1];
+      const sessionIdMatch = cookies.match(/session_id=([^;]+)/);
+      if (sessionIdMatch) {
+        sessionId = sessionIdMatch[1];
+        console.log('Found session_id in cookies');
       }
     }
 
-    // Если токена в куках нет, пытаемся получить из других источников
-    if (!token) {
-      token =
-        client.handshake.auth?.token ||
-        (client.handshake.query?.token as string) ||
-        client.handshake.headers?.authorization?.replace('Bearer ', '');
+    if (!sessionId) {
+      console.log('No session_id provided, disconnecting');
+      client.disconnect();
+      return;
     }
 
-    if (token) {
-      try {
-        // Здесь должна быть проверка токена (аналогично chat gateway)
-        // Для простоты пока пропускаем детальную реализацию
-        console.log('Support WebSocket client authenticated:', client.id);
-      } catch (error) {
-        console.log('Support WebSocket authentication failed:', error.message);
+    try {
+      // Проверяем сессию через SupportService
+      const sessionData = await this.supportService.getSessionData(sessionId);
+
+      if (!sessionData) {
+        console.log('Invalid session, disconnecting');
         client.disconnect();
         return;
       }
-    } else {
-      console.log('No token provided for support WebSocket');
+
+      // Получаем пользователя
+      const user = await this.supportService.getUserById(sessionData.userId);
+
+      if (!user) {
+        console.log('User not found, disconnecting');
+        client.disconnect();
+        return;
+      }
+
+      client.userId = user.id;
+      client.user = user;
+
+      console.log(
+        `Support: User ${client.userId} connected with valid session`,
+      );
+    } catch (error) {
+      console.log('Support authentication failed:', error.message);
       client.disconnect();
-      return;
     }
   }
 

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -12,10 +13,32 @@ import {
   UpdateTicketDto,
 } from './dto';
 import { TicketStatus } from '@prisma/client';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import * as cacheManager from 'cache-manager';
 
 @Injectable()
 export class SupportService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private cacheManager: cacheManager.Cache,
+  ) {}
+
+  async getSessionData(sessionId: string) {
+    const sessionDataStr = await this.cacheManager.get<string>(
+      `session:${sessionId}`,
+    );
+    if (!sessionDataStr) {
+      return null;
+    }
+    return JSON.parse(sessionDataStr);
+  }
+
+  async getUserById(userId: number) {
+    return await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true },
+    });
+  }
 
   // Создание нового тикета
   async createTicket(userId: number, createTicketDto: CreateTicketDto) {
