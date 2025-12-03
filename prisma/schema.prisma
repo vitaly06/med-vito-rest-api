@@ -18,6 +18,12 @@ enum ProductState {
   USED
 }
 
+enum ProductModerate {
+  MODERATE
+  APPROVED
+  DENIDED
+}
+
 model User {
   id                    Int         @id @default(autoincrement())
   fullName              String      
@@ -92,7 +98,8 @@ model Product {
   images      String[]     @default([])
 
   isHide Boolean @default(false)
-
+  moderateState ProductModerate @default(MODERATE)
+ 
   categoryId  Int
   category    Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 

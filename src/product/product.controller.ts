@@ -28,7 +28,10 @@ import {
   ApiBody,
   ApiBearerAuth,
   ApiResponse,
+  ApiQuery,
 } from '@nestjs/swagger';
+import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
+import { ModerateState } from './enum/moderate-state.enum';
 
 @ApiTags('Products')
 @Controller('product')
@@ -387,38 +390,28 @@ export class ProductController {
     return await this.productService.toggleProduct(+id, req.user.id);
   }
 
-  // @ApiOperation({
-  //   summary: 'Получение статистики просмотров товаров пользователя',
-  // })
-  // @UseGuards(SessionAuthGuard)
-  // @Get('view-stats')
-  // async getProductViewStats(
-  //   @Req() req: Request & { user: any },
-  //   @Query('page') page: string = '1',
-  //   @Query('limit') limit: string = '20',
-  // ) {
-  //   return await this.productService.getProductViewStats(
-  //     req.user.id,
-  //     +page,
-  //     +limit,
-  //   );
-  // }
+  @ApiOperation({ summary: 'Модерация товара (одобрить/отклонить)' })
+  @UseGuards(AdminSessionAuthGuard)
+  @ApiQuery({
+    name: 'status',
+    enum: ModerateState,
+    required: true,
+    description: 'Статус модерации: APPROVED или DENIDED',
+  })
+  @Put('moderate-product/:id')
+  async moderateProduct(
+    @Param('id') id: string,
+    @Query('status') status: ModerateState,
+  ) {
+    return await this.productService.moderateProduct(+id, status);
+  }
 
-  // @ApiOperation({
-  //   summary:
-  //     'Получение статистики добавлений в избранное для товаров пользователя',
-  // })
-  // @UseGuards(SessionAuthGuard)
-  // @Get('favorite-stats')
-  // async getFavoriteStats(
-  //   @Req() req: Request & { user: any },
-  //   @Query('page') page: string = '1',
-  //   @Query('limit') limit: string = '20',
-  // ) {
-  //   return await this.productService.getFavoriteStats(
-  //     req.user.id,
-  //     +page,
-  //     +limit,
-  //   );
-  // }
+  @ApiOperation({
+    summary: 'Возвращает все товары на модерации',
+  })
+  @UseGuards(AdminSessionAuthGuard)
+  @Get('all-products-to-moderate')
+  async allProductsToModerate() {
+    return await this.productService.allProductsToModerate();
+  }
 }

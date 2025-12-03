@@ -9,6 +9,7 @@ import { createProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ConfigService } from '@nestjs/config';
 import { UserService } from 'src/user/user.service';
+import { ModerateState } from './enum/moderate-state.enum';
 
 @Injectable()
 export class ProductService {
@@ -86,6 +87,7 @@ export class ProductService {
           address: dto.address,
           images: imagePaths,
           categoryId: +dto.categoryId,
+          moderateState: 'MODERATE',
           subCategoryId: +dto.subcategoryId,
           typeId: dto.typeId ? +dto.typeId : null,
           userId: userId,
@@ -446,7 +448,13 @@ export class ProductService {
 
       // Выполняем поиск
       const products = await this.prisma.product.findMany({
-        where: whereConditions,
+        where: {
+          AND: [
+            whereConditions,
+            { moderateState: 'APPROVED' },
+            { isHide: false },
+          ],
+        },
         select: {
           id: true,
           images: true,
@@ -501,6 +509,7 @@ export class ProductService {
       },
       where: {
         isHide: false,
+        moderateState: 'APPROVED',
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -533,7 +542,7 @@ export class ProductService {
       SELECT sc.id, sc.name
       FROM "SubCategory" sc
       WHERE EXISTS (
-        SELECT 1 FROM "Product" p WHERE p."subCategoryId" = sc.id AND p."isHide" = false
+        SELECT 1 FROM "Product" p WHERE p."subCategoryId" = sc.id AND p."isHide" = false AND p."moderateState" = "APPROVED"
       )
       ORDER BY RANDOM()
       LIMIT 5
@@ -872,5 +881,49 @@ export class ProductService {
     });
 
     return { message: 'Статус активности товара сменен' };
+  }
+
+  async moderateProduct(productId: number, status: ModerateState) {
+    if (!['APPROVED', 'DENIDED'].includes(status)) {
+      throw new BadRequestException(
+        'Неверный статус модерации. Доступные статуты: APPROVED, DENIDED',
+      );
+    }
+
+    const checkProduct = await this.prisma.product.findUnique({
+      where: { id: productId },
+    });
+
+    if (!checkProduct) {
+      throw new NotFoundException('Товар для модерации не найден');
+    }
+
+    await this.prisma.product.update({
+      where: { id: productId },
+      data: {
+        moderateState: status,
+      },
+    });
+  }
+
+  async allProductsToModerate() {
+    const allProducts = await this.prisma.product.findMany({
+      select: {
+        id: true,
+        images: true,
+        name: true,
+        address: true,
+        createdAt: true,
+        isHide: true,
+        price: true,
+        userId: true,
+        videoUrl: true,
+      },
+      where: {
+        moderateState: 'MODERATE',
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return this.formatProductsResponse(allProducts);
   }
 }

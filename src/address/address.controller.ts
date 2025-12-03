@@ -33,4 +33,5 @@ export class AddressController {
 
     return { valid: true, message: 'Адрес корректен' };
   }
+  
 }
