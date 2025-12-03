@@ -13,6 +13,7 @@ import { ReviewModule } from './review/review.module';
 import { SupportModule } from './support/support.module';
 import { SubcategoryModule } from './subcategory/subcategory.module';
 import { AddressModule } from './address/address.module';
+import { S3Module } from './s3/s3.module';
 import * as redisStore from 'cache-manager-ioredis';
 
 @Module({
@@ -40,6 +41,7 @@ import * as redisStore from 'cache-manager-ioredis';
     SupportModule,
     SubcategoryModule,
     AddressModule,
+    S3Module,
   ],
 })
 export class AppModule {}

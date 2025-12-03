@@ -4,23 +4,15 @@ import { UserController } from './user.controller';
 import { AuthModule } from 'src/auth/auth.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { MulterModule } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import * as path from 'path';
+import { S3Module } from 'src/s3/s3.module';
 
 @Module({
   imports: [
     AuthModule,
     PrismaModule,
+    S3Module,
     MulterModule.register({
-      storage: diskStorage({
-        destination: './uploads/user',
-        filename: (req, file, callback) => {
-          const uniqueSuffix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const ext = path.extname(file.originalname);
-          callback(null, file.fieldname + '-' + uniqueSuffix + ext);
-        },
-      }),
+      storage: 'memory', // Используем память для S3
     }),
   ],
   controllers: [UserController],

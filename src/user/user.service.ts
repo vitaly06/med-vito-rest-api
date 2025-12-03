@@ -11,6 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import { MailerService } from '@nestjs-modules/mailer';
 import * as cacheManager_1 from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { S3Service } from 'src/s3/s3.service';
 
 @Injectable()
 export class UserService {
@@ -26,6 +27,7 @@ export class UserService {
     private readonly configService: ConfigService,
     private readonly mailerSerivce: MailerService,
     @Inject(CACHE_MANAGER) private cacheManager: cacheManager_1.Cache,
+    private readonly s3Service: S3Service,
   ) {
     this.baseUrl = this.configService.get<string>(
       'BASE_URL',
@@ -107,12 +109,26 @@ export class UserService {
   async updateSettings(
     dto: UpdateSettingsDto,
     userId: number,
-    fileName: string | null,
+    file: Express.Multer.File | null,
   ) {
     const updatedData = { ...dto };
 
-    if (fileName) {
-      updatedData['photo'] = `/uploads/user/${fileName}`;
+    // Если загружено новое фото
+    if (file) {
+      // Получаем текущего пользователя для удаления старого фото
+      const currentUser = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { photo: true },
+      });
+
+      // Удаляем старое фото из S3, если оно есть
+      if (currentUser?.photo) {
+        await this.s3Service.deleteFile(currentUser.photo);
+      }
+
+      // Загружаем новое фото в S3
+      const photoUrl = await this.s3Service.uploadFile(file, 'users');
+      updatedData['photo'] = photoUrl;
     }
 
     await this.prisma.user.update({
@@ -121,13 +137,6 @@ export class UserService {
         ...updatedData,
       },
     });
-
-    if (fileName) {
-      return {
-        ...updatedData,
-        photo: `${this.baseUrl}${updatedData['photo']}`,
-      };
-    }
 
     return { ...updatedData };
   }
@@ -151,7 +160,7 @@ export class UserService {
 
     return {
       ...checkUser,
-      photo: `${this.baseUrl}${checkUser?.photo}` || null,
+      photo: checkUser?.photo || null, // URL уже полный из S3
     };
   }
 

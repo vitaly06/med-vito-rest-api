@@ -90,7 +90,7 @@ export class UserController {
     return await this.userService.updateSettings(
       dto,
       req.user.id,
-      photo?.filename || null,
+      photo || null,
     );
   }
 

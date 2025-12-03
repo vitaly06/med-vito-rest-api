@@ -10,6 +10,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { ConfigService } from '@nestjs/config';
 import { UserService } from 'src/user/user.service';
 import { ModerateState } from './enum/moderate-state.enum';
+import { S3Service } from 'src/s3/s3.service';
 
 @Injectable()
 export class ProductService {
@@ -18,6 +19,7 @@ export class ProductService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly userService: UserService,
+    private readonly s3Service: S3Service,
   ) {
     this.baseUrl = this.configService.get<string>(
       'BASE_URL',
@@ -27,7 +29,7 @@ export class ProductService {
 
   async createProduct(
     dto: createProductDto,
-    fileNames: string[],
+    files: Express.Multer.File[],
     userId: number,
   ) {
     try {
@@ -73,10 +75,11 @@ export class ProductService {
         }
       }
 
-      // Создаем массив путей к изображениям
-      const imagePaths = fileNames.map(
-        (fileName) => `/uploads/product/${fileName}`,
-      );
+      // Загружаем изображения в S3
+      const imageUrls =
+        files && files.length > 0
+          ? await this.s3Service.uploadFiles(files, 'products')
+          : [];
 
       const product = await this.prisma.product.create({
         data: {
@@ -85,7 +88,7 @@ export class ProductService {
           state: dto.state,
           description: dto.description,
           address: dto.address,
-          images: imagePaths,
+          images: imageUrls,
           categoryId: +dto.categoryId,
           moderateState: 'MODERATE',
           subCategoryId: +dto.subcategoryId,
@@ -127,7 +130,7 @@ export class ProductService {
         message: 'Продукт успешно создан',
         product: {
           ...product,
-          images: imagePaths.map((path) => `${this.baseUrl}${path}`),
+          images: product.images, // URL уже полные из S3
         },
       };
     } catch (error) {
@@ -142,6 +145,7 @@ export class ProductService {
       where: { id: productId },
       select: {
         userId: true,
+        images: true,
       },
     });
 
@@ -151,6 +155,11 @@ export class ProductService {
 
     if (checkProduct.userId != userId) {
       throw new ForbiddenException('Вы не можете удалить чужой товар');
+    }
+
+    // Удаляем изображения из S3
+    if (checkProduct.images && checkProduct.images.length > 0) {
+      await this.s3Service.deleteFiles(checkProduct.images);
     }
 
     await this.prisma.product.delete({
@@ -163,7 +172,7 @@ export class ProductService {
   async updateProduct(
     productId: number,
     dto: UpdateProductDto,
-    fileNames: string[],
+    files: Express.Multer.File[],
     userId: number,
   ) {
     try {
@@ -232,13 +241,14 @@ export class ProductService {
       if (dto.address !== undefined) updateData.address = dto.address;
       if (dto.videoUrl !== undefined) updateData.videoUrl = dto.videoUrl;
 
-      // Обработка новых изображений
-      if (fileNames && fileNames.length > 0) {
-        const newImagePaths = fileNames.map(
-          (fileName) => `/uploads/product/${fileName}`,
+      // Обработка новых изображений - загружаем в S3
+      if (files && files.length > 0) {
+        const newImageUrls = await this.s3Service.uploadFiles(
+          files,
+          'products',
         );
         // Добавляем новые изображения к существующим
-        updateData.images = [...existingProduct.images, ...newImagePaths];
+        updateData.images = [...existingProduct.images, ...newImageUrls];
       }
 
       // Обновляем товар
@@ -312,9 +322,7 @@ export class ProductService {
         message: 'Товар успешно обновлён',
         product: {
           ...updatedProduct!,
-          images: updatedProduct!.images.map(
-            (path) => `${this.baseUrl}${path}`,
-          ),
+          images: updatedProduct!.images, // URL уже полные из S3
         },
       };
     } catch (error) {
@@ -471,6 +479,7 @@ export class ProductService {
       });
 
       // Форматируем результат как в обычном findAll
+      console.log(products.length);
       if (userId) {
         const result = await Promise.all(
           products.map(async (product) => ({
@@ -542,7 +551,7 @@ export class ProductService {
       SELECT sc.id, sc.name
       FROM "SubCategory" sc
       WHERE EXISTS (
-        SELECT 1 FROM "Product" p WHERE p."subCategoryId" = sc.id AND p."isHide" = false AND p."moderateState" = "APPROVED"
+        SELECT 1 FROM "Product" p WHERE p."subCategoryId" = sc.id AND p."isHide" = false AND p."moderateState" = 'APPROVED'
       )
       ORDER BY RANDOM()
       LIMIT 5
@@ -640,9 +649,7 @@ export class ProductService {
 
       return {
         ...product,
-        images: product.images
-          ? product.images.map((img) => `${this.baseUrl}${img}`)
-          : [],
+        images: product.images || [], // URL уже полные из S3
         createdAt: `${day}.${month}.${year} в ${hours}:${minutes}`,
       };
     });
@@ -835,7 +842,7 @@ export class ProductService {
           [field.field.name]: field.value,
         };
       }),
-      images: product?.images.map((img) => `${this.baseUrl}${img}`),
+      images: product?.images || [], // URL уже полные из S3
       isFavorited: userId
         ? await this.isProductInUserFavorites(product.id, userId)
         : false,

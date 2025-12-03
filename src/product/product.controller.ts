@@ -183,9 +183,7 @@ export class ProductController {
     @UploadedFiles() images: Express.Multer.File[],
     @Req() req: Request & { user: any },
   ) {
-    const fileNames = images ? images.map((file) => file.filename) : [];
-
-    return await this.productService.createProduct(dto, fileNames, req.user.id);
+    return await this.productService.createProduct(dto, images, req.user.id);
   }
 
   @ApiOperation({
@@ -286,11 +284,10 @@ export class ProductController {
     @UploadedFiles() images: Express.Multer.File[],
     @Req() req: Request & { user: any },
   ) {
-    const fileNames = images ? images.map((file) => file.filename) : [];
     return await this.productService.updateProduct(
       +id,
       dto,
-      fileNames,
+      images,
       req.user.id,
     );
   }
