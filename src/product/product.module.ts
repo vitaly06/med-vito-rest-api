@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { ProductController } from './product.controller';
 import { MulterModule } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { AuthModule } from 'src/auth/auth.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { OptionalSessionAuthGuard } from 'src/auth/guards/optional-session-auth.guard';
@@ -11,7 +12,7 @@ import { S3Module } from 'src/s3/s3.module';
 @Module({
   imports: [
     MulterModule.register({
-      storage: 'memory', // Используем память вместо диска для S3
+      storage: memoryStorage(), // Используем память вместо диска для S3
     }),
     AuthModule,
     PrismaModule,

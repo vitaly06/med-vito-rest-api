@@ -20,21 +20,39 @@ export class S3Service {
       'not found',
     );
 
+    const accessKey = this.configService.get<string>('S3_ACCESS_KEY');
+    const secretKey = this.configService.get<string>('S3_SECRET_KEY');
+    const endpoint = this.configService.get<string>(
+      'S3_ENDPOINT',
+      'https://s3.ru1.storage.beget.cloud',
+    );
+    const region = this.configService.get<string>('S3_REGION', 'ru1');
+
+    console.log('S3 Configuration:');
+    console.log('Bucket:', this.bucketName);
+    console.log('Endpoint:', endpoint);
+    console.log('Region:', region);
+    console.log(
+      'Access Key:',
+      accessKey ? `${accessKey.substring(0, 4)}...` : 'NOT FOUND',
+    );
+    console.log(
+      'Secret Key:',
+      secretKey ? `${secretKey.substring(0, 4)}...` : 'NOT FOUND',
+    );
+
+    if (!accessKey || !secretKey) {
+      throw new Error(
+        'S3 credentials not found in environment variables. Check your .env file.',
+      );
+    }
+
     this.s3Client = new S3Client({
-      region: this.configService.get<string>('S3_REGION', 'ru1'),
-      endpoint: this.configService.get<string>(
-        'S3_ENDPOINT',
-        'https://s3.ru1.storage.beget.cloud',
-      ),
+      region,
+      endpoint,
       credentials: {
-        accessKeyId: this.configService.get<string>(
-          'S3_ACCESS_KEY',
-          'not found',
-        ),
-        secretAccessKey: this.configService.get<string>(
-          'S3_SECRET_KEY',
-          'not found',
-        ),
+        accessKeyId: accessKey,
+        secretAccessKey: secretKey,
       },
       forcePathStyle: true,
     });

@@ -4,6 +4,7 @@ import { UserController } from './user.controller';
 import { AuthModule } from 'src/auth/auth.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { MulterModule } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { S3Module } from 'src/s3/s3.module';
 
 @Module({
@@ -12,7 +13,7 @@ import { S3Module } from 'src/s3/s3.module';
     PrismaModule,
     S3Module,
     MulterModule.register({
-      storage: 'memory', // Используем память для S3
+      storage: memoryStorage(), // Используем память для S3
     }),
   ],
   controllers: [UserController],
