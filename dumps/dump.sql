@@ -885,7 +885,7 @@ COPY public."Chat" (id, "productId", "buyerId", "sellerId", "unreadCountBuyer", 
 142	28	119	20	0	0	\N	2025-12-01 14:29:48.006	2025-12-01 14:29:48.006	2025-12-01 14:29:48.006
 143	23	119	18	0	0	\N	2025-12-01 14:46:54.623	2025-12-01 14:46:54.623	2025-12-01 14:46:54.623
 145	252	121	120	0	1	2	2025-12-02 11:33:33.784	2025-12-02 11:33:25.608	2025-12-02 11:47:19.434
-144	28	5	20	0	1	1	2025-12-02 06:39:40.026	2025-12-02 06:32:54.893	2025-12-03 17:00:10.62
+144	28	5	20	0	1	1	2025-12-02 06:39:40.026	2025-12-02 06:32:54.893	2025-12-04 06:34:08.592
 \.
 
 
@@ -949,6 +949,7 @@ COPY public."Product" (id, name, price, state, description, address, images, "ca
 160	Графин в виде рыбы	500	NEW	Замечательный графин в виде рыбы	г Оренбург, ул Киевская	{https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/67533ddf-2495-4aed-b405-a68922a398bf.jpg}	1	11	121	2025-12-02 10:50:32.345	2025-12-03 19:00:32.373	\N	\N	f	APPROVED
 195	Сковорода антипригарная	1000	NEW	Сковорода. Можно пожарить все что угодно	г Оренбург, ул Днепропетровская	{https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/299e425b-f6c0-49bb-a7e8-3c7c591ce39d.jpg}	1	11	121	2025-12-02 10:53:18.109	2025-12-03 19:00:32.377	\N	\N	f	APPROVED
 228	Стакан	200	NEW	Просто стакан.	г Оренбург, ул Житомирская	{https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/4cfed187-e55c-4014-8c59-cd2450aca91e.jpg}	1	11	121	2025-12-02 10:55:45.209	2025-12-03 19:00:32.38	\N	\N	f	APPROVED
+348	папавпа	55454	NEW	павпвапа	«Урал», Ленинский район, Пригородный, Пригородный сельсовет, Оренбургский район, Оренбургская область, Приволжский федеральный округ, 460041, Россия	{https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/396aecf1-b980-45ec-bd5a-ba238f1fdefb.jpg}	1	5	5	2025-12-03 19:36:04.58	2025-12-03 19:36:04.58	\N	\N	f	MODERATE
 244	Посуда детская	1500	NEW	Детская посуда для кормления	\N	{https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/f252c198-af82-42a9-a80b-e42a052caae3.png}	1	2	7	2025-12-02 11:06:21.305	2025-12-03 19:00:32.383	\N	\N	f	APPROVED
 243	Ингалятор	2000	NEW	Ингалятор для ингаляций	г Оренбург, ул Луганская	{https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/08d81171-c46d-4857-b7d9-bb7a983d5ab4.jpg}	1	15	121	2025-12-02 11:05:14.587	2025-12-03 19:00:32.386	\N	\N	f	APPROVED
 245	Украшения	1000	USED	Продам укрошенияБраслет -500\r\nСерьги - 300\r\nКольцо 10 - 250\r\nВсе вместе 1000	\N	{https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/a28160dd-9d06-4750-b6fe-6045f6a3df8b.png,https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/e49061f1-c633-4254-bc95-b9e06ae322ae.png,https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/15b89ff9-deb0-4067-80a9-77151e9ad946.png}	1	7	120	2025-12-02 11:06:25.377	2025-12-03 19:00:32.389	\N	\N	f	APPROVED
@@ -1166,6 +1167,12 @@ COPY public."ProductFieldValue" (id, value, "fieldId", "productId") FROM stdin;
 248	Духи	77	270
 249	Шампунь	78	273
 250	Палетка с тенями	80	277
+251	папва	117	348
+252	папва	118	348
+253	апавпва	119	348
+254	ир	120	348
+255	рпрпр	121	348
+256	пнпнп	122	348
 \.
 
 
@@ -1631,8 +1638,9 @@ COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType
 120	Черешков Данила Алексеевич	chereshkov.da2006@gmail.com	+79123431910	$2b$10$hvt0jXBTO6PcqEzKYDKYUO7hivY2kCsC/7Bzwix242L8YDeP6UgnW	INDIVIDUAL	2025-12-02 10:47:25.87	2025-12-02 10:47:25.87	\N	f	1	f	\N	f
 121	Фокеев Кирилл	test1@test.com	+71234567890	$2b$10$FELoBjJj0J8IeMy2YhKlIeniLkjz86fijJS2HOFJ3XvJ3fnIulg2i	INDIVIDUAL	2025-12-02 10:48:41.186	2025-12-02 10:48:41.186	\N	f	1	f	\N	f
 86	Афонасьев Афиларет Михайлович	pr.actual@mail.ru	+79082734009	$2b$10$R0pbgCnq1AVwe9phmKu1GOT0emg48XzDbtYRBEn/xEyCFd8aNYX7y	INDIVIDUAL	2025-12-01 08:28:35.989	2025-12-03 19:00:33.799	\N	f	1	t	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/71116356-ea56-4dd5-ac1a-86c5a6e2e11b.jpg	f
-5	Попов Матвей Иванович	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C	INDIVIDUAL	2025-11-06 19:33:46.625	2025-12-03 19:00:37.471	\N	f	3	f	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/0393a1bd-ab29-49f0-8537-35885579d335.png	t
 14	Каверина Мария	kunafina_ruslana7@mail.ru	+79228362555	$2b$10$AY/2V0DgPQ1.ZorhEmTMfOb4o8hq1EkOR9qkHx4/RgG7Cq6OFAOo2	INDIVIDUAL	2025-11-28 09:07:42.429	2025-12-03 19:01:28.991	\N	f	1	t	\N	f
+122	Попов Матвей Иванович	trrina04@mail.ru	+79878993845	$2b$10$cfHgsH42YXRqYPpoZbbhAuFK4bg.81DSzN4JNMGmkLffNma7mLmB.	INDIVIDUAL	2025-12-03 19:26:12.827	2025-12-03 19:26:12.827	\N	f	1	f	\N	f
+5	Попов Матвей Иванович	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C	INDIVIDUAL	2025-11-06 19:33:46.625	2025-12-03 19:36:33.742	\N	f	3	f	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/eac42b51-e66a-4d76-bad2-c6db0efd947b.jpg	t
 \.
 
 
@@ -1711,7 +1719,7 @@ SELECT pg_catalog.setval('public."PhoneNumberView_id_seq"', 1, true);
 -- Name: ProductFieldValue_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."ProductFieldValue_id_seq"', 250, true);
+SELECT pg_catalog.setval('public."ProductFieldValue_id_seq"', 256, true);
 
 
 --
@@ -1725,7 +1733,7 @@ SELECT pg_catalog.setval('public."ProductView_id_seq"', 667, true);
 -- Name: Product_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Product_id_seq"', 347, true);
+SELECT pg_catalog.setval('public."Product_id_seq"', 348, true);
 
 
 --
@@ -1781,7 +1789,7 @@ SELECT pg_catalog.setval('public."TypeField_id_seq"', 209, true);
 -- Name: User_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."User_id_seq"', 121, true);
+SELECT pg_catalog.setval('public."User_id_seq"', 122, true);
 
 
 --

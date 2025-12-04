@@ -620,6 +620,7 @@ export class ProductService {
         name: true,
         address: true,
         isHide: true,
+        moderateState: true,
         createdAt: true,
         price: true,
         videoUrl: true,

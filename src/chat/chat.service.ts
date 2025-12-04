@@ -12,18 +12,11 @@ import * as cacheManager from 'cache-manager';
 
 @Injectable()
 export class ChatService {
-  baseUrl: string;
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: cacheManager.Cache,
-  ) {
-    this.baseUrl = this.configService.get<string>(
-      'BASE_URL',
-      'http://localhost:3000',
-    );
-  }
+  ) {}
 
   async getSessionData(sessionId: string) {
     const sessionDataStr = await this.cacheManager.get<string>(
@@ -105,9 +98,9 @@ export class ChatService {
         ...existingChat,
         product: {
           ...existingChat.product,
-          images: existingChat.product.images.map(
-            (image) => `${this.baseUrl}${image}`,
-          ),
+          images: existingChat.product.images.map((image) => {
+            image;
+          }),
         },
       };
     }
@@ -149,9 +142,7 @@ export class ChatService {
       ...newChat,
       product: {
         ...newChat.product,
-        images: newChat.product.images.map(
-          (image) => `${this.baseUrl}${image}`,
-        ),
+        images: newChat.product.images.map((image) => `${image}`),
       },
     };
   }
@@ -223,9 +214,7 @@ export class ChatService {
           id: chat.product.id,
           name: chat.product.name,
           price: chat.product.price,
-          image: chat.product.images[0]
-            ? `${this.baseUrl}${chat.product.images[0]}`
-            : null, // Первое фото товара
+          image: chat.product.images[0] ? `${chat.product.images[0]}` : null, // Первое фото товара
         },
         // Информация о собеседнике (продавце для покупателя, покупателе для продавца)
         companion: {
@@ -304,9 +293,7 @@ export class ChatService {
         id: chat.product.id,
         name: chat.product.name,
         price: chat.product.price,
-        image: chat.product.images[0]
-          ? `${this.baseUrl}${chat.product.images[0]}`
-          : null,
+        image: chat.product.images[0] ? `${chat.product.images[0]}` : null,
         description: chat.product.description,
       },
       // Информация о собеседнике (продавце)
