@@ -10,6 +10,7 @@ import {
   Body,
   UploadedFile,
   Patch,
+  Put,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
@@ -18,6 +19,7 @@ import { ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { ProfileType } from '@prisma/client';
+import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
 
 @Controller('user')
 export class UserController {
@@ -118,5 +120,17 @@ export class UserController {
   @Post('verify-code')
   async verifyCode(@Query('code') code: string) {
     return await this.userService.verifyCode(code);
+  }
+
+  @ApiOperation({
+    summary: 'Установить баланс пользователю',
+  })
+  @UseGuards(AdminSessionAuthGuard)
+  @Put('set-balance/:userId')
+  async setBalance(
+    @Query('balance') balance: string,
+    @Param('userId') userId: string,
+  ) {
+    return await this.userService.setBalance(+userId, balance);
   }
 }

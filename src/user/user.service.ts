@@ -43,6 +43,7 @@ export class UserService {
         fullName: true,
         profileType: true,
         phoneNumber: true,
+        balance: true,
         photo: true,
       },
     });
@@ -254,52 +255,31 @@ export class UserService {
     return Math.floor(100000 + Math.random() * 900000).toString(); // Генерирует 6 цифр (от 100000 до 999999)
   }
 
-  // Получить статистику просмотров номеров
-  // async getPhoneNumberViewStats(
-  //   userId: number,
-  //   page: number = 1,
-  //   limit: number = 20,
-  // ) {
-  //   // Статистика кто смотрел номер этого пользователя
-  //   const viewsReceived = await this.prisma.phoneNumberView.findMany({
-  //     where: { viewedUserId: userId },
-  //     include: {
-  //       viewedBy: {
-  //         select: {
-  //           id: true,
-  //           fullName: true,
-  //           profileType: true,
-  //         },
-  //       },
-  //     },
-  //     orderBy: { viewedAt: 'desc' },
-  //     skip: (page - 1) * limit,
-  //     take: limit,
-  //   });
+  async setBalance(userId: number, balance: string) {
+    const checkUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
 
-  //   // Подсчитываем общее количество
-  //   const totalViews = await this.prisma.phoneNumberView.count({
-  //     where: { viewedUserId: userId },
-  //   });
+    if (!checkUser) {
+      throw new NotFoundException('Пользователь не найден');
+    }
 
-  //   return {
-  //     views: viewsReceived.map((view) => ({
-  //       id: view.id,
-  //       viewedBy: {
-  //         id: view.viewedBy.id,
-  //         fullName: view.viewedBy.fullName,
-  //         profileType: this.profileTypes[view.viewedBy.profileType],
-  //       },
-  //       viewedAt: view.viewedAt,
-  //       userAgent: view.userAgent,
-  //       ipAddress: view.ipAddress,
-  //     })),
-  //     pagination: {
-  //       page,
-  //       limit,
-  //       total: totalViews,
-  //       pages: Math.ceil(totalViews / limit),
-  //     },
-  //   };
-  // }
+    const parseBalance = parseFloat(balance);
+
+    if (isNaN(parseBalance)) {
+      throw new BadRequestException('Неудалось преобразовать баланс в float');
+    }
+    if (parseBalance < 0) {
+      throw new BadRequestException('Нельзя установить отрицательный баланс');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        balance: parseBalance,
+      },
+    });
+
+    return { message: 'Баланс успешно обновлён' };
+  }
 }
