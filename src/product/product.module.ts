@@ -8,6 +8,7 @@ import { PrismaModule } from 'src/prisma/prisma.module';
 import { OptionalSessionAuthGuard } from 'src/auth/guards/optional-session-auth.guard';
 import { UserModule } from 'src/user/user.module';
 import { S3Module } from 'src/s3/s3.module';
+import { ChatModule } from 'src/chat/chat.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { S3Module } from 'src/s3/s3.module';
     PrismaModule,
     UserModule,
     S3Module,
+    ChatModule,
   ],
   controllers: [ProductController],
   providers: [ProductService, OptionalSessionAuthGuard],

@@ -395,12 +395,18 @@ export class ProductController {
     required: true,
     description: 'Статус модерации: APPROVED или DENIDED',
   })
+  @ApiQuery({
+    name: 'reason',
+    required: false,
+    description: 'Причина отказа (обязательна при status=DENIDED)',
+  })
   @Put('moderate-product/:id')
   async moderateProduct(
     @Param('id') id: string,
     @Query('status') status: ModerateState,
+    @Query('reason') reason?: string,
   ) {
-    return await this.productService.moderateProduct(+id, status);
+    return await this.productService.moderateProduct(+id, status, reason);
   }
 
   @ApiOperation({

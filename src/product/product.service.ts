@@ -11,6 +11,8 @@ import { ConfigService } from '@nestjs/config';
 import { UserService } from 'src/user/user.service';
 import { ModerateState } from './enum/moderate-state.enum';
 import { S3Service } from 'src/s3/s3.service';
+import { ChatService } from 'src/chat/chat.service';
+import { ChatGateway } from 'src/chat/gateway';
 
 @Injectable()
 export class ProductService {
@@ -20,6 +22,8 @@ export class ProductService {
     private readonly configService: ConfigService,
     private readonly userService: UserService,
     private readonly s3Service: S3Service,
+    private readonly chatService: ChatService,
+    private readonly chatGateway: ChatGateway,
   ) {
     this.baseUrl = this.configService.get<string>(
       'BASE_URL',
@@ -891,7 +895,11 @@ export class ProductService {
     return { message: 'Статус активности товара сменен' };
   }
 
-  async moderateProduct(productId: number, status: ModerateState) {
+  async moderateProduct(
+    productId: number,
+    status: ModerateState,
+    rejectionReason?: string,
+  ) {
     if (!['APPROVED', 'DENIDED'].includes(status)) {
       throw new BadRequestException(
         'Неверный статус модерации. Доступные статуты: APPROVED, DENIDED',
@@ -900,18 +908,100 @@ export class ProductService {
 
     const checkProduct = await this.prisma.product.findUnique({
       where: { id: productId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
+      },
     });
 
     if (!checkProduct) {
       throw new NotFoundException('Товар для модерации не найден');
     }
 
+    // Если отказ, проверяем наличие причины
+    if (status === 'DENIDED' && !rejectionReason) {
+      throw new BadRequestException(
+        'Необходимо указать причину отказа в модерации',
+      );
+    }
+
+    // Обновляем товар
     await this.prisma.product.update({
       where: { id: productId },
       data: {
         moderateState: status,
+        moderationRejectionReason:
+          status === 'DENIDED' ? rejectionReason : null,
       },
     });
+
+    // Если отказ, отправляем уведомление владельцу товара
+    if (status === 'DENIDED' && rejectionReason) {
+      try {
+        // Создаем или находим чат между администрацией и владельцем товара
+        // Используем специальный ID для системных сообщений (например, ID администратора)
+        const adminUserId = 1; // ID системного администратора
+
+        // Проверяем существует ли чат
+        let chat = await this.prisma.chat.findFirst({
+          where: {
+            productId: productId,
+            OR: [
+              { buyerId: adminUserId, sellerId: checkProduct.userId },
+              { buyerId: checkProduct.userId, sellerId: adminUserId },
+            ],
+          },
+        });
+
+        // Если чата нет, создаем новый
+        if (!chat) {
+          chat = await this.prisma.chat.create({
+            data: {
+              productId: productId,
+              buyerId: adminUserId,
+              sellerId: checkProduct.userId,
+            },
+          });
+        }
+
+        // Отправляем сообщение с причиной отказа
+        const messageContent = `❌ Ваш товар "${checkProduct.name}" был отклонен модерацией.\n\nПричина отказа: ${rejectionReason}`;
+
+        const message = await this.chatService.sendMessage(
+          chat.id,
+          adminUserId,
+          messageContent,
+        );
+
+        // Отправляем WebSocket уведомление владельцу товара
+        this.chatGateway.server
+          .to(`user_${checkProduct.userId}`)
+          .emit('newMessage', {
+            id: message.id,
+            content: message.content,
+            senderId: message.senderId,
+            sender: message.sender,
+            createdAt: message.createdAt,
+            timeString: message.timeString,
+            chatId: chat.id,
+            isModeration: true,
+          });
+
+        console.log(
+          `Moderation rejection notification sent to user ${checkProduct.userId} for product ${productId}`,
+        );
+      } catch (error) {
+        console.error(
+          'Error sending moderation rejection notification:',
+          error,
+        );
+        // Не выбрасываем ошибку, чтобы модерация все равно прошла
+      }
+    }
   }
 
   async allProductsToModerate() {

@@ -100,6 +100,7 @@ model Product {
 
   isHide Boolean @default(false)
   moderateState ProductModerate @default(MODERATE)
+  moderationRejectionReason String?
  
   categoryId  Int
   category    Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)

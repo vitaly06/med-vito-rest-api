@@ -10,6 +10,6 @@ import { WsSessionAuthGuard } from 'src/auth/guards/ws-session-auth.guard';
   imports: [AuthModule, PrismaModule],
   controllers: [ChatController],
   providers: [ChatService, ChatGateway, WsSessionAuthGuard],
-  exports: [ChatService],
+  exports: [ChatService, ChatGateway],
 })
 export class ChatModule {}
