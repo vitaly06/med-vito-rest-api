@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsNumberString, IsIn } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { IsOptional, IsString, IsNumber, IsIn } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 
 export class SearchProductsDto {
   @ApiPropertyOptional({
@@ -16,8 +16,8 @@ export class SearchProductsDto {
     example: 1,
   })
   @IsOptional()
-  @IsNumberString()
-  @Transform(({ value }) => (value ? parseInt(value, 10) : undefined))
+  @Type(() => Number)
+  @IsNumber()
   categoryId?: number;
 
   @ApiPropertyOptional({
@@ -25,8 +25,8 @@ export class SearchProductsDto {
     example: 1,
   })
   @IsOptional()
-  @IsNumberString()
-  @Transform(({ value }) => (value ? parseInt(value, 10) : undefined))
+  @Type(() => Number)
+  @IsNumber()
   subCategoryId?: number;
 
   @ApiPropertyOptional({
@@ -34,8 +34,8 @@ export class SearchProductsDto {
     example: 1,
   })
   @IsOptional()
-  @IsNumberString()
-  @Transform(({ value }) => (value ? parseInt(value, 10) : undefined))
+  @Type(() => Number)
+  @IsNumber()
   typeId?: number;
 
   @ApiPropertyOptional({
@@ -43,8 +43,8 @@ export class SearchProductsDto {
     example: 1000,
   })
   @IsOptional()
-  @IsNumberString()
-  @Transform(({ value }) => (value ? parseInt(value, 10) : undefined))
+  @Type(() => Number)
+  @IsNumber()
   minPrice?: number;
 
   @ApiPropertyOptional({
@@ -52,8 +52,8 @@ export class SearchProductsDto {
     example: 100000,
   })
   @IsOptional()
-  @IsNumberString()
-  @Transform(({ value }) => (value ? parseInt(value, 10) : undefined))
+  @Type(() => Number)
+  @IsNumber()
   maxPrice?: number;
 
   @ApiPropertyOptional({
@@ -114,8 +114,8 @@ export class SearchProductsDto {
     example: 1,
   })
   @IsOptional()
-  @IsNumberString()
-  @Transform(({ value }) => (value ? parseInt(value, 10) : 1))
+  @Type(() => Number)
+  @IsNumber()
   page?: number;
 
   @ApiPropertyOptional({
@@ -123,7 +123,7 @@ export class SearchProductsDto {
     example: 20,
   })
   @IsOptional()
-  @IsNumberString()
-  @Transform(({ value }) => (value ? parseInt(value, 10) : 20))
+  @Type(() => Number)
+  @IsNumber()
   limit?: number;
 }
