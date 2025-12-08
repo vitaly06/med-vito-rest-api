@@ -76,6 +76,9 @@ model User {
   moderatorTickets SupportTicket[] @relation("ModeratorSupportTickets")
   // Сообщения в системе поддержки
   supportMessages SupportMessage[] @relation("SupportMessageAuthor")
+  
+  // Продвижения товаров пользователя
+  productPromotions ProductPromotion[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -127,7 +130,47 @@ model Product {
 
   // Значения дополнительных полей для товара
   fieldValues ProductFieldValue[]
+  
+  // Продвижения этого товара
+  promotions ProductPromotion[]
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Promotion {
+  id          Int    @id @default(autoincrement())
+  name        String @unique 
+  pricePerDay Int    // Цена за 1 день (50 или 100 рублей)
+  
+  // Продвижения товаров с этим тарифом
+  productPromotions ProductPromotion[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Продвижение конкретного товара
+model ProductPromotion {
+  id Int @id @default(autoincrement())
+  
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  promotionId Int
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  
+  userId Int // Пользователь, который оплатил продвижение
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  days       Int      // Количество дней продвижения
+  totalPrice Int      // Общая стоимость (days * pricePerDay)
+  startDate  DateTime // Дата начала продвижения
+  endDate    DateTime // Дата окончания продвижения
+  
+  isActive   Boolean  @default(true) // Активно ли продвижение
+  isPaid     Boolean  @default(false) // Оплачено ли
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

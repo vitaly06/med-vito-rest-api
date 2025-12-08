@@ -476,36 +476,69 @@ export class ProductService {
           price: true,
           userId: true,
           videoUrl: true,
+          promotions: {
+            where: {
+              isActive: true,
+              isPaid: true,
+              endDate: {
+                gte: new Date(), // Только активные продвижения
+              },
+            },
+            include: {
+              promotion: {
+                select: {
+                  pricePerDay: true,
+                },
+              },
+            },
+            orderBy: {
+              promotion: {
+                pricePerDay: 'desc', // Самый дорогой тариф
+              },
+            },
+            take: 1, // Берем только самое дорогое продвижение
+          },
         },
         orderBy,
         skip: (page - 1) * limit,
         take: limit,
       });
 
+      // Сортируем товары по продвижению
+      const sortedProducts = products.sort((a, b) => {
+        const aPromo = a.promotions[0]?.promotion?.pricePerDay || 0;
+        const bPromo = b.promotions[0]?.promotion?.pricePerDay || 0;
+        return bPromo - aPromo; // Сначала более дорогие продвижения
+      });
+
       // Форматируем результат как в обычном findAll
-      console.log(products.length);
+      console.log(sortedProducts.length);
       if (userId) {
         const result = await Promise.all(
-          products.map(async (product) => ({
+          sortedProducts.map(async (product) => ({
             ...product,
             isFavorited: await this.isProductInUserFavorites(
               product.id,
               userId,
             ),
+            hasPromotion: product.promotions.length > 0,
+            promotionLevel: product.promotions[0]?.promotion?.pricePerDay || 0,
           })),
         );
         return this.formatProductsResponse(result);
       }
 
       return this.formatProductsResponse(
-        products.map((product) => ({
+        sortedProducts.map((product) => ({
           ...product,
           isFavorited: false,
+          hasPromotion: product.promotions.length > 0,
+          promotionLevel: product.promotions[0]?.promotion?.pricePerDay || 0,
         })),
       );
     }
 
-    // Если параметров поиска нет - возвращаем все товары + 5 случайных товаров из разных подкатегорий
+    // Если параметров поиска нет - возвращаем все товары
 
     // Получаем все товары
     const allProducts = await this.prisma.product.findMany({
@@ -519,6 +552,28 @@ export class ProductService {
         price: true,
         userId: true,
         videoUrl: true,
+        promotions: {
+          where: {
+            isActive: true,
+            isPaid: true,
+            endDate: {
+              gte: new Date(), // Только активные продвижения
+            },
+          },
+          include: {
+            promotion: {
+              select: {
+                pricePerDay: true,
+              },
+            },
+          },
+          orderBy: {
+            promotion: {
+              pricePerDay: 'desc', // Самый дорогой тариф
+            },
+          },
+          take: 1, // Берем только самое дорогое продвижение
+        },
       },
       where: {
         isHide: false,
@@ -527,12 +582,28 @@ export class ProductService {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Сортируем товары: сначала с продвижением (дорогие → дешевые), потом без продвижения
+    const sortedProducts = allProducts.sort((a, b) => {
+      const aPromo = a.promotions[0]?.promotion?.pricePerDay || 0;
+      const bPromo = b.promotions[0]?.promotion?.pricePerDay || 0;
+
+      // Если у обоих есть продвижение или у обоих нет - сортируем по цене продвижения
+      if ((aPromo > 0 && bPromo > 0) || (aPromo === 0 && bPromo === 0)) {
+        return bPromo - aPromo;
+      }
+
+      // Товары с продвижением всегда выше товаров без продвижения
+      return bPromo > 0 ? 1 : -1;
+    });
+
     // Форматируем оба списка
     if (userId) {
       const allProductsWithFavorites = await Promise.all(
-        allProducts.map(async (product) => ({
+        sortedProducts.map(async (product) => ({
           ...product,
           isFavorited: await this.isProductInUserFavorites(product.id, userId),
+          hasPromotion: product.promotions.length > 0,
+          promotionLevel: product.promotions[0]?.promotion?.pricePerDay || 0,
         })),
       );
 
@@ -540,9 +611,11 @@ export class ProductService {
     }
 
     return this.formatProductsResponse(
-      allProducts.map((product) => ({
+      sortedProducts.map((product) => ({
         ...product,
         isFavorited: false,
+        hasPromotion: product.promotions.length > 0,
+        promotionLevel: product.promotions[0]?.promotion?.pricePerDay || 0,
       })),
     );
   }

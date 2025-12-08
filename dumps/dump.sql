@@ -356,6 +356,50 @@ ALTER SEQUENCE public."ProductFieldValue_id_seq" OWNED BY public."ProductFieldVa
 
 
 --
+-- Name: ProductPromotion; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."ProductPromotion" (
+    id integer NOT NULL,
+    "productId" integer NOT NULL,
+    "promotionId" integer NOT NULL,
+    "userId" integer NOT NULL,
+    days integer NOT NULL,
+    "totalPrice" integer NOT NULL,
+    "startDate" timestamp(3) without time zone NOT NULL,
+    "endDate" timestamp(3) without time zone NOT NULL,
+    "isActive" boolean DEFAULT true NOT NULL,
+    "isPaid" boolean DEFAULT false NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."ProductPromotion" OWNER TO postgres;
+
+--
+-- Name: ProductPromotion_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."ProductPromotion_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."ProductPromotion_id_seq" OWNER TO postgres;
+
+--
+-- Name: ProductPromotion_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."ProductPromotion_id_seq" OWNED BY public."ProductPromotion".id;
+
+
+--
 -- Name: ProductView; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -411,6 +455,43 @@ ALTER SEQUENCE public."Product_id_seq" OWNER TO postgres;
 --
 
 ALTER SEQUENCE public."Product_id_seq" OWNED BY public."Product".id;
+
+
+--
+-- Name: Promotion; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Promotion" (
+    id integer NOT NULL,
+    name text NOT NULL,
+    "pricePerDay" integer NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."Promotion" OWNER TO postgres;
+
+--
+-- Name: Promotion_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Promotion_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Promotion_id_seq" OWNER TO postgres;
+
+--
+-- Name: Promotion_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Promotion_id_seq" OWNED BY public."Promotion".id;
 
 
 --
@@ -688,8 +769,7 @@ CREATE TABLE public."User" (
     "isAnswersCall" boolean DEFAULT false,
     photo text,
     "isEmailVerified" boolean DEFAULT false NOT NULL,
-    balance double precision DEFAULT 0 NOT NULL,
-    "isPhoneVerified" boolean
+    balance double precision DEFAULT 0 NOT NULL
 );
 
 
@@ -797,10 +877,24 @@ ALTER TABLE ONLY public."ProductFieldValue" ALTER COLUMN id SET DEFAULT nextval(
 
 
 --
+-- Name: ProductPromotion id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ProductPromotion" ALTER COLUMN id SET DEFAULT nextval('public."ProductPromotion_id_seq"'::regclass);
+
+
+--
 -- Name: ProductView id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."ProductView" ALTER COLUMN id SET DEFAULT nextval('public."ProductView_id_seq"'::regclass);
+
+
+--
+-- Name: Promotion id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Promotion" ALTER COLUMN id SET DEFAULT nextval('public."Promotion_id_seq"'::regclass);
 
 
 --
@@ -1180,6 +1274,14 @@ COPY public."ProductFieldValue" (id, value, "fieldId", "productId") FROM stdin;
 
 
 --
+-- Data for Name: ProductPromotion; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."ProductPromotion" (id, "productId", "promotionId", "userId", days, "totalPrice", "startDate", "endDate", "isActive", "isPaid", "createdAt", "updatedAt") FROM stdin;
+\.
+
+
+--
 -- Data for Name: ProductView; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -1262,6 +1364,16 @@ COPY public."ProductView" (id, "viewedById", "productId", "viewedAt") FROM stdin
 72	5	23	2025-12-03 16:55:51.09
 172	5	20	2025-12-03 16:57:03.686
 659	5	271	2025-12-03 17:01:43.056
+\.
+
+
+--
+-- Data for Name: Promotion; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Promotion" (id, name, "pricePerDay", "createdAt", "updatedAt") FROM stdin;
+1	Стандарт	50	2025-12-08 12:37:51.475	2025-12-08 12:37:32.223
+2	Люкс	100	2025-12-08 12:37:51.475	2025-12-08 12:37:44.761
 \.
 
 
@@ -1621,29 +1733,29 @@ COPY public."TypeField" (id, name, "isRequired", "typeId") FROM stdin;
 -- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "isPhoneVerified") FROM stdin;
-7	дар	bdi-2006@mail.ru	+79123400130	$2b$10$TROWXU059pwS6Q98JIfGDOL1kzA0oohdraWoB3ZxpEgGqEU//.qQ6	INDIVIDUAL	2025-11-28 09:06:52.861	2025-11-28 09:06:52.861	\N	f	1	f	\N	f	0	f
-8	Исаев Максим Андреевич	sima.isaev2305@mail.ru	+79501859919	$2b$10$VI6Gb9KuiHWEnbndcyi1WemTTQgKWwVhpcOfnEEj7W18T8Gw.TPou	INDIVIDUAL	2025-11-28 09:06:55.938	2025-11-28 09:06:55.938	\N	f	1	f	\N	f	0	f
-9	Махар Святой Рог	vmahauri029@gmail.com	+79123557497	$2b$10$UbWFDK5KoI92FFzmWZw.s.jslpRNGreNJFQi30q4ZWI9lB02sqegS	INDIVIDUAL	2025-11-28 09:07:05.955	2025-11-28 09:07:05.955	\N	f	1	f	\N	f	0	f
-10	Голосняк Юлия Викторовна	juliagolosnyak@mail.ru	+79328538922	$2b$10$9VP3OmZRjdumTgAJWCBGGe5ozGVZG0Z/okvuWwUdx1wxmJG7brTES	INDIVIDUAL	2025-11-28 09:07:19.394	2025-11-28 09:07:19.394	\N	f	1	f	\N	f	0	f
-11	Захаров АР ВЛ	Zahar83s@mail.ru	+79878600551	$2b$10$TfLU49EmrMYrTPd46fQv6.QNkD3tEE2WnHVmy8qIdYzHVOX4PLe4q	INDIVIDUAL	2025-11-28 09:07:21.428	2025-11-28 09:07:21.428	\N	f	1	f	\N	f	0	f
-12	Подрядов Екатерина Сергеевна	podradovakata91@gmail.com	+79083234725	$2b$10$sdWaXECQtpyEqc61gS4MrOlsoz4nsjYb1gGC1xD2VVFgr/pUqwB3m	INDIVIDUAL	2025-11-28 09:07:29.962	2025-11-28 09:07:29.962	\N	f	1	f	\N	f	0	f
-13	Макаров Николай	bapenick445@gmail.com	+79225387481	$2b$10$DHSa1l.0cj7MK.b7ATupL.f7yXnjfGBUEr7Wezf1wul9x2z2eOIkO	INDIVIDUAL	2025-11-28 09:07:33.445	2025-11-28 09:07:33.445	\N	f	1	f	\N	f	0	f
-15	Кокеев Фирилл Батькович	test@test.com	+79953501391	$2b$10$0GEA/Uvq4NrHTLuOetQTXuoviQG19DrdEX4NIFUwD.54aF7ePJveO	INDIVIDUAL	2025-11-28 09:07:44.576	2025-11-28 09:07:44.576	\N	f	1	f	\N	f	0	f
-16	kostyukov	geronimoprofitop@gmail.com	+79228744883	$2b$10$ulXOXoQl7aAYjf7uJ2opGOApWYjLTVFSWBrWyYAjJp80HAeDl97OS	INDIVIDUAL	2025-11-28 09:07:57.477	2025-11-28 09:07:57.477	\N	f	1	f	\N	f	0	f
-17	Абвгдеивич Егор Константинович	barabulkabarabulka@gmail.com	+72280303111	$2b$10$PPEwZxCaLahLuE4XtqI2k.UxgqrcfBgCoXBHT1EUoq86kYraokwz2	INDIVIDUAL	2025-11-28 09:08:14.573	2025-11-28 09:08:14.573	\N	f	1	f	\N	f	0	f
-18	Прокофьева Валерия Денисовна	lin.ferr@mail.ru	+79225406669	$2b$10$7mnxrJ2LJ0S5RoBoo8gVteXYR.o2kM/nnm07SpxHT37YZqEghfVAC	INDIVIDUAL	2025-11-28 09:08:42.207	2025-11-28 09:08:42.207	\N	f	1	f	\N	f	0	f
-19	Гатин Ян Талгатович	ggg2107@gmail.com	+79228386030	$2b$10$aUbIJdrSn4qPvErIPV8E6uo162lESkmE7orVVIrS/2v8/k8qUQjvm	INDIVIDUAL	2025-11-28 09:08:47.126	2025-11-28 09:08:47.126	\N	f	1	f	\N	f	0	f
-20	Арзамасцев Даниил	arzamastsevdaniil@gmail.com	+79068346355	$2b$10$NvJVMH9Kn16C7hSuCtRAf./yj8/jgaeUg2ZI0IAkxt2Tc/Cf5DR8G	INDIVIDUAL	2025-12-01 05:48:10.726	2025-12-01 05:48:10.726	\N	f	1	f	\N	f	0	f
-53	Корякина Ирина	ikoryakina47@gmail.com	+79228579009	$2b$10$48dtDNK6DIH0yBgup4eqeeG8k5NPkHuhqBNvQ2yCJqayB3sNthYOS	INDIVIDUAL	2025-12-01 08:08:29.883	2025-12-01 08:08:29.883	\N	f	1	f	\N	f	0	f
-119	йцукенгшщзх	qwertyui123@gmail.com	+75678903456	$2b$10$hhmWdTv8RdWeJ1ofHOjaTuKBgOo2JUky9za7NTJ.uCcfrH3W2CK/S	INDIVIDUAL	2025-12-01 14:29:11.538	2025-12-01 14:29:11.538	\N	f	1	f	\N	f	0	f
-120	Черешков Данила Алексеевич	chereshkov.da2006@gmail.com	+79123431910	$2b$10$hvt0jXBTO6PcqEzKYDKYUO7hivY2kCsC/7Bzwix242L8YDeP6UgnW	INDIVIDUAL	2025-12-02 10:47:25.87	2025-12-02 10:47:25.87	\N	f	1	f	\N	f	0	f
-121	Фокеев Кирилл	test1@test.com	+71234567890	$2b$10$FELoBjJj0J8IeMy2YhKlIeniLkjz86fijJS2HOFJ3XvJ3fnIulg2i	INDIVIDUAL	2025-12-02 10:48:41.186	2025-12-02 10:48:41.186	\N	f	1	f	\N	f	0	f
-86	Афонасьев Афиларет Михайлович	pr.actual@mail.ru	+79082734009	$2b$10$R0pbgCnq1AVwe9phmKu1GOT0emg48XzDbtYRBEn/xEyCFd8aNYX7y	INDIVIDUAL	2025-12-01 08:28:35.989	2025-12-03 19:00:33.799	\N	f	1	t	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/71116356-ea56-4dd5-ac1a-86c5a6e2e11b.jpg	f	0	f
-14	Каверина Мария	kunafina_ruslana7@mail.ru	+79228362555	$2b$10$AY/2V0DgPQ1.ZorhEmTMfOb4o8hq1EkOR9qkHx4/RgG7Cq6OFAOo2	INDIVIDUAL	2025-11-28 09:07:42.429	2025-12-03 19:01:28.991	\N	f	1	t	\N	f	0	f
-122	Попов Матвей Иванович	trrina04@mail.ru	+79878993845	$2b$10$cfHgsH42YXRqYPpoZbbhAuFK4bg.81DSzN4JNMGmkLffNma7mLmB.	INDIVIDUAL	2025-12-03 19:26:12.827	2025-12-03 19:26:12.827	\N	f	1	f	\N	f	0	f
-5	Попов Матвей Иванович	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C	INDIVIDUAL	2025-11-06 19:33:46.625	2025-12-03 19:36:33.742	\N	f	3	f	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/eac42b51-e66a-4d76-bad2-c6db0efd947b.jpg	t	0	f
-6	Садиков Виталий Дмитриевич	vitaly.sadikov2@yandex.ru	+79510341676	$2b$10$Tsi0whXkdERT2AvjSe6Jn.v6ba.K3sTDPXT6AzWMlkpahIY.LxDSS	INDIVIDUAL	2025-11-06 19:33:55.742	2025-12-05 06:43:04.882	\N	f	1	\N	\N	f	500	f
+COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance) FROM stdin;
+7	дар	bdi-2006@mail.ru	+79123400130	$2b$10$TROWXU059pwS6Q98JIfGDOL1kzA0oohdraWoB3ZxpEgGqEU//.qQ6	INDIVIDUAL	2025-11-28 09:06:52.861	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0
+8	Исаев Максим Андреевич	sima.isaev2305@mail.ru	+79501859919	$2b$10$VI6Gb9KuiHWEnbndcyi1WemTTQgKWwVhpcOfnEEj7W18T8Gw.TPou	INDIVIDUAL	2025-11-28 09:06:55.938	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0
+9	Махар Святой Рог	vmahauri029@gmail.com	+79123557497	$2b$10$UbWFDK5KoI92FFzmWZw.s.jslpRNGreNJFQi30q4ZWI9lB02sqegS	INDIVIDUAL	2025-11-28 09:07:05.955	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0
+10	Голосняк Юлия Викторовна	juliagolosnyak@mail.ru	+79328538922	$2b$10$9VP3OmZRjdumTgAJWCBGGe5ozGVZG0Z/okvuWwUdx1wxmJG7brTES	INDIVIDUAL	2025-11-28 09:07:19.394	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0
+11	Захаров АР ВЛ	Zahar83s@mail.ru	+79878600551	$2b$10$TfLU49EmrMYrTPd46fQv6.QNkD3tEE2WnHVmy8qIdYzHVOX4PLe4q	INDIVIDUAL	2025-11-28 09:07:21.428	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0
+12	Подрядов Екатерина Сергеевна	podradovakata91@gmail.com	+79083234725	$2b$10$sdWaXECQtpyEqc61gS4MrOlsoz4nsjYb1gGC1xD2VVFgr/pUqwB3m	INDIVIDUAL	2025-11-28 09:07:29.962	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0
+13	Макаров Николай	bapenick445@gmail.com	+79225387481	$2b$10$DHSa1l.0cj7MK.b7ATupL.f7yXnjfGBUEr7Wezf1wul9x2z2eOIkO	INDIVIDUAL	2025-11-28 09:07:33.445	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0
+15	Кокеев Фирилл Батькович	test@test.com	+79953501391	$2b$10$0GEA/Uvq4NrHTLuOetQTXuoviQG19DrdEX4NIFUwD.54aF7ePJveO	INDIVIDUAL	2025-11-28 09:07:44.576	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0
+17	Абвгдеивич Егор Константинович	barabulkabarabulka@gmail.com	+72280303111	$2b$10$PPEwZxCaLahLuE4XtqI2k.UxgqrcfBgCoXBHT1EUoq86kYraokwz2	INDIVIDUAL	2025-11-28 09:08:14.573	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0
+16	kostyukov	geronimoprofitop@gmail.com	+79228744883	$2b$10$ulXOXoQl7aAYjf7uJ2opGOApWYjLTVFSWBrWyYAjJp80HAeDl97OS	INDIVIDUAL	2025-11-28 09:07:57.477	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0
+18	Прокофьева Валерия Денисовна	lin.ferr@mail.ru	+79225406669	$2b$10$7mnxrJ2LJ0S5RoBoo8gVteXYR.o2kM/nnm07SpxHT37YZqEghfVAC	INDIVIDUAL	2025-11-28 09:08:42.207	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0
+19	Гатин Ян Талгатович	ggg2107@gmail.com	+79228386030	$2b$10$aUbIJdrSn4qPvErIPV8E6uo162lESkmE7orVVIrS/2v8/k8qUQjvm	INDIVIDUAL	2025-11-28 09:08:47.126	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0
+20	Арзамасцев Даниил	arzamastsevdaniil@gmail.com	+79068346355	$2b$10$NvJVMH9Kn16C7hSuCtRAf./yj8/jgaeUg2ZI0IAkxt2Tc/Cf5DR8G	INDIVIDUAL	2025-12-01 05:48:10.726	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0
+86	Афонасьев Афиларет Михайлович	pr.actual@mail.ru	+79082734009	$2b$10$R0pbgCnq1AVwe9phmKu1GOT0emg48XzDbtYRBEn/xEyCFd8aNYX7y	INDIVIDUAL	2025-12-01 08:28:35.989	2025-12-08 12:30:51.217	\N	f	1	t	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/71116356-ea56-4dd5-ac1a-86c5a6e2e11b.jpg	f	0
+14	Каверина Мария	kunafina_ruslana7@mail.ru	+79228362555	$2b$10$AY/2V0DgPQ1.ZorhEmTMfOb4o8hq1EkOR9qkHx4/RgG7Cq6OFAOo2	INDIVIDUAL	2025-11-28 09:07:42.429	2025-12-08 12:30:51.217	\N	f	1	t	\N	f	0
+122	Попов Матвей Иванович	trrina04@mail.ru	+79878993845	$2b$10$cfHgsH42YXRqYPpoZbbhAuFK4bg.81DSzN4JNMGmkLffNma7mLmB.	INDIVIDUAL	2025-12-03 19:26:12.827	2025-12-08 12:30:51.217	\N	f	1	f	\N	f	0
+5	Попов Матвей Иванович	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C	INDIVIDUAL	2025-11-06 19:33:46.625	2025-12-08 12:30:51.217	\N	f	3	f	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/eac42b51-e66a-4d76-bad2-c6db0efd947b.jpg	t	0
+6	Садиков Виталий Дмитриевич	vitaly.sadikov2@yandex.ru	+79510341676	$2b$10$Tsi0whXkdERT2AvjSe6Jn.v6ba.K3sTDPXT6AzWMlkpahIY.LxDSS	INDIVIDUAL	2025-11-06 19:33:55.742	2025-12-08 14:16:57.863	\N	f	1	\N	\N	f	500000
+53	Корякина Ирина	ikoryakina47@gmail.com	+79228579009	$2b$10$48dtDNK6DIH0yBgup4eqeeG8k5NPkHuhqBNvQ2yCJqayB3sNthYOS	INDIVIDUAL	2025-12-01 08:08:29.883	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0
+119	йцукенгшщзх	qwertyui123@gmail.com	+75678903456	$2b$10$hhmWdTv8RdWeJ1ofHOjaTuKBgOo2JUky9za7NTJ.uCcfrH3W2CK/S	INDIVIDUAL	2025-12-01 14:29:11.538	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0
+121	Фокеев Кирилл	test1@test.com	+71234567890	$2b$10$FELoBjJj0J8IeMy2YhKlIeniLkjz86fijJS2HOFJ3XvJ3fnIulg2i	INDIVIDUAL	2025-12-02 10:48:41.186	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0
+120	Черешков Данила Алексеевич	chereshkov.da2006@gmail.com	+79123431910	$2b$10$hvt0jXBTO6PcqEzKYDKYUO7hivY2kCsC/7Bzwix242L8YDeP6UgnW	INDIVIDUAL	2025-12-02 10:47:25.87	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0
 \.
 
 
@@ -1726,6 +1838,13 @@ SELECT pg_catalog.setval('public."ProductFieldValue_id_seq"', 256, true);
 
 
 --
+-- Name: ProductPromotion_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."ProductPromotion_id_seq"', 1, false);
+
+
+--
 -- Name: ProductView_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -1737,6 +1856,13 @@ SELECT pg_catalog.setval('public."ProductView_id_seq"', 667, true);
 --
 
 SELECT pg_catalog.setval('public."Product_id_seq"', 348, true);
+
+
+--
+-- Name: Promotion_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Promotion_id_seq"', 2, true);
 
 
 --
@@ -1844,6 +1970,14 @@ ALTER TABLE ONLY public."ProductFieldValue"
 
 
 --
+-- Name: ProductPromotion ProductPromotion_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ProductPromotion"
+    ADD CONSTRAINT "ProductPromotion_pkey" PRIMARY KEY (id);
+
+
+--
 -- Name: ProductView ProductView_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1857,6 +1991,14 @@ ALTER TABLE ONLY public."ProductView"
 
 ALTER TABLE ONLY public."Product"
     ADD CONSTRAINT "Product_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: Promotion Promotion_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Promotion"
+    ADD CONSTRAINT "Promotion_pkey" PRIMARY KEY (id);
 
 
 --
@@ -1972,6 +2114,13 @@ CREATE UNIQUE INDEX "ProductFieldValue_fieldId_productId_key" ON public."Product
 --
 
 CREATE UNIQUE INDEX "ProductView_viewedById_productId_key" ON public."ProductView" USING btree ("viewedById", "productId");
+
+
+--
+-- Name: Promotion_name_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "Promotion_name_key" ON public."Promotion" USING btree (name);
 
 
 --
@@ -2103,6 +2252,30 @@ ALTER TABLE ONLY public."ProductFieldValue"
 
 ALTER TABLE ONLY public."ProductFieldValue"
     ADD CONSTRAINT "ProductFieldValue_productId_fkey" FOREIGN KEY ("productId") REFERENCES public."Product"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ProductPromotion ProductPromotion_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ProductPromotion"
+    ADD CONSTRAINT "ProductPromotion_productId_fkey" FOREIGN KEY ("productId") REFERENCES public."Product"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ProductPromotion ProductPromotion_promotionId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ProductPromotion"
+    ADD CONSTRAINT "ProductPromotion_promotionId_fkey" FOREIGN KEY ("promotionId") REFERENCES public."Promotion"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ProductPromotion ProductPromotion_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ProductPromotion"
+    ADD CONSTRAINT "ProductPromotion_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
