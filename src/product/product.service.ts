@@ -942,9 +942,24 @@ export class ProductService {
     // Если отказ, отправляем уведомление владельцу товара
     if (status === 'DENIDED' && rejectionReason) {
       try {
-        // Создаем или находим чат между администрацией и владельцем товара
-        // Используем специальный ID для системных сообщений (например, ID администратора)
-        const adminUserId = 1; // ID системного администратора
+        // Находим любого администратора для отправки системного сообщения
+        const adminRole = await this.prisma.role.findFirst({
+          where: { name: 'admin' },
+          include: {
+            users: {
+              take: 1,
+            },
+          },
+        });
+
+        if (!adminRole || adminRole.users.length === 0) {
+          throw new NotFoundException(
+            'No admin user found for sending moderation notification',
+          );
+          return; // Не отправляем уведомление, если нет админа
+        }
+
+        const adminUserId = adminRole.users[0].id;
 
         // Проверяем существует ли чат
         let chat = await this.prisma.chat.findFirst({
