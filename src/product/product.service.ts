@@ -173,6 +173,19 @@ export class ProductService {
     return { message: 'Товар успешно удалён' };
   }
 
+  async findAllForOksei() {
+    const products = await this.prisma.product.findMany({
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        images: true,
+      },
+    });
+
+    return products;
+  }
+
   async updateProduct(
     productId: number,
     dto: UpdateProductDto,

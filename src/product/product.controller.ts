@@ -292,6 +292,11 @@ export class ProductController {
     );
   }
 
+  @Get('oksei-all-products')
+  async findAllForOksei() {
+    return await this.productService.findAllForOksei();
+  }
+
   @ApiOperation({
     summary: 'Получение всех товаров с возможностью фильтрации',
     description:

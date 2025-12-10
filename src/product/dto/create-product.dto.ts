@@ -52,9 +52,9 @@ export class createProductDto {
     example: 'г. Москва, ул. Тверская, д. 1',
     required: false,
   })
-  @IsOptional()
+  @IsNotEmpty({ message: 'Адрес обязателен для заполнения' })
   @IsString({ message: 'Адрес должен быть строкой' })
-  address?: string;
+  address: string;
 
   @ApiProperty({
     description: 'ID категории товара',
