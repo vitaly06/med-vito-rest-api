@@ -257,6 +257,44 @@ ALTER SEQUENCE public."Message_id_seq" OWNED BY public."Message".id;
 
 
 --
+-- Name: OkseiProduct; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."OkseiProduct" (
+    id integer NOT NULL,
+    name text NOT NULL,
+    description text NOT NULL,
+    price integer NOT NULL,
+    image text,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."OkseiProduct" OWNER TO postgres;
+
+--
+-- Name: OkseiProduct_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."OkseiProduct_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."OkseiProduct_id_seq" OWNER TO postgres;
+
+--
+-- Name: OkseiProduct_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."OkseiProduct_id_seq" OWNED BY public."OkseiProduct".id;
+
+
+--
 -- Name: PhoneNumberView; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -856,6 +894,13 @@ ALTER TABLE ONLY public."Message" ALTER COLUMN id SET DEFAULT nextval('public."M
 
 
 --
+-- Name: OkseiProduct id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."OkseiProduct" ALTER COLUMN id SET DEFAULT nextval('public."OkseiProduct_id_seq"'::regclass);
+
+
+--
 -- Name: PhoneNumberView id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1013,6 +1058,15 @@ COPY public."FavoriteAction" (id, "userId", "productId", "addedAt") FROM stdin;
 COPY public."Message" (id, content, "senderId", "chatId", "isRead", "readAt", "createdAt", "updatedAt") FROM stdin;
 1	тест	5	144	f	\N	2025-12-02 06:39:40.018	2025-12-02 06:39:40.018
 2	Куда цену задрал? 200 край	121	145	f	\N	2025-12-02 11:33:33.781	2025-12-02 11:33:33.781
+\.
+
+
+--
+-- Data for Name: OkseiProduct; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."OkseiProduct" (id, name, description, price, image, "createdAt") FROM stdin;
+1	iPhone 15 Pro	Новый iPhone 15 Pro в отличном состоянии	120000	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/1c68c479-ade3-43ff-91eb-b8428b46ed74.jpg	2025-12-12 08:53:25.175
 \.
 
 
@@ -1824,6 +1878,13 @@ SELECT pg_catalog.setval('public."Message_id_seq"', 2, true);
 
 
 --
+-- Name: OkseiProduct_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."OkseiProduct_id_seq"', 1, true);
+
+
+--
 -- Name: PhoneNumberView_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -1951,6 +2012,14 @@ ALTER TABLE ONLY public."FavoriteAction"
 
 ALTER TABLE ONLY public."Message"
     ADD CONSTRAINT "Message_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: OkseiProduct OkseiProduct_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."OkseiProduct"
+    ADD CONSTRAINT "OkseiProduct_pkey" PRIMARY KEY (id);
 
 
 --
@@ -2433,4 +2502,5 @@ GRANT CREATE ON SCHEMA public TO PUBLIC;
 --
 -- PostgreSQL database dump complete
 --
+
 

@@ -13,6 +13,7 @@ import { ModerateState } from './enum/moderate-state.enum';
 import { S3Service } from 'src/s3/s3.service';
 import { ChatService } from 'src/chat/chat.service';
 import { ChatGateway } from 'src/chat/gateway';
+import { createOkseiProductDto } from './dto/oksei-create-product.dto';
 
 @Injectable()
 export class ProductService {
@@ -144,6 +145,36 @@ export class ProductService {
     }
   }
 
+  async createOkseiProduct(
+    dto: createOkseiProductDto,
+    file: Express.Multer.File,
+  ) {
+    // Проверяем наличие файла
+    if (!file) {
+      throw new BadRequestException('Изображение обязательно для загрузки');
+    }
+
+    // Загружаем изображение в S3
+    const imageUrl = await this.s3Service.uploadFile(file, 'products');
+
+    const product = await this.prisma.okseiProduct.create({
+      data: {
+        name: dto.name,
+        price: +dto.price,
+        description: dto.description || '',
+        image: imageUrl,
+      },
+    });
+
+    return {
+      message: 'Продукт успешно создан',
+      product: {
+        ...product,
+        image: product.image, // URL уже полные из S3
+      },
+    };
+  }
+
   async deleteProduct(productId, userId: number) {
     const checkProduct = await this.prisma.product.findUnique({
       where: { id: productId },
@@ -174,12 +205,12 @@ export class ProductService {
   }
 
   async findAllForOksei() {
-    const products = await this.prisma.product.findMany({
+    const products = await this.prisma.okseiProduct.findMany({
       select: {
         id: true,
         name: true,
         description: true,
-        images: true,
+        image: true,
       },
     });
 

@@ -12,6 +12,7 @@ import {
   Query,
   Patch,
   Put,
+  UploadedFile,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
@@ -19,7 +20,7 @@ import { OptionalSessionAuthGuard } from 'src/auth/guards/optional-session-auth.
 import { createProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { SearchProductsDto } from './dto/search-products.dto';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
 import {
   ApiTags,
@@ -32,6 +33,7 @@ import {
 } from '@nestjs/swagger';
 import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
 import { ModerateState } from './enum/moderate-state.enum';
+import { createOkseiProductDto } from './dto/oksei-create-product.dto';
 
 @ApiTags('Products')
 @Controller('product')
@@ -309,6 +311,45 @@ export class ProductController {
     @Query() searchDto: SearchProductsDto,
   ) {
     return await this.productService.findAll(req?.user?.id, searchDto);
+  }
+
+  @Post('create-oksei-product')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiBody({
+    description: 'Данные продукта и изображения',
+    schema: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'Название продукта',
+          example: 'iPhone 15 Pro',
+        },
+        price: {
+          type: 'number',
+          description: 'Цена в рублях',
+          example: 120000,
+        },
+        description: {
+          type: 'string',
+          description: 'Описание товара',
+          example: 'Новый iPhone 15 Pro в отличном состоянии',
+        },
+        image: {
+          type: 'string',
+          format: 'binary',
+          description: 'Изображение продукта',
+        },
+      },
+      required: ['name', 'price', 'description'],
+    },
+  })
+  async createOkseiProduct(
+    @Body() dto: createOkseiProductDto,
+    @UploadedFile() image: Express.Multer.File,
+  ) {
+    return await this.productService.createOkseiProduct(dto, image);
   }
 
   @ApiOperation({
