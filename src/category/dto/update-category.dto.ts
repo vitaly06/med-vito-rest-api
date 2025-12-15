@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator';
 
 export class UpdateCategoryDto {
   @ApiProperty({
@@ -8,4 +8,18 @@ export class UpdateCategoryDto {
   @IsString({ message: 'Название категории должно быть строкой' })
   @IsNotEmpty({ message: 'Название категории обязательно для заполнения' })
   name: string;
+
+  @ApiProperty({
+    example: 'avtomobili',
+    description:
+      'URL-friendly идентификатор (если не указан, генерируется из названия)',
+    required: false,
+  })
+  @IsOptional()
+  @IsString({ message: 'Slug должен быть строкой' })
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+    message:
+      'Slug должен содержать только латинские буквы в нижнем регистре, цифры и дефисы',
+  })
+  slug?: string;
 }

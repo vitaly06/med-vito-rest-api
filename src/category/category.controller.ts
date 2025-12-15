@@ -9,7 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
-import { ApiOperation } from '@nestjs/swagger';
+import { ApiOperation, ApiParam } from '@nestjs/swagger';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -47,6 +47,7 @@ export class CategoryController {
   async deleteCategory(@Param('id') id: string) {
     return await this.categoryService.deleteCategory(+id);
   }
+
   @ApiOperation({
     summary: 'Все категории',
   })
@@ -61,5 +62,35 @@ export class CategoryController {
   @Get('find-by-id/:id')
   async findById(@Param('id') id: string) {
     return await this.categoryService.findById(+id);
+  }
+
+  @ApiOperation({
+    summary: 'Получить категорию по slug',
+    description: 'Возвращает категорию с подкатегориями по её slug',
+  })
+  @ApiParam({
+    name: 'slug',
+    description: 'Slug категории',
+    example: 'elektronika',
+  })
+  @Get('slug/:slug')
+  async findBySlug(@Param('slug') slug: string) {
+    return await this.categoryService.findBySlug(slug);
+  }
+
+  @ApiOperation({
+    summary: 'Получить категорию по цепочке slug (slugPath)',
+    description:
+      'Возвращает категорию, подкатегорию или тип по полному пути. ' +
+      'Примеры: path/elektronika, path/elektronika/telefony, path/elektronika/telefony/smartfony',
+  })
+  @ApiParam({
+    name: 'slugPath',
+    description: 'Полный путь категории через /',
+    example: 'elektronika/telefony/smartfony',
+  })
+  @Get('path/*slugPath')
+  async findBySlugPath(@Param('slugPath') slugPath: string) {
+    return await this.categoryService.findBySlugPath(slugPath);
   }
 }

@@ -12,7 +12,8 @@ export class SearchProductsDto {
   search?: string;
 
   @ApiPropertyOptional({
-    description: 'ID категории для фильтрации',
+    description:
+      'ID категории для фильтрации (устаревший, используйте categorySlug)',
     example: 1,
   })
   @IsOptional()
@@ -21,7 +22,16 @@ export class SearchProductsDto {
   categoryId?: number;
 
   @ApiPropertyOptional({
-    description: 'ID подкатегории для фильтрации',
+    description: 'Slug категории для фильтрации',
+    example: 'lichnye-veschi',
+  })
+  @IsOptional()
+  @IsString()
+  categorySlug?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'ID подкатегории для фильтрации (устаревший, используйте subCategorySlug)',
     example: 1,
   })
   @IsOptional()
@@ -30,13 +40,30 @@ export class SearchProductsDto {
   subCategoryId?: number;
 
   @ApiPropertyOptional({
-    description: 'ID типа подкатегории для фильтрации',
+    description: 'Slug подкатегории для фильтрации',
+    example: 'odezhda',
+  })
+  @IsOptional()
+  @IsString()
+  subCategorySlug?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'ID типа подкатегории для фильтрации (устаревший, используйте typeSlug)',
     example: 1,
   })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   typeId?: number;
+
+  @ApiPropertyOptional({
+    description: 'Slug типа подкатегории для фильтрации',
+    example: 'muzhskaya',
+  })
+  @IsOptional()
+  @IsString()
+  typeSlug?: string;
 
   @ApiPropertyOptional({
     description: 'Минимальная цена',

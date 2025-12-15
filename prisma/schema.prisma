@@ -189,16 +189,23 @@ model ProductPromotion {
 model Category {
   id   Int    @id @default(autoincrement())
   name String
+  slug String @unique @default("")
 
   products Product[]
 
   subCategories SubCategory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([slug])
 }
 
 // Подкатегории
 model SubCategory {
   id   Int    @id @default(autoincrement())
   name String
+  slug String @default("")
 
   categoryId Int
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
@@ -206,11 +213,18 @@ model SubCategory {
   products Product[]
 
   subcategoryTypes SubcategotyType[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([slug, categoryId])
+  @@index([slug])
 }
 
 model SubcategotyType {
   id Int @id @default(autoincrement())
   name String
+  slug String @default("")
 
   subcategoryId Int
   subcategory SubCategory @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
@@ -220,6 +234,12 @@ model SubcategotyType {
   
   // Товары этого типа
   products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([slug, subcategoryId])
+  @@index([slug])
 }
 
 // Поля (атрибуты) для типа подкатегории

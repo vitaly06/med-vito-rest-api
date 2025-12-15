@@ -390,8 +390,11 @@ export class ProductService {
       const {
         search,
         categoryId,
+        categorySlug,
         subCategoryId,
+        subCategorySlug,
         typeId,
+        typeSlug,
         minPrice,
         maxPrice,
         state,
@@ -424,18 +427,39 @@ export class ProductService {
         ];
       }
 
-      // Фильтр по категории
-      if (categoryId) {
+      // Фильтр по категории (приоритет у slug)
+      if (categorySlug) {
+        const category = await this.prisma.category.findUnique({
+          where: { slug: categorySlug },
+        });
+        if (category) {
+          whereConditions.categoryId = category.id;
+        }
+      } else if (categoryId) {
         whereConditions.categoryId = parseInt(categoryId);
       }
 
-      // Фильтр по подкатегории
-      if (subCategoryId) {
+      // Фильтр по подкатегории (приоритет у slug)
+      if (subCategorySlug) {
+        const subCategory = await this.prisma.subCategory.findFirst({
+          where: { slug: subCategorySlug },
+        });
+        if (subCategory) {
+          whereConditions.subCategoryId = subCategory.id;
+        }
+      } else if (subCategoryId) {
         whereConditions.subCategoryId = parseInt(subCategoryId);
       }
 
-      // Фильтр по типу подкатегории
-      if (typeId) {
+      // Фильтр по типу подкатегории (приоритет у slug)
+      if (typeSlug) {
+        const type = await this.prisma.subcategotyType.findFirst({
+          where: { slug: typeSlug },
+        });
+        if (type) {
+          whereConditions.typeId = type.id;
+        }
+      } else if (typeId) {
         whereConditions.typeId = parseInt(typeId);
       }
 
@@ -520,6 +544,27 @@ export class ProductService {
           price: true,
           userId: true,
           videoUrl: true,
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          subCategory: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          type: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
           promotions: {
             where: {
               isActive: true,
@@ -596,6 +641,27 @@ export class ProductService {
         price: true,
         userId: true,
         videoUrl: true,
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        subCategory: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        type: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
         promotions: {
           where: {
             isActive: true,

@@ -110,7 +110,10 @@ SET default_table_access_method = heap;
 
 CREATE TABLE public."Category" (
     id integer NOT NULL,
-    name text NOT NULL
+    name text NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    slug text DEFAULT ''::text NOT NULL,
+    "updatedAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 
@@ -611,7 +614,10 @@ ALTER SEQUENCE public."Role_id_seq" OWNED BY public."Role".id;
 CREATE TABLE public."SubCategory" (
     id integer NOT NULL,
     name text NOT NULL,
-    "categoryId" integer NOT NULL
+    "categoryId" integer NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    slug text DEFAULT ''::text NOT NULL,
+    "updatedAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 
@@ -646,7 +652,10 @@ ALTER SEQUENCE public."SubCategory_id_seq" OWNED BY public."SubCategory".id;
 CREATE TABLE public."SubcategotyType" (
     id integer NOT NULL,
     name text NOT NULL,
-    "subcategoryId" integer NOT NULL
+    "subcategoryId" integer NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    slug text DEFAULT ''::text NOT NULL,
+    "updatedAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 
@@ -1002,8 +1011,8 @@ ALTER TABLE ONLY public."User" ALTER COLUMN id SET DEFAULT nextval('public."User
 -- Data for Name: Category; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Category" (id, name) FROM stdin;
-1	Личные вещи
+COPY public."Category" (id, name, "createdAt", slug, "updatedAt") FROM stdin;
+1	Личные вещи	2025-12-15 19:18:08.497	lichnye-veschi	2025-12-15 17:21:30.479
 \.
 
 
@@ -1454,19 +1463,19 @@ COPY public."Role" (id, name) FROM stdin;
 -- Data for Name: SubCategory; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."SubCategory" (id, name, "categoryId") FROM stdin;
-1	Одежда	1
-2	Детские товары	1
-5	Средства реабилитации	1
-6	Школьные товары	1
-7	Украшения	1
-8	Продукты питания	1
-9	Животные, растения	1
-10	Бытовая техника	1
-11	Посуда	1
-12	Мебель	1
-15	Медицинские товары	1
-3	Красота и здоровье	1
+COPY public."SubCategory" (id, name, "categoryId", "createdAt", slug, "updatedAt") FROM stdin;
+1	Одежда	1	2025-12-15 19:18:08.513	odezhda	2025-12-15 17:21:30.498
+2	Детские товары	1	2025-12-15 19:18:08.513	detskie-tovary	2025-12-15 17:21:30.503
+5	Средства реабилитации	1	2025-12-15 19:18:08.513	sredstva-reabilitatsii	2025-12-15 17:21:30.508
+6	Школьные товары	1	2025-12-15 19:18:08.513	shkol-nye-tovary	2025-12-15 17:21:30.513
+7	Украшения	1	2025-12-15 19:18:08.513	ukrasheniya	2025-12-15 17:21:30.518
+8	Продукты питания	1	2025-12-15 19:18:08.513	produkty-pitaniya	2025-12-15 17:21:30.522
+9	Животные, растения	1	2025-12-15 19:18:08.513	zhivotnye-rasteniya	2025-12-15 17:21:30.527
+10	Бытовая техника	1	2025-12-15 19:18:08.513	bytovaya-tehnika	2025-12-15 17:21:30.531
+11	Посуда	1	2025-12-15 19:18:08.513	posuda	2025-12-15 17:21:30.536
+12	Мебель	1	2025-12-15 19:18:08.513	mebel	2025-12-15 17:21:30.54
+15	Медицинские товары	1	2025-12-15 19:18:08.513	meditsinskie-tovary	2025-12-15 17:21:30.544
+3	Красота и здоровье	1	2025-12-15 19:18:08.513	krasota-i-zdorov-e	2025-12-15 17:21:30.548
 \.
 
 
@@ -1474,79 +1483,79 @@ COPY public."SubCategory" (id, name, "categoryId") FROM stdin;
 -- Data for Name: SubcategotyType; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."SubcategotyType" (id, name, "subcategoryId") FROM stdin;
-1	Мужская	1
-2	Женская	1
-3	Детская девочки	1
-4	Детская мальчики	1
-5	Ткани, текстиль и фурнитура	1
-6	Сумки, рюкзаки	1
-7	Аксессуары	1
-8	Обувь	1
-9	Игрушки	2
-10	Детская мебель	2
-11	Коляски детские	2
-12	Велосипеды и самокаты	2
-13	Детское питание и посуда	2
-14	Образовательные товары	2
-15	Уход и гигиена	2
-16	Косметика для ухода за кожей	3
-17	Средства для ухода за волосами	3
-18	Уход и гигиена	3
-19	Приборы и аксессуары	3
-20	Парфюмерия	3
-21	Макияж	3
-22	Бады	3
-26	Измерительные приборы	5
-27	Ортопедия (бандажи, корсеты)	5
-28	Уходовая косметика	5
-29	Кресла-коляски	5
-30	Спецодежда, трикотаж, компрессионное белье	5
-31	Подгузники, пеленки, прокладки	5
-32	Катетеры	5
-33	Средства ухода за стомой	5
-34	Кресла-стулья санитарные	5
-35	Специальные устройства	5
-36	Калоприемники, уроприемники	5
-37	Трости, костыли	5
-38	Вертикализаторы, опоры	5
-39	Матрасы	5
-40	Кровати медицинские	5
-41	Письменные принадлежности	6
-42	Бумажная продукция	6
-43	Принадлежности для рисования и творчества	6
-44	Органайзеры и хранение	6
-45	Учебные пособия и инструменты	6
-46	Рюкзаки и сумки	6
-47	Прочее	6
-48	Ювелирные изделия	7
-49	Бижутерия	7
-50	Часы	7
-51	Готовые продукты	8
-52	Напитки	8
-53	Заморозки, полуфабрикаты	8
-54	Домашние животные	9
-55	С/х животные	9
-56	Рептилии	9
-57	Растения комнатные	9
-58	Культурные растения	9
-59	Декоративные уличные растения	9
-60	Доп товары (горшки, грунт, кормилки, поилки, средства по уходу за растениями, инструменты, корма, игрушки, клетки, аксессуары)	9
-61	Кухонная	10
-62	Бытовая	10
-63	Для приготовления пищи	11
-64	Для хранения	11
-65	Для сервировки	11
-66	Для приёма пищи	11
-67	Мягкая мебель	12
-68	Корпусная мебель	12
-69	Мебель для кухни	12
-70	Мебель для спальни	12
-71	Садовая мебель	12
-72	Офисная мебель	12
-73	Диагностическое оборудование	15
-74	Оборудование для клиник	15
-75	Медицинская мебель	15
+COPY public."SubcategotyType" (id, name, "subcategoryId", "createdAt", slug, "updatedAt") FROM stdin;
+1	Мужская	1	2025-12-15 19:18:08.514	muzhskaya	2025-12-15 17:21:30.561
+2	Женская	1	2025-12-15 19:18:08.514	zhenskaya	2025-12-15 17:21:30.565
+3	Детская девочки	1	2025-12-15 19:18:08.514	detskaya-devochki	2025-12-15 17:21:30.57
+4	Детская мальчики	1	2025-12-15 19:18:08.514	detskaya-mal-chiki	2025-12-15 17:21:30.574
+5	Ткани, текстиль и фурнитура	1	2025-12-15 19:18:08.514	tkani-tekstil-i-furnitura	2025-12-15 17:21:30.578
+6	Сумки, рюкзаки	1	2025-12-15 19:18:08.514	sumki-ryukzaki	2025-12-15 17:21:30.582
+7	Аксессуары	1	2025-12-15 19:18:08.514	aksessuary	2025-12-15 17:21:30.585
+8	Обувь	1	2025-12-15 19:18:08.514	obuv	2025-12-15 17:21:30.59
+9	Игрушки	2	2025-12-15 19:18:08.514	igrushki	2025-12-15 17:21:30.595
+10	Детская мебель	2	2025-12-15 19:18:08.514	detskaya-mebel	2025-12-15 17:21:30.599
+11	Коляски детские	2	2025-12-15 19:18:08.514	kolyaski-detskie	2025-12-15 17:21:30.603
+12	Велосипеды и самокаты	2	2025-12-15 19:18:08.514	velosipedy-i-samokaty	2025-12-15 17:21:30.608
+13	Детское питание и посуда	2	2025-12-15 19:18:08.514	detskoe-pitanie-i-posuda	2025-12-15 17:21:30.612
+14	Образовательные товары	2	2025-12-15 19:18:08.514	obrazovatel-nye-tovary	2025-12-15 17:21:30.616
+15	Уход и гигиена	2	2025-12-15 19:18:08.514	uhod-i-gigiena	2025-12-15 17:21:30.62
+16	Косметика для ухода за кожей	3	2025-12-15 19:18:08.514	kosmetika-dlya-uhoda-za-kozhey	2025-12-15 17:21:30.624
+17	Средства для ухода за волосами	3	2025-12-15 19:18:08.514	sredstva-dlya-uhoda-za-volosami	2025-12-15 17:21:30.629
+18	Уход и гигиена	3	2025-12-15 19:18:08.514	uhod-i-gigiena	2025-12-15 17:21:30.633
+19	Приборы и аксессуары	3	2025-12-15 19:18:08.514	pribory-i-aksessuary	2025-12-15 17:21:30.636
+20	Парфюмерия	3	2025-12-15 19:18:08.514	parfyumeriya	2025-12-15 17:21:30.64
+21	Макияж	3	2025-12-15 19:18:08.514	makiyazh	2025-12-15 17:21:30.645
+22	Бады	3	2025-12-15 19:18:08.514	bady	2025-12-15 17:21:30.648
+26	Измерительные приборы	5	2025-12-15 19:18:08.514	izmeritel-nye-pribory	2025-12-15 17:21:30.653
+27	Ортопедия (бандажи, корсеты)	5	2025-12-15 19:18:08.514	ortopediya-bandazhi-korsety	2025-12-15 17:21:30.655
+28	Уходовая косметика	5	2025-12-15 19:18:08.514	uhodovaya-kosmetika	2025-12-15 17:21:30.659
+29	Кресла-коляски	5	2025-12-15 19:18:08.514	kresla-kolyaski	2025-12-15 17:21:30.662
+30	Спецодежда, трикотаж, компрессионное белье	5	2025-12-15 19:18:08.514	spetsodezhda-trikotazh-kompressionnoe-bel-e	2025-12-15 17:21:30.666
+31	Подгузники, пеленки, прокладки	5	2025-12-15 19:18:08.514	podguzniki-pelenki-prokladki	2025-12-15 17:21:30.669
+32	Катетеры	5	2025-12-15 19:18:08.514	katetery	2025-12-15 17:21:30.673
+33	Средства ухода за стомой	5	2025-12-15 19:18:08.514	sredstva-uhoda-za-stomoy	2025-12-15 17:21:30.675
+34	Кресла-стулья санитарные	5	2025-12-15 19:18:08.514	kresla-stul-ya-sanitarnye	2025-12-15 17:21:30.678
+35	Специальные устройства	5	2025-12-15 19:18:08.514	spetsial-nye-ustroystva	2025-12-15 17:21:30.682
+36	Калоприемники, уроприемники	5	2025-12-15 19:18:08.514	kalopriemniki-uropriemniki	2025-12-15 17:21:30.686
+37	Трости, костыли	5	2025-12-15 19:18:08.514	trosti-kostyli	2025-12-15 17:21:30.69
+38	Вертикализаторы, опоры	5	2025-12-15 19:18:08.514	vertikalizatory-opory	2025-12-15 17:21:30.694
+39	Матрасы	5	2025-12-15 19:18:08.514	matrasy	2025-12-15 17:21:30.696
+40	Кровати медицинские	5	2025-12-15 19:18:08.514	krovati-meditsinskie	2025-12-15 17:21:30.701
+41	Письменные принадлежности	6	2025-12-15 19:18:08.514	pis-mennye-prinadlezhnosti	2025-12-15 17:21:30.704
+42	Бумажная продукция	6	2025-12-15 19:18:08.514	bumazhnaya-produktsiya	2025-12-15 17:21:30.708
+43	Принадлежности для рисования и творчества	6	2025-12-15 19:18:08.514	prinadlezhnosti-dlya-risovaniya-i-tvorchestva	2025-12-15 17:21:30.71
+44	Органайзеры и хранение	6	2025-12-15 19:18:08.514	organayzery-i-hranenie	2025-12-15 17:21:30.714
+45	Учебные пособия и инструменты	6	2025-12-15 19:18:08.514	uchebnye-posobiya-i-instrumenty	2025-12-15 17:21:30.717
+46	Рюкзаки и сумки	6	2025-12-15 19:18:08.514	ryukzaki-i-sumki	2025-12-15 17:21:30.721
+47	Прочее	6	2025-12-15 19:18:08.514	prochee	2025-12-15 17:21:30.723
+48	Ювелирные изделия	7	2025-12-15 19:18:08.514	yuvelirnye-izdeliya	2025-12-15 17:21:30.727
+49	Бижутерия	7	2025-12-15 19:18:08.514	bizhuteriya	2025-12-15 17:21:30.73
+50	Часы	7	2025-12-15 19:18:08.514	chasy	2025-12-15 17:21:30.733
+51	Готовые продукты	8	2025-12-15 19:18:08.514	gotovye-produkty	2025-12-15 17:21:30.737
+52	Напитки	8	2025-12-15 19:18:08.514	napitki	2025-12-15 17:21:30.74
+53	Заморозки, полуфабрикаты	8	2025-12-15 19:18:08.514	zamorozki-polufabrikaty	2025-12-15 17:21:30.744
+54	Домашние животные	9	2025-12-15 19:18:08.514	domashnie-zhivotnye	2025-12-15 17:21:30.748
+55	С/х животные	9	2025-12-15 19:18:08.514	s-h-zhivotnye	2025-12-15 17:21:30.751
+56	Рептилии	9	2025-12-15 19:18:08.514	reptilii	2025-12-15 17:21:30.756
+57	Растения комнатные	9	2025-12-15 19:18:08.514	rasteniya-komnatnye	2025-12-15 17:21:30.759
+58	Культурные растения	9	2025-12-15 19:18:08.514	kul-turnye-rasteniya	2025-12-15 17:21:30.764
+59	Декоративные уличные растения	9	2025-12-15 19:18:08.514	dekorativnye-ulichnye-rasteniya	2025-12-15 17:21:30.768
+61	Кухонная	10	2025-12-15 19:18:08.514	kuhonnaya	2025-12-15 17:21:30.777
+62	Бытовая	10	2025-12-15 19:18:08.514	bytovaya	2025-12-15 17:21:30.779
+63	Для приготовления пищи	11	2025-12-15 19:18:08.514	dlya-prigotovleniya-pischi	2025-12-15 17:21:30.783
+64	Для хранения	11	2025-12-15 19:18:08.514	dlya-hraneniya	2025-12-15 17:21:30.786
+65	Для сервировки	11	2025-12-15 19:18:08.514	dlya-servirovki	2025-12-15 17:21:30.79
+66	Для приёма пищи	11	2025-12-15 19:18:08.514	dlya-priema-pischi	2025-12-15 17:21:30.793
+67	Мягкая мебель	12	2025-12-15 19:18:08.514	myagkaya-mebel	2025-12-15 17:21:30.798
+68	Корпусная мебель	12	2025-12-15 19:18:08.514	korpusnaya-mebel	2025-12-15 17:21:30.801
+69	Мебель для кухни	12	2025-12-15 19:18:08.514	mebel-dlya-kuhni	2025-12-15 17:21:30.805
+70	Мебель для спальни	12	2025-12-15 19:18:08.514	mebel-dlya-spal-ni	2025-12-15 17:21:30.808
+71	Садовая мебель	12	2025-12-15 19:18:08.514	sadovaya-mebel	2025-12-15 17:21:30.813
+72	Офисная мебель	12	2025-12-15 19:18:08.514	ofisnaya-mebel	2025-12-15 17:21:30.815
+74	Оборудование для клиник	15	2025-12-15 19:18:08.514	oborudovanie-dlya-klinik	2025-12-15 17:21:30.821
+75	Медицинская мебель	15	2025-12-15 19:18:08.514	meditsinskaya-mebel	2025-12-15 17:21:30.825
+60	Доп товары (горшки, грунт, кормилки, поилки, средства по уходу за растениями, инструменты, корма, игрушки, клетки, аксессуары)	9	2025-12-15 19:18:08.514	dop-tovary-gorshki-grunt-kormilki-poilki-sredstva-po-uhodu-za-rasteniyami-instrumenty-korma-igrushki-kletki-aksessuary	2025-12-15 17:21:30.772
+73	Диагностическое оборудование	15	2025-12-15 19:18:08.514	diagnosticheskoe-oborudovanie	2025-12-15 17:21:30.819
 \.
 
 
@@ -2151,6 +2160,20 @@ ALTER TABLE ONLY public._prisma_migrations
 
 
 --
+-- Name: Category_slug_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "Category_slug_idx" ON public."Category" USING btree (slug);
+
+
+--
+-- Name: Category_slug_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "Category_slug_key" ON public."Category" USING btree (slug);
+
+
+--
 -- Name: Chat_buyerId_sellerId_productId_key; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2204,6 +2227,34 @@ CREATE UNIQUE INDEX "Review_reviewedById_reviewedUserId_key" ON public."Review" 
 --
 
 CREATE UNIQUE INDEX "Role_name_key" ON public."Role" USING btree (name);
+
+
+--
+-- Name: SubCategory_slug_categoryId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "SubCategory_slug_categoryId_key" ON public."SubCategory" USING btree (slug, "categoryId");
+
+
+--
+-- Name: SubCategory_slug_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "SubCategory_slug_idx" ON public."SubCategory" USING btree (slug);
+
+
+--
+-- Name: SubcategotyType_slug_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "SubcategotyType_slug_idx" ON public."SubcategotyType" USING btree (slug);
+
+
+--
+-- Name: SubcategotyType_slug_subcategoryId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "SubcategotyType_slug_subcategoryId_key" ON public."SubcategotyType" USING btree (slug, "subcategoryId");
 
 
 --
