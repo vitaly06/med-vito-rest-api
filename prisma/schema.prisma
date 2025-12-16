@@ -131,6 +131,9 @@ model Product {
   favoritedBy User[] @relation("UserFavorites")
   // Чаты по этому товару
   chats       Chat[]
+  
+  // Сообщения, связанные с этим товаром
+  relatedMessages Message[] @relation("MessageProduct")
 
   // Статистика просмотров этого товара
   views ProductView[] @relation("ProductViews")
@@ -273,9 +276,9 @@ model ProductFieldValue {
 model Chat {
   id Int @id @default(autoincrement())
 
-  // Товар, по которому ведётся чат
-  productId Int
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  // Товар, по которому ведётся чат (опционально, для обычных чатов)
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   // Покупатель (инициатор чата)
   buyerId Int
@@ -284,6 +287,9 @@ model Chat {
   // Продавец (владелец товара)
   sellerId Int
   seller   User @relation("SellerChats", fields: [sellerId], references: [id], onDelete: Cascade)
+
+  // Признак чата модерации (между модератором и пользователем)
+  isModerationChat Boolean @default(false)
 
   // Сообщения в чате
   messages Message[]
@@ -300,7 +306,7 @@ model Chat {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Уникальный чат для каждой пары покупатель-продавец-товар
+  // Уникальный чат для каждой пары покупатель-продавец (без товара для чатов модерации)
   @@unique([buyerId, sellerId, productId])
 }
 
@@ -318,6 +324,10 @@ model Message {
   // Чат, к которому относится сообщение
   chatId Int
   chat   Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  // Товар, к которому относится это сообщение (опционально, для контекста в чате модерации)
+  relatedProductId Int?
+  relatedProduct   Product? @relation("MessageProduct", fields: [relatedProductId], references: [id], onDelete: SetNull)
 
   // Статус прочтения
   isRead Boolean   @default(false)

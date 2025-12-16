@@ -1144,10 +1144,11 @@ export class ProductService {
 
         const adminUserId = adminRole.users[0].id;
 
-        // Проверяем существует ли чат
+        // Проверяем существует ли чат модерации между админом и пользователем
         let chat = await this.prisma.chat.findFirst({
           where: {
-            productId: productId,
+            isModerationChat: true,
+            productId: null, // Чат модерации не привязан к конкретному товару
             OR: [
               { buyerId: adminUserId, sellerId: checkProduct.userId },
               { buyerId: checkProduct.userId, sellerId: adminUserId },
@@ -1155,24 +1156,26 @@ export class ProductService {
           },
         });
 
-        // Если чата нет, создаем новый
+        // Если чата нет, создаем новый чат модерации
         if (!chat) {
           chat = await this.prisma.chat.create({
             data: {
-              productId: productId,
+              productId: null, // Не привязываем к товару
               buyerId: adminUserId,
               sellerId: checkProduct.userId,
+              isModerationChat: true, // Помечаем как чат модерации
             },
           });
         }
 
-        // Отправляем сообщение с причиной отказа
+        // Отправляем сообщение с причиной отказа и привязываем к товару
         const messageContent = `❌ Ваш товар "${checkProduct.name}" был отклонен модерацией.\n\nПричина отказа: ${rejectionReason}`;
 
-        const message = await this.chatService.sendMessage(
+        const message = await this.chatService.sendMessageWithProduct(
           chat.id,
           adminUserId,
           messageContent,
+          productId, // Привязываем сообщение к товару
         );
 
         // Отправляем WebSocket уведомление владельцу товара
@@ -1186,6 +1189,7 @@ export class ProductService {
             createdAt: message.createdAt,
             timeString: message.timeString,
             chatId: chat.id,
+            relatedProductId: productId,
             isModeration: true,
           });
 

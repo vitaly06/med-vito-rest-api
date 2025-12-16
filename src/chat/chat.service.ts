@@ -96,12 +96,14 @@ export class ChatService {
     if (existingChat) {
       return {
         ...existingChat,
-        product: {
-          ...existingChat.product,
-          images: existingChat.product.images.map((image) => {
-            image;
-          }),
-        },
+        product: existingChat.product
+          ? {
+              ...existingChat.product,
+              images: existingChat.product.images.map((image) => {
+                image;
+              }),
+            }
+          : null,
       };
     }
 
@@ -140,10 +142,12 @@ export class ChatService {
 
     return {
       ...newChat,
-      product: {
-        ...newChat.product,
-        images: newChat.product.images.map((image) => `${image}`),
-      },
+      product: newChat.product
+        ? {
+            ...newChat.product,
+            images: newChat.product.images.map((image) => `${image}`),
+          }
+        : null,
     };
   }
 
@@ -209,13 +213,18 @@ export class ChatService {
 
       return {
         id: chat.id,
-        // Информация о товаре
-        product: {
-          id: chat.product.id,
-          name: chat.product.name,
-          price: chat.product.price,
-          image: chat.product.images[0] ? `${chat.product.images[0]}` : null, // Первое фото товара
-        },
+        isModerationChat: chat.isModerationChat, // Признак чата модерации
+        // Информация о товаре (может быть null для чатов модерации)
+        product: chat.product
+          ? {
+              id: chat.product.id,
+              name: chat.product.name,
+              price: chat.product.price,
+              image: chat.product.images[0]
+                ? `${chat.product.images[0]}`
+                : null, // Первое фото товара
+            }
+          : null,
         // Информация о собеседнике (продавце для покупателя, покупателе для продавца)
         companion: {
           id: companion.id,
@@ -288,14 +297,17 @@ export class ChatService {
 
     return {
       id: chat.id,
-      // Информация о товаре (отображается сверху в чате)
-      product: {
-        id: chat.product.id,
-        name: chat.product.name,
-        price: chat.product.price,
-        image: chat.product.images[0] ? `${chat.product.images[0]}` : null,
-        description: chat.product.description,
-      },
+      isModerationChat: chat.isModerationChat,
+      // Информация о товаре (отображается сверху в чате, может быть null для чатов модерации)
+      product: chat.product
+        ? {
+            id: chat.product.id,
+            name: chat.product.name,
+            price: chat.product.price,
+            image: chat.product.images[0] ? `${chat.product.images[0]}` : null,
+            description: chat.product.description,
+          }
+        : null,
       // Информация о собеседнике (продавце)
       companion: {
         id: companion.id,
@@ -341,6 +353,15 @@ export class ChatService {
             fullName: true,
           },
         },
+        relatedProduct: {
+          select: {
+            id: true,
+            name: true,
+            images: true,
+            price: true,
+            moderateState: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -355,6 +376,7 @@ export class ChatService {
       content: message.content,
       senderId: message.senderId,
       sender: message.sender,
+      relatedProduct: message.relatedProduct, // Добавляем информацию о связанном товаре
       isFromMe: message.senderId === userId,
       isRead: message.isRead,
       readAt: message.readAt,
@@ -434,6 +456,82 @@ export class ChatService {
       content: message.content,
       senderId: message.senderId,
       sender: message.sender,
+      isRead: message.isRead,
+      createdAt: message.createdAt,
+      timeString: message.createdAt.toLocaleTimeString('ru-RU', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    };
+  }
+
+  // Отправить сообщение с привязкой к товару (для чатов модерации)
+  async sendMessageWithProduct(
+    chatId: number,
+    senderId: number,
+    content: string,
+    productId: number,
+  ) {
+    // Проверяем доступ к чату
+    const chat = await this.prisma.chat.findUnique({
+      where: { id: chatId },
+    });
+
+    if (!chat) {
+      throw new NotFoundException('Чат не найден');
+    }
+
+    if (chat.buyerId !== senderId && chat.sellerId !== senderId) {
+      throw new ForbiddenException('Нет доступа к этому чату');
+    }
+
+    // Создаем сообщение с привязкой к товару
+    const message = await this.prisma.message.create({
+      data: {
+        content,
+        senderId,
+        chatId,
+        relatedProductId: productId, // Привязываем к товару
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
+        relatedProduct: {
+          select: {
+            id: true,
+            name: true,
+            images: true,
+            price: true,
+          },
+        },
+      },
+    });
+
+    // Обновляем счетчики непрочитанных сообщений и последнее сообщение
+    const isFromBuyer = senderId === chat.buyerId;
+
+    await this.prisma.chat.update({
+      where: { id: chatId },
+      data: {
+        lastMessageId: message.id,
+        lastMessageAt: new Date(),
+        // Увеличиваем счетчик непрочитанных для получателя
+        ...(isFromBuyer
+          ? { unreadCountSeller: { increment: 1 } }
+          : { unreadCountBuyer: { increment: 1 } }),
+      },
+    });
+
+    return {
+      id: message.id,
+      content: message.content,
+      senderId: message.senderId,
+      sender: message.sender,
+      relatedProduct: message.relatedProduct,
       isRead: message.isRead,
       createdAt: message.createdAt,
       timeString: message.createdAt.toLocaleTimeString('ru-RU', {

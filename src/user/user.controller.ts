@@ -25,6 +25,14 @@ import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard'
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  @ApiOperation({
+    summary: 'Возвращает всех пользователей',
+  })
+  @Get('find-all')
+  async findAll() {
+    return await this.userService.findAll();
+  }
+
   @Get('/info')
   @UseGuards(SessionAuthGuard)
   async userInfo(@Req() req: Request & { user: any }) {
