@@ -45,6 +45,7 @@ export class UserService {
         rating: true,
         profileType: true,
         photo: true,
+        balance: true,
       },
     });
 
