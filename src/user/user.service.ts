@@ -39,6 +39,7 @@ export class UserService {
     const users = await this.prisma.user.findMany({
       select: {
         id: true,
+        isBanned: true,
         fullName: true,
         email: true,
         phoneNumber: true,
@@ -46,10 +47,58 @@ export class UserService {
         profileType: true,
         photo: true,
         balance: true,
+        bonusBalance: true,
+        _count: {
+          select: {
+            products: true,
+          },
+        },
       },
     });
 
-    return users;
+    return users.map((user) => ({
+      ...user,
+      products: user._count.products,
+      _count: undefined,
+    }));
+  }
+
+  async toggleBanned(id: number) {
+    const checkUser = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, isBanned: true },
+    });
+
+    if (!checkUser) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        isBanned: !checkUser.isBanned,
+      },
+    });
+
+    return checkUser.isBanned
+      ? { message: 'Пользователь успешно разбанен' }
+      : { message: 'Пользователь успешно забанен' };
+  }
+
+  async deleteUser(id: number) {
+    const checkUser = await this.prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!checkUser) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+
+    await this.prisma.user.delete({
+      where: { id },
+    });
+
+    return { message: 'Пользователь успешно удалён' };
   }
 
   async getUserInfo(id: number) {
@@ -61,6 +110,7 @@ export class UserService {
         profileType: true,
         phoneNumber: true,
         balance: true,
+        bonusBalance: true,
         photo: true,
       },
     });
@@ -76,8 +126,11 @@ export class UserService {
       throw new BadRequestException('Пользователь не найден');
     }
 
+    const { bonusBalance, ...userWithoutBonus } = checkUser;
+
     return {
-      ...checkUser,
+      ...userWithoutBonus,
+      balance: checkUser.balance + bonusBalance,
       profileType: this.profileTypes[checkUser.profileType],
       rating:
         reviews.reduce((sum, review) => sum + review.rating, 0) /
@@ -293,10 +346,55 @@ export class UserService {
     await this.prisma.user.update({
       where: { id: userId },
       data: {
-        balance: parseBalance,
+        bonusBalance: parseBalance,
       },
     });
 
     return { message: 'Баланс успешно обновлён' };
+  }
+
+  async updateUser(userId: number, dto: any) {
+    const checkUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!checkUser) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+
+    // Проверяем уникальность email если он обновляется
+    if (dto.email && dto.email !== checkUser.email) {
+      const emailExists = await this.prisma.user.findUnique({
+        where: { email: dto.email },
+      });
+
+      if (emailExists) {
+        throw new BadRequestException(
+          'Пользователь с таким email уже существует',
+        );
+      }
+    }
+
+    // Проверяем уникальность phoneNumber если он обновляется
+    if (dto.phoneNumber && dto.phoneNumber !== checkUser.phoneNumber) {
+      const phoneExists = await this.prisma.user.findUnique({
+        where: { phoneNumber: dto.phoneNumber },
+      });
+
+      if (phoneExists) {
+        throw new BadRequestException(
+          'Пользователь с таким номером телефона уже существует',
+        );
+      }
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...dto,
+      },
+    });
+
+    return { message: 'Данные пользователя успешно обновлены' };
   }
 }

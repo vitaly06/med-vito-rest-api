@@ -11,13 +11,15 @@ import {
   UploadedFile,
   Patch,
   Put,
+  Delete,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
 import { Request } from 'express';
-import { ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { ProfileType } from '@prisma/client';
 import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
 
@@ -28,9 +30,40 @@ export class UserController {
   @ApiOperation({
     summary: 'Возвращает всех пользователей',
   })
+  @ApiTags('Управление пользователями (админка)')
   @Get('find-all')
   async findAll() {
     return await this.userService.findAll();
+  }
+
+  @ApiOperation({
+    summary: 'Обновить данные пользователя',
+  })
+  @ApiTags('Управление пользователями (админка)')
+  @UseGuards(AdminSessionAuthGuard)
+  @Patch('/:id')
+  async updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+    return await this.userService.updateUser(+id, dto);
+  }
+
+  @ApiOperation({
+    summary: 'Забанить/Разбанить пользователя пользователя',
+  })
+  @ApiTags('Управление пользователями (админка)')
+  @UseGuards(AdminSessionAuthGuard)
+  @Put('/toggle-banned/:id')
+  async toggleBanned(@Param('id') id: string) {
+    return await this.userService.toggleBanned(+id);
+  }
+
+  @ApiOperation({
+    summary: 'Удалить пользователя',
+  })
+  @ApiTags('Управление пользователями (админка)')
+  @UseGuards(AdminSessionAuthGuard)
+  @Delete('/:id')
+  async deleteUser(@Param('id') id: string) {
+    return await this.userService.deleteUser(+id);
   }
 
   @Get('/info')

@@ -17,6 +17,7 @@ import * as cacheManager_1 from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
+import { generateUniqueId } from 'src/common/utils/id-generator';
 
 @Injectable()
 export class AuthService {
@@ -54,8 +55,12 @@ export class AuthService {
       throw new NotFoundException('Роль default не найдена');
     }
     try {
+      // Генерируем уникальный семизначный ID
+      const userId = await generateUniqueId(this.prisma, 'user');
+
       await this.prisma.user.create({
         data: {
+          id: userId,
           ...dto,
           password: hashedPassword,
           roleId: role?.id,

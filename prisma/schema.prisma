@@ -25,14 +25,18 @@ enum ProductModerate {
 }
 
 model User {
-  id                    Int         @id @default(autoincrement())
+  id                    Int         @id
   fullName              String      
   email                 String      @unique
   phoneNumber           String      @unique
   password              String
   rating                Int?
   profileType           ProfileType @default(INDIVIDUAL)
+
   balance Float @default(0)
+  bonusBalance Float @default(0)
+
+  isBanned Boolean @default(false)
 
   photo String?
   isAnswersCall Boolean? @default(false)
@@ -102,7 +106,7 @@ model OkseiProduct{
 }
 
 model Product {
-  id          Int          @id @default(autoincrement())
+  id          Int          @id
   name        String
   price       Int
   state       ProductState

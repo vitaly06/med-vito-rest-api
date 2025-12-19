@@ -53,10 +53,11 @@ export class PromotionService {
 
     const totalPrice = days * checkPromo.pricePerDay;
 
-    // Проверяем баланс
-    if (checkProduct.user.balance < totalPrice) {
+    const totalAvailable =
+      checkProduct.user.balance + checkProduct.user.bonusBalance;
+    if (totalAvailable < totalPrice) {
       throw new BadRequestException(
-        `На балансе недостаточно средств. Требуется: ${totalPrice}₽, доступно: ${checkProduct.user.balance}₽`,
+        `На балансе недостаточно средств. Требуется: ${totalPrice}₽, доступно: ${totalAvailable}₽`,
       );
     }
 
@@ -80,12 +81,31 @@ export class PromotionService {
       },
     });
 
-    // Списываем средства с баланса
+    // Логика списания: сначала с бонусного баланса, потом с основного
+    let remainingAmount = totalPrice;
+    let bonusUsed = 0;
+    let balanceUsed = 0;
+
+    // Сначала списываем с бонусного баланса
+    if (checkProduct.user.bonusBalance > 0) {
+      bonusUsed = Math.min(checkProduct.user.bonusBalance, remainingAmount);
+      remainingAmount -= bonusUsed;
+    }
+
+    // Если остались деньги к списанию, списываем с основного баланса
+    if (remainingAmount > 0) {
+      balanceUsed = remainingAmount;
+    }
+
+    // Списываем средства с балансов
     await this.prisma.user.update({
       where: { id: userId },
       data: {
+        bonusBalance: {
+          decrement: bonusUsed,
+        },
         balance: {
-          decrement: totalPrice,
+          decrement: balanceUsed,
         },
       },
     });

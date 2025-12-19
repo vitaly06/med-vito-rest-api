@@ -300,10 +300,45 @@ export class ProductController {
   }
 
   @ApiOperation({
+    summary: 'Получение доступных фильтров для товаров',
+    description:
+      'Возвращает все доступные значения фильтров (размер, цвет и т.д.) для заданной категории/подкатегории/типа',
+  })
+  @ApiQuery({
+    name: 'categorySlug',
+    required: false,
+    description: 'Slug категории',
+  })
+  @ApiQuery({
+    name: 'subCategorySlug',
+    required: false,
+    description: 'Slug подкатегории',
+  })
+  @ApiQuery({
+    name: 'typeSlug',
+    required: false,
+    description: 'Slug типа подкатегории',
+  })
+  @ApiTags('Поиск')
+  @Get('available-filters')
+  async getAvailableFilters(
+    @Query('categorySlug') categorySlug?: string,
+    @Query('subCategorySlug') subCategorySlug?: string,
+    @Query('typeSlug') typeSlug?: string,
+  ) {
+    return await this.productService.getAvailableFilters(
+      categorySlug,
+      subCategorySlug,
+      typeSlug,
+    );
+  }
+
+  @ApiOperation({
     summary: 'Получение всех товаров с возможностью фильтрации',
     description:
       'Возвращает все товары или фильтрует их по заданным параметрам. Если параметры не указаны, возвращаются все товары.',
   })
+  @ApiTags('Поиск')
   @UseGuards(OptionalSessionAuthGuard)
   @Get('all-products')
   async findAll(

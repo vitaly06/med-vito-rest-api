@@ -14,6 +14,7 @@ import { S3Service } from 'src/s3/s3.service';
 import { ChatService } from 'src/chat/chat.service';
 import { ChatGateway } from 'src/chat/gateway';
 import { createOkseiProductDto } from './dto/oksei-create-product.dto';
+import { generateUniqueId } from 'src/common/utils/id-generator';
 
 @Injectable()
 export class ProductService {
@@ -86,8 +87,12 @@ export class ProductService {
           ? await this.s3Service.uploadFiles(files, 'products')
           : [];
 
+      // Генерируем уникальный семизначный ID для товара
+      const productId = await generateUniqueId(this.prisma, 'product');
+
       const product = await this.prisma.product.create({
         data: {
+          id: productId,
           name: dto.name,
           price: +dto.price,
           state: dto.state,
@@ -378,6 +383,127 @@ export class ProductService {
         `Ошибка при обновлении товара: ${error.message}`,
       );
     }
+  }
+
+  async getAvailableFilters(
+    categorySlug?: string,
+    subCategorySlug?: string,
+    typeSlug?: string,
+  ) {
+    // Строим условия для фильтрации товаров
+    const whereConditions: any = {
+      moderateState: 'APPROVED',
+      isHide: false,
+    };
+
+    // Фильтр по категории
+    if (categorySlug) {
+      const category = await this.prisma.category.findUnique({
+        where: { slug: categorySlug },
+      });
+      if (category) {
+        whereConditions.categoryId = category.id;
+      }
+    }
+
+    // Фильтр по подкатегории
+    if (subCategorySlug) {
+      const subCategory = await this.prisma.subCategory.findFirst({
+        where: { slug: subCategorySlug },
+      });
+      if (subCategory) {
+        whereConditions.subCategoryId = subCategory.id;
+      }
+    }
+
+    // Фильтр по типу
+    let typeId: number | undefined;
+    if (typeSlug) {
+      const type = await this.prisma.subcategotyType.findFirst({
+        where: { slug: typeSlug },
+      });
+      if (type) {
+        whereConditions.typeId = type.id;
+        typeId = type.id;
+      }
+    }
+
+    // Получаем все доступные поля для этого типа
+    const fields = typeId
+      ? await this.prisma.typeField.findMany({
+          where: { typeId },
+          select: {
+            id: true,
+            name: true,
+            isRequired: true,
+          },
+        })
+      : [];
+
+    // Для каждого поля получаем уникальные значения из товаров
+    const filtersWithValues = await Promise.all(
+      fields.map(async (field) => {
+        // Получаем все уникальные значения для этого поля из товаров
+        const values = await this.prisma.productFieldValue.findMany({
+          where: {
+            fieldId: field.id,
+            product: whereConditions,
+          },
+          select: {
+            value: true,
+          },
+          distinct: ['value'],
+        });
+
+        return {
+          fieldId: field.id,
+          fieldName: field.name,
+          isRequired: field.isRequired,
+          values: values
+            .map((v) => v.value)
+            .filter((v) => v && v.trim() !== ''),
+        };
+      }),
+    );
+
+    // Получаем диапазон цен
+    const priceRange = await this.prisma.product.aggregate({
+      where: whereConditions,
+      _min: { price: true },
+      _max: { price: true },
+    });
+
+    // Получаем доступные состояния товаров
+    const states = await this.prisma.product.findMany({
+      where: whereConditions,
+      select: { state: true },
+      distinct: ['state'],
+    });
+
+    // Получаем доступные типы продавцов
+    const profileTypes = await this.prisma.product.findMany({
+      where: whereConditions,
+      select: {
+        user: {
+          select: {
+            profileType: true,
+          },
+        },
+      },
+      distinct: ['userId'],
+    });
+
+    return {
+      fields: filtersWithValues.filter((f) => f.values.length > 0),
+      priceRange: {
+        min: priceRange._min.price || 0,
+        max: priceRange._max.price || 0,
+      },
+      states: states.map((s) => s.state),
+      profileTypes: [
+        ...new Set(profileTypes.map((p) => p.user.profileType)),
+      ].filter(Boolean),
+    };
   }
 
   async findAll(userId?: number, searchDto?: any) {

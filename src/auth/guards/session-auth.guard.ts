@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -39,6 +40,12 @@ export class SessionAuthGuard implements CanActivate {
 
     if (!user) {
       throw new UnauthorizedException('Пользователь не найден');
+    }
+
+    if (user.isBanned) {
+      throw new ForbiddenException(
+        'Ваш аккаунт заблокирован. Пожалуйста, обратитесь в поддержку',
+      );
     }
 
     // Прикрепляем пользователя к запросу
