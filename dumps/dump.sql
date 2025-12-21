@@ -1772,17 +1772,6 @@ COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType
 --
 
 COPY public."_UserFavorites" ("A", "B") FROM stdin;
-28	86
-28	119
-23	4081087
-127	4081087
-94	4081087
-21	4081087
-4163503	5231119
-3235109	1970246
-6053931	1970246
-4163503	1970246
-282	1250840
 \.
 
 
