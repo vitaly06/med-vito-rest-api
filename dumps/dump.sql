@@ -105,6 +105,42 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: Banner; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Banner" (
+    id integer NOT NULL,
+    "photoUrl" text NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."Banner" OWNER TO postgres;
+
+--
+-- Name: Banner_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Banner_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Banner_id_seq" OWNER TO postgres;
+
+--
+-- Name: Banner_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Banner_id_seq" OWNED BY public."Banner".id;
+
+
+--
 -- Name: Category; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -835,6 +871,13 @@ CREATE TABLE public._prisma_migrations (
 ALTER TABLE public._prisma_migrations OWNER TO postgres;
 
 --
+-- Name: Banner id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Banner" ALTER COLUMN id SET DEFAULT nextval('public."Banner_id_seq"'::regclass);
+
+
+--
 -- Name: Category id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -951,6 +994,14 @@ ALTER TABLE ONLY public."SupportTicket" ALTER COLUMN id SET DEFAULT nextval('pub
 --
 
 ALTER TABLE ONLY public."TypeField" ALTER COLUMN id SET DEFAULT nextval('public."TypeField_id_seq"'::regclass);
+
+
+--
+-- Data for Name: Banner; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Banner" (id, "photoUrl", "createdAt", "updatedAt") FROM stdin;
+\.
 
 
 --
@@ -1772,6 +1823,17 @@ COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType
 --
 
 COPY public."_UserFavorites" ("A", "B") FROM stdin;
+28	86
+28	119
+23	4081087
+127	4081087
+94	4081087
+21	4081087
+4163503	5231119
+3235109	1970246
+6053931	1970246
+4163503	1970246
+282	1250840
 \.
 
 
@@ -1790,6 +1852,13 @@ df00ed7f-80fe-4458-8f8b-83fe88304cc8	8d8cfe1eacb1a375fc8254a31aa50217e946af0d14f
 2fa6215e-913c-49c2-b810-2a3e54e4c771	f1c9c744537ed418b626a499157343dd8afb663cdb8c6b3252b271c2c8c9f603	2025-11-04 14:10:04.742188+02	20251014052438_add_user_favorites	\N	\N	2025-11-04 14:10:04.731824+02	1
 414c4d82-d2d0-4784-bf25-ac6de655e60c	03d3193b4270d1c37aa9f566c2eef2d9ee62ab10ef42ef75f3af96f130928504	2025-11-04 14:10:14.808667+02	20251104121014_add_phone_number_view_stats	\N	\N	2025-11-04 14:10:14.749453+02	1
 \.
+
+
+--
+-- Name: Banner_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Banner_id_seq"', 1, false);
 
 
 --
@@ -1909,6 +1978,14 @@ SELECT pg_catalog.setval('public."SupportTicket_id_seq"', 1, false);
 --
 
 SELECT pg_catalog.setval('public."TypeField_id_seq"', 209, true);
+
+
+--
+-- Name: Banner Banner_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Banner"
+    ADD CONSTRAINT "Banner_pkey" PRIMARY KEY (id);
 
 
 --

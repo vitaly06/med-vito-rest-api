@@ -17,6 +17,7 @@ import { S3Module } from './s3/s3.module';
 import { SubcategoryTypeModule } from './subcategory-type/subcategory-type.module';
 import { TypeFieldModule } from './type-field/type-field.module';
 import { PromotionModule } from './promotion/promotion.module';
+import { BannerModule } from './banner/banner.module';
 import * as redisStore from 'cache-manager-ioredis';
 
 @Module({
@@ -48,6 +49,7 @@ import * as redisStore from 'cache-manager-ioredis';
     SubcategoryTypeModule,
     TypeFieldModule,
     PromotionModule,
+    BannerModule,
   ],
 })
 export class AppModule {}

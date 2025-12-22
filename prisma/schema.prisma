@@ -488,3 +488,14 @@ model SupportMessage {
   sentAt DateTime @default(now())
 }
 
+// Баннер
+model Banner {
+  id Int @id @default(autoincrement())
+  
+  // URL изображения баннера
+  photoUrl String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
