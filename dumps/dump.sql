@@ -841,18 +841,6 @@ CREATE TABLE public."User" (
 ALTER TABLE public."User" OWNER TO postgres;
 
 --
--- Name: _UserFavorites; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public."_UserFavorites" (
-    "A" integer NOT NULL,
-    "B" integer NOT NULL
-);
-
-
-ALTER TABLE public."_UserFavorites" OWNER TO postgres;
-
---
 -- Name: _prisma_migrations; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1819,25 +1807,6 @@ COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType
 
 
 --
--- Data for Name: _UserFavorites; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public."_UserFavorites" ("A", "B") FROM stdin;
-28	86
-28	119
-23	4081087
-127	4081087
-94	4081087
-21	4081087
-4163503	5231119
-3235109	1970246
-6053931	1970246
-4163503	1970246
-282	1250840
-\.
-
-
---
 -- Data for Name: _prisma_migrations; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -2141,14 +2110,6 @@ ALTER TABLE ONLY public."User"
 
 
 --
--- Name: _UserFavorites _UserFavorites_AB_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public."_UserFavorites"
-    ADD CONSTRAINT "_UserFavorites_AB_pkey" PRIMARY KEY ("A", "B");
-
-
---
 -- Name: _prisma_migrations _prisma_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2266,13 +2227,6 @@ CREATE UNIQUE INDEX "User_email_key" ON public."User" USING btree (email);
 --
 
 CREATE UNIQUE INDEX "User_phoneNumber_key" ON public."User" USING btree ("phoneNumber");
-
-
---
--- Name: _UserFavorites_B_index; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX "_UserFavorites_B_index" ON public."_UserFavorites" USING btree ("B");
 
 
 --
@@ -2529,22 +2483,6 @@ ALTER TABLE ONLY public."TypeField"
 
 ALTER TABLE ONLY public."User"
     ADD CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES public."Role"(id) ON UPDATE CASCADE ON DELETE SET NULL;
-
-
---
--- Name: _UserFavorites _UserFavorites_A_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public."_UserFavorites"
-    ADD CONSTRAINT "_UserFavorites_A_fkey" FOREIGN KEY ("A") REFERENCES public."Product"(id) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
---
--- Name: _UserFavorites _UserFavorites_B_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public."_UserFavorites"
-    ADD CONSTRAINT "_UserFavorites_B_fkey" FOREIGN KEY ("B") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
