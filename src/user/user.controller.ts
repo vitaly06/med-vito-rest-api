@@ -66,10 +66,9 @@ export class UserController {
     return await this.userService.deleteUser(+id);
   }
 
-  @Get('/info')
-  @UseGuards(SessionAuthGuard)
-  async userInfo(@Req() req: Request & { user: any }) {
-    return await this.userService.getUserInfo(req.user.id);
+  @Get('/info/:id')
+  async userInfo(@Param('id') id: string) {
+    return await this.userService.getUserInfo(+id);
   }
 
   @ApiOperation({
@@ -135,15 +134,6 @@ export class UserController {
       req.user.id,
       photo || null,
     );
-  }
-
-  @ApiOperation({
-    summary: 'Получение настроек пользователя',
-  })
-  @UseGuards(SessionAuthGuard)
-  @Get('profile-settings')
-  async getProfileSettings(@Req() req: Request & { user: any }) {
-    return await this.userService.getProfileSettings(req.user.id);
   }
 
   @ApiOperation({

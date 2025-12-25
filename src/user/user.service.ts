@@ -247,29 +247,6 @@ export class UserService {
     return { ...updatedData };
   }
 
-  async getProfileSettings(userId: number) {
-    const checkUser = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        fullName: true,
-        phoneNumber: true,
-        isAnswersCall: true,
-        profileType: true,
-        photo: true,
-      },
-    });
-
-    if (!userId) {
-      throw new NotFoundException('Пользователь не найден');
-    }
-
-    return {
-      ...checkUser,
-      photo: checkUser?.photo || null, // URL уже полный из S3
-    };
-  }
-
   async verifyCode(code: string) {
     const cachedDataStr = await this.cacheManager.get<string>(
       `verify-email:${code}`,

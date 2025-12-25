@@ -33,7 +33,6 @@ import {
 } from '@nestjs/swagger';
 import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
 import { ModerateState } from './enum/moderate-state.enum';
-import { createOkseiProductDto } from './dto/oksei-create-product.dto';
 
 @ApiTags('Products')
 @Controller('product')
@@ -294,11 +293,6 @@ export class ProductController {
     );
   }
 
-  @Get('oksei-all-products')
-  async findAllForOksei() {
-    return await this.productService.findAllForOksei();
-  }
-
   @ApiOperation({
     summary: 'Получение доступных фильтров для товаров',
     description:
@@ -346,45 +340,6 @@ export class ProductController {
     @Query() searchDto: SearchProductsDto,
   ) {
     return await this.productService.findAll(req?.user?.id, searchDto);
-  }
-
-  @Post('create-oksei-product')
-  @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('image'))
-  @ApiBody({
-    description: 'Данные продукта и изображения',
-    schema: {
-      type: 'object',
-      properties: {
-        name: {
-          type: 'string',
-          description: 'Название продукта',
-          example: 'iPhone 15 Pro',
-        },
-        price: {
-          type: 'number',
-          description: 'Цена в рублях',
-          example: 120000,
-        },
-        description: {
-          type: 'string',
-          description: 'Описание товара',
-          example: 'Новый iPhone 15 Pro в отличном состоянии',
-        },
-        image: {
-          type: 'string',
-          format: 'binary',
-          description: 'Изображение продукта',
-        },
-      },
-      required: ['name', 'price', 'description'],
-    },
-  })
-  async createOkseiProduct(
-    @Body() dto: createOkseiProductDto,
-    @UploadedFile() image: Express.Multer.File,
-  ) {
-    return await this.productService.createOkseiProduct(dto, image);
   }
 
   @ApiOperation({
