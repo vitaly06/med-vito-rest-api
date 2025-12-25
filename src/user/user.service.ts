@@ -112,6 +112,9 @@ export class UserService {
         balance: true,
         bonusBalance: true,
         photo: true,
+        freeAdsLimit: true,
+        usedFreeAds: true,
+        lastAdLimitReset: true,
       },
     });
 
@@ -126,7 +129,32 @@ export class UserService {
       throw new BadRequestException('Пользователь не найден');
     }
 
-    const { bonusBalance, ...userWithoutBonus } = checkUser;
+    // Проверяем, нужно ли сбросить лимит (начало нового месяца)
+    const now = new Date();
+    const lastReset = new Date(checkUser.lastAdLimitReset);
+    const shouldResetLimit =
+      now.getMonth() !== lastReset.getMonth() ||
+      now.getFullYear() !== lastReset.getFullYear();
+
+    let usedFreeAds = checkUser.usedFreeAds;
+    if (shouldResetLimit) {
+      usedFreeAds = 0;
+      await this.prisma.user.update({
+        where: { id },
+        data: {
+          usedFreeAds: 0,
+          lastAdLimitReset: now,
+        },
+      });
+    }
+
+    const {
+      bonusBalance,
+      freeAdsLimit,
+      lastAdLimitReset,
+      ...userWithoutBonus
+    } = checkUser;
+    const remainingFreeAds = Math.max(0, freeAdsLimit - usedFreeAds);
 
     return {
       ...userWithoutBonus,
@@ -136,6 +164,13 @@ export class UserService {
         reviews.reduce((sum, review) => sum + review.rating, 0) /
           reviews.length || 0,
       reviewsCount: reviews.length,
+      // Информация о лимите объявлений
+      adsLimit: {
+        total: freeAdsLimit,
+        used: usedFreeAds,
+        remaining: remainingFreeAds,
+        costPerAd: 50, // стоимость платного объявления
+      },
     };
   }
 

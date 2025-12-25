@@ -39,6 +39,82 @@ export class ProductService {
     userId: number,
   ) {
     try {
+      // Проверяем лимит объявлений для пользователя
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          freeAdsLimit: true,
+          usedFreeAds: true,
+          lastAdLimitReset: true,
+          balance: true,
+          bonusBalance: true,
+        },
+      });
+
+      if (!user) {
+        throw new BadRequestException('Пользователь не найден');
+      }
+
+      // Проверяем, нужно ли сбросить лимит (начало нового месяца)
+      const now = new Date();
+      const lastReset = new Date(user.lastAdLimitReset);
+      const shouldResetLimit =
+        now.getMonth() !== lastReset.getMonth() ||
+        now.getFullYear() !== lastReset.getFullYear();
+
+      let usedFreeAds = user.usedFreeAds;
+      if (shouldResetLimit) {
+        usedFreeAds = 0;
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: {
+            usedFreeAds: 0,
+            lastAdLimitReset: now,
+          },
+        });
+      }
+
+      // Проверяем, нужно ли списывать деньги
+      const adCost = 50; // стоимость платного объявления
+      if (usedFreeAds >= user.freeAdsLimit) {
+        // Превышен лимит бесплатных объявлений
+        if (user.balance + user.bonusBalance < adCost) {
+          throw new BadRequestException(
+            `Недостаточно средств для размещения объявления. Требуется ${adCost} руб. Ваш баланс: ${user.balance + user.bonusBalance} руб.`,
+          );
+        }
+
+        // Списываем деньги: сначала с бонусного счёта, потом с основного
+        let remainingCost = adCost;
+        let bonusToDeduct = 0;
+        let balanceToDeduct = 0;
+
+        if (user.bonusBalance > 0) {
+          bonusToDeduct = Math.min(user.bonusBalance, remainingCost);
+          remainingCost -= bonusToDeduct;
+        }
+
+        if (remainingCost > 0) {
+          balanceToDeduct = remainingCost;
+        }
+
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: {
+            bonusBalance: { decrement: bonusToDeduct },
+            balance: { decrement: balanceToDeduct },
+          },
+        });
+      } else {
+        // Используем бесплатное объявление
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: {
+            usedFreeAds: { increment: 1 },
+          },
+        });
+      }
+
       const category = await this.prisma.category.findUnique({
         where: { id: +dto.categoryId },
         include: {

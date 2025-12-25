@@ -38,6 +38,13 @@ model User {
 
   isBanned Boolean @default(false)
 
+  // Лимит бесплатных объявлений в месяц
+  freeAdsLimit Int @default(12)
+  // Количество использованных бесплатных объявлений в текущем месяце
+  usedFreeAds Int @default(0)
+  // Дата последнего сброса лимита (начало месяца)
+  lastAdLimitReset DateTime @default(now())
+
   photo String?
   isAnswersCall Boolean? @default(false)
 

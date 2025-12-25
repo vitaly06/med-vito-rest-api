@@ -50,16 +50,6 @@ export class UpdateUserDto {
   profileType?: ProfileType;
 
   @ApiProperty({
-    description: 'Основной баланс пользователя',
-    example: 1000.5,
-    required: false,
-  })
-  @IsOptional()
-  @IsNumber({}, { message: 'Баланс должен быть числом' })
-  @Min(0, { message: 'Баланс не может быть отрицательным' })
-  balance?: number;
-
-  @ApiProperty({
     description: 'Бонусный баланс пользователя',
     example: 500.0,
     required: false,

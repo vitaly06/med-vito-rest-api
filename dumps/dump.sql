@@ -834,11 +834,26 @@ CREATE TABLE public."User" (
     "isEmailVerified" boolean DEFAULT false NOT NULL,
     balance double precision DEFAULT 0 NOT NULL,
     "bonusBalance" double precision DEFAULT 0 NOT NULL,
-    "isBanned" boolean DEFAULT false NOT NULL
+    "isBanned" boolean DEFAULT false NOT NULL,
+    "freeAdsLimit" integer DEFAULT 12 NOT NULL,
+    "lastAdLimitReset" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "usedFreeAds" integer DEFAULT 0 NOT NULL
 );
 
 
 ALTER TABLE public."User" OWNER TO postgres;
+
+--
+-- Name: _UserFavorites; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."_UserFavorites" (
+    "A" integer NOT NULL,
+    "B" integer NOT NULL
+);
+
+
+ALTER TABLE public."_UserFavorites" OWNER TO postgres;
 
 --
 -- Name: _prisma_migrations; Type: TABLE; Schema: public; Owner: postgres
@@ -1781,28 +1796,47 @@ COPY public."TypeField" (id, name, "isRequired", "typeId") FROM stdin;
 -- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned") FROM stdin;
-3432589	Исаев Максим Андреевич	sima.isaev2305@mail.ru	+79501859919	$2b$10$VI6Gb9KuiHWEnbndcyi1WemTTQgKWwVhpcOfnEEj7W18T8Gw.TPou	INDIVIDUAL	2025-11-28 09:06:55.938	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f
-3235109	Арзамасцев Даниил	arzamastsevdaniil@gmail.com	+79068346355	$2b$10$NvJVMH9Kn16C7hSuCtRAf./yj8/jgaeUg2ZI0IAkxt2Tc/Cf5DR8G	INDIVIDUAL	2025-12-01 05:48:10.726	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f
-9371169	Захаров АР ВЛ	Zahar83s@mail.ru	+79878600551	$2b$10$TfLU49EmrMYrTPd46fQv6.QNkD3tEE2WnHVmy8qIdYzHVOX4PLe4q	INDIVIDUAL	2025-11-28 09:07:21.428	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f
-4761896	Гатин Ян Талгатович	ggg2107@gmail.com	+79228386030	$2b$10$aUbIJdrSn4qPvErIPV8E6uo162lESkmE7orVVIrS/2v8/k8qUQjvm	INDIVIDUAL	2025-11-28 09:08:47.126	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f
-8633592	Махар Святой Рог	vmahauri029@gmail.com	+79123557497	$2b$10$UbWFDK5KoI92FFzmWZw.s.jslpRNGreNJFQi30q4ZWI9lB02sqegS	INDIVIDUAL	2025-11-28 09:07:05.955	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f
-6251884	Попов Матвей Иванович	trrina04@mail.ru	+79878993845	$2b$10$cfHgsH42YXRqYPpoZbbhAuFK4bg.81DSzN4JNMGmkLffNma7mLmB.	INDIVIDUAL	2025-12-03 19:26:12.827	2025-12-08 12:30:51.217	\N	f	1	f	\N	f	0	0	f
-8964288	Макаров Николай	bapenick445@gmail.com	+79225387481	$2b$10$DHSa1l.0cj7MK.b7ATupL.f7yXnjfGBUEr7Wezf1wul9x2z2eOIkO	INDIVIDUAL	2025-11-28 09:07:33.445	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f
-6053931	Голосняк Юлия Викторовна	juliagolosnyak@mail.ru	+79328538922	$2b$10$9VP3OmZRjdumTgAJWCBGGe5ozGVZG0Z/okvuWwUdx1wxmJG7brTES	INDIVIDUAL	2025-11-28 09:07:19.394	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f
-8261539	Подрядов Екатерина Сергеевна	podradovakata91@gmail.com	+79083234725	$2b$10$sdWaXECQtpyEqc61gS4MrOlsoz4nsjYb1gGC1xD2VVFgr/pUqwB3m	INDIVIDUAL	2025-11-28 09:07:29.962	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f
-5966833	Каверина Мария	kunafina_ruslana7@mail.ru	+79228362555	$2b$10$AY/2V0DgPQ1.ZorhEmTMfOb4o8hq1EkOR9qkHx4/RgG7Cq6OFAOo2	INDIVIDUAL	2025-11-28 09:07:42.429	2025-12-08 12:30:51.217	\N	f	1	t	\N	f	0	0	f
-2287442	Абвгдеивич Егор Константинович	barabulkabarabulka@gmail.com	+72280303111	$2b$10$PPEwZxCaLahLuE4XtqI2k.UxgqrcfBgCoXBHT1EUoq86kYraokwz2	INDIVIDUAL	2025-11-28 09:08:14.573	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f
-6038643	дар	bdi-2006@mail.ru	+79123400130	$2b$10$TROWXU059pwS6Q98JIfGDOL1kzA0oohdraWoB3ZxpEgGqEU//.qQ6	INDIVIDUAL	2025-11-28 09:06:52.861	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f
-7391202	kostyukov	geronimoprofitop@gmail.com	+79228744883	$2b$10$ulXOXoQl7aAYjf7uJ2opGOApWYjLTVFSWBrWyYAjJp80HAeDl97OS	INDIVIDUAL	2025-11-28 09:07:57.477	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f
-6669460	Афонасьев Афиларет Михайлович	pr.actual@mail.ru	+79082734009	$2b$10$R0pbgCnq1AVwe9phmKu1GOT0emg48XzDbtYRBEn/xEyCFd8aNYX7y	INDIVIDUAL	2025-12-01 08:28:35.989	2025-12-08 12:30:51.217	\N	f	1	t	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/71116356-ea56-4dd5-ac1a-86c5a6e2e11b.jpg	f	0	0	f
-1208299	Кокеев Фирилл Батькович	test@test.com	+79953501391	$2b$10$0GEA/Uvq4NrHTLuOetQTXuoviQG19DrdEX4NIFUwD.54aF7ePJveO	INDIVIDUAL	2025-11-28 09:07:44.576	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f
-7106521	Попов Матвей Иванович	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C	INDIVIDUAL	2025-11-06 19:33:46.625	2025-12-19 11:36:27.898	\N	f	3	f	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/eac42b51-e66a-4d76-bad2-c6db0efd947b.jpg	t	0	2500	f
-2321239	Прокофьева Валерия Денисовна	lin.ferr@mail.ru	+79225406669	$2b$10$7mnxrJ2LJ0S5RoBoo8gVteXYR.o2kM/nnm07SpxHT37YZqEghfVAC	INDIVIDUAL	2025-11-28 09:08:42.207	2025-12-19 12:04:30.85	\N	f	1	f	\N	f	0	0	f
-2681599	Корякина Ирина	ikoryakina47@gmail.com	+79228579009	$2b$10$48dtDNK6DIH0yBgup4eqeeG8k5NPkHuhqBNvQ2yCJqayB3sNthYOS	INDIVIDUAL	2025-12-01 08:08:29.883	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f
-7132269	йцукенгшщзх	qwertyui123@gmail.com	+75678903456	$2b$10$hhmWdTv8RdWeJ1ofHOjaTuKBgOo2JUky9za7NTJ.uCcfrH3W2CK/S	INDIVIDUAL	2025-12-01 14:29:11.538	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f
-4146092	Фокеев Кирилл	test1@test.com	+71234567890	$2b$10$FELoBjJj0J8IeMy2YhKlIeniLkjz86fijJS2HOFJ3XvJ3fnIulg2i	INDIVIDUAL	2025-12-02 10:48:41.186	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f
-9851099	Черешков Данила Алексеевич	chereshkov.da2006@gmail.com	+79123431910	$2b$10$hvt0jXBTO6PcqEzKYDKYUO7hivY2kCsC/7Bzwix242L8YDeP6UgnW	INDIVIDUAL	2025-12-02 10:47:25.87	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f
+COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") FROM stdin;
+3432589	Исаев Максим Андреевич	sima.isaev2305@mail.ru	+79501859919	$2b$10$VI6Gb9KuiHWEnbndcyi1WemTTQgKWwVhpcOfnEEj7W18T8Gw.TPou	INDIVIDUAL	2025-11-28 09:06:55.938	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+3235109	Арзамасцев Даниил	arzamastsevdaniil@gmail.com	+79068346355	$2b$10$NvJVMH9Kn16C7hSuCtRAf./yj8/jgaeUg2ZI0IAkxt2Tc/Cf5DR8G	INDIVIDUAL	2025-12-01 05:48:10.726	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+9371169	Захаров АР ВЛ	Zahar83s@mail.ru	+79878600551	$2b$10$TfLU49EmrMYrTPd46fQv6.QNkD3tEE2WnHVmy8qIdYzHVOX4PLe4q	INDIVIDUAL	2025-11-28 09:07:21.428	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+4761896	Гатин Ян Талгатович	ggg2107@gmail.com	+79228386030	$2b$10$aUbIJdrSn4qPvErIPV8E6uo162lESkmE7orVVIrS/2v8/k8qUQjvm	INDIVIDUAL	2025-11-28 09:08:47.126	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+8633592	Махар Святой Рог	vmahauri029@gmail.com	+79123557497	$2b$10$UbWFDK5KoI92FFzmWZw.s.jslpRNGreNJFQi30q4ZWI9lB02sqegS	INDIVIDUAL	2025-11-28 09:07:05.955	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+6251884	Попов Матвей Иванович	trrina04@mail.ru	+79878993845	$2b$10$cfHgsH42YXRqYPpoZbbhAuFK4bg.81DSzN4JNMGmkLffNma7mLmB.	INDIVIDUAL	2025-12-03 19:26:12.827	2025-12-08 12:30:51.217	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+8964288	Макаров Николай	bapenick445@gmail.com	+79225387481	$2b$10$DHSa1l.0cj7MK.b7ATupL.f7yXnjfGBUEr7Wezf1wul9x2z2eOIkO	INDIVIDUAL	2025-11-28 09:07:33.445	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+6053931	Голосняк Юлия Викторовна	juliagolosnyak@mail.ru	+79328538922	$2b$10$9VP3OmZRjdumTgAJWCBGGe5ozGVZG0Z/okvuWwUdx1wxmJG7brTES	INDIVIDUAL	2025-11-28 09:07:19.394	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+8261539	Подрядов Екатерина Сергеевна	podradovakata91@gmail.com	+79083234725	$2b$10$sdWaXECQtpyEqc61gS4MrOlsoz4nsjYb1gGC1xD2VVFgr/pUqwB3m	INDIVIDUAL	2025-11-28 09:07:29.962	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+5966833	Каверина Мария	kunafina_ruslana7@mail.ru	+79228362555	$2b$10$AY/2V0DgPQ1.ZorhEmTMfOb4o8hq1EkOR9qkHx4/RgG7Cq6OFAOo2	INDIVIDUAL	2025-11-28 09:07:42.429	2025-12-08 12:30:51.217	\N	f	1	t	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+2287442	Абвгдеивич Егор Константинович	barabulkabarabulka@gmail.com	+72280303111	$2b$10$PPEwZxCaLahLuE4XtqI2k.UxgqrcfBgCoXBHT1EUoq86kYraokwz2	INDIVIDUAL	2025-11-28 09:08:14.573	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+6038643	дар	bdi-2006@mail.ru	+79123400130	$2b$10$TROWXU059pwS6Q98JIfGDOL1kzA0oohdraWoB3ZxpEgGqEU//.qQ6	INDIVIDUAL	2025-11-28 09:06:52.861	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+7391202	kostyukov	geronimoprofitop@gmail.com	+79228744883	$2b$10$ulXOXoQl7aAYjf7uJ2opGOApWYjLTVFSWBrWyYAjJp80HAeDl97OS	INDIVIDUAL	2025-11-28 09:07:57.477	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+6669460	Афонасьев Афиларет Михайлович	pr.actual@mail.ru	+79082734009	$2b$10$R0pbgCnq1AVwe9phmKu1GOT0emg48XzDbtYRBEn/xEyCFd8aNYX7y	INDIVIDUAL	2025-12-01 08:28:35.989	2025-12-08 12:30:51.217	\N	f	1	t	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/71116356-ea56-4dd5-ac1a-86c5a6e2e11b.jpg	f	0	0	f	12	2025-12-24 18:33:10.973	0
+1208299	Кокеев Фирилл Батькович	test@test.com	+79953501391	$2b$10$0GEA/Uvq4NrHTLuOetQTXuoviQG19DrdEX4NIFUwD.54aF7ePJveO	INDIVIDUAL	2025-11-28 09:07:44.576	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+7106521	Попов Матвей Иванович	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C	INDIVIDUAL	2025-11-06 19:33:46.625	2025-12-19 11:36:27.898	\N	f	3	f	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/eac42b51-e66a-4d76-bad2-c6db0efd947b.jpg	t	0	2500	f	12	2025-12-24 18:33:10.973	0
+2321239	Прокофьева Валерия Денисовна	lin.ferr@mail.ru	+79225406669	$2b$10$7mnxrJ2LJ0S5RoBoo8gVteXYR.o2kM/nnm07SpxHT37YZqEghfVAC	INDIVIDUAL	2025-11-28 09:08:42.207	2025-12-19 12:04:30.85	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+2681599	Корякина Ирина	ikoryakina47@gmail.com	+79228579009	$2b$10$48dtDNK6DIH0yBgup4eqeeG8k5NPkHuhqBNvQ2yCJqayB3sNthYOS	INDIVIDUAL	2025-12-01 08:08:29.883	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+7132269	йцукенгшщзх	qwertyui123@gmail.com	+75678903456	$2b$10$hhmWdTv8RdWeJ1ofHOjaTuKBgOo2JUky9za7NTJ.uCcfrH3W2CK/S	INDIVIDUAL	2025-12-01 14:29:11.538	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+4146092	Фокеев Кирилл	test1@test.com	+71234567890	$2b$10$FELoBjJj0J8IeMy2YhKlIeniLkjz86fijJS2HOFJ3XvJ3fnIulg2i	INDIVIDUAL	2025-12-02 10:48:41.186	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+9851099	Черешков Данила Алексеевич	chereshkov.da2006@gmail.com	+79123431910	$2b$10$hvt0jXBTO6PcqEzKYDKYUO7hivY2kCsC/7Bzwix242L8YDeP6UgnW	INDIVIDUAL	2025-12-02 10:47:25.87	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+\.
+
+
+--
+-- Data for Name: _UserFavorites; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."_UserFavorites" ("A", "B") FROM stdin;
+28	86
+28	119
+23	4081087
+127	4081087
+94	4081087
+21	4081087
+4163503	5231119
+3235109	1970246
+6053931	1970246
+4163503	1970246
+282	1250840
 \.
 
 
@@ -2110,6 +2144,14 @@ ALTER TABLE ONLY public."User"
 
 
 --
+-- Name: _UserFavorites _UserFavorites_AB_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."_UserFavorites"
+    ADD CONSTRAINT "_UserFavorites_AB_pkey" PRIMARY KEY ("A", "B");
+
+
+--
 -- Name: _prisma_migrations _prisma_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2227,6 +2269,13 @@ CREATE UNIQUE INDEX "User_email_key" ON public."User" USING btree (email);
 --
 
 CREATE UNIQUE INDEX "User_phoneNumber_key" ON public."User" USING btree ("phoneNumber");
+
+
+--
+-- Name: _UserFavorites_B_index; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "_UserFavorites_B_index" ON public."_UserFavorites" USING btree ("B");
 
 
 --
@@ -2483,6 +2532,22 @@ ALTER TABLE ONLY public."TypeField"
 
 ALTER TABLE ONLY public."User"
     ADD CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES public."Role"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: _UserFavorites _UserFavorites_A_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."_UserFavorites"
+    ADD CONSTRAINT "_UserFavorites_A_fkey" FOREIGN KEY ("A") REFERENCES public."Product"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: _UserFavorites _UserFavorites_B_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."_UserFavorites"
+    ADD CONSTRAINT "_UserFavorites_B_fkey" FOREIGN KEY ("B") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
