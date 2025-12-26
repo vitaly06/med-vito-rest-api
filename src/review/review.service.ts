@@ -29,7 +29,7 @@ export class ReviewService {
     return { message: 'Отзыв успешно оставлен' };
   }
 
-  async getMyReviews(userId: number) {
+  async getUserReviews(userId: number) {
     const reviews = await this.prisma.review.findMany({
       where: { reviewedUserId: userId },
       select: {

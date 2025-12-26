@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ReviewService } from './review.service';
 import { SendReviewDto } from './dto/send-review.dto';
 import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
@@ -22,11 +30,10 @@ export class ReviewController {
   }
 
   @ApiOperation({
-    summary: 'Мои отзывы',
+    summary: 'Возвращает отзывы пользователя',
   })
-  @UseGuards(SessionAuthGuard)
-  @Get('my-reviews')
-  async getMyReviews(@Req() req: Request & { user: any }) {
-    return await this.reviewService.getMyReviews(req.user.id);
+  @Get('user-reviews/:id')
+  async getMyReviews(@Param('id') id: string) {
+    return await this.reviewService.getUserReviews(+id);
   }
 }

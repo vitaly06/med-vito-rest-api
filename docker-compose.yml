@@ -25,6 +25,8 @@ services:
       - S3_ACCESS_KEY=I6I3KOJ2YO3TN08TDJAI
       - S3_SECRET_KEY=5up6F9kLNHRGmPIczdqAVZgBNgKhFpAGJ1JnCJUY
       - S3_REGION=ru1
+      - TINKOFF_TERMINAL_KEY=1766153689307DEMO
+      - TINKOFF_SECRET_KEY=usxhPg%hPJozXk8H
     depends_on:
       - db
       - redis

@@ -91,6 +91,9 @@ model User {
   // Продвижения товаров пользователя
   productPromotions ProductPromotion[]
 
+  // Платежи пользователя
+  payments Payment[] @relation("UserPayments")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -506,3 +509,29 @@ model Banner {
   updatedAt DateTime @updatedAt
 }
 
+// Платежи через Т-Банк
+model Payment {
+  id Int @id @default(autoincrement())
+  
+  // Уникальный ID заказа в системе
+  orderId String @unique
+  
+  // ID платежа в системе Т-Банк
+  paymentId String @unique
+  
+  // Пользователь
+  userId Int
+  user   User @relation("UserPayments", fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Сумма платежа в рублях
+  amount Float
+  
+  // Статус платежа
+  status String // PENDING, COMPLETED, FAILED
+  
+  // URL для оплаты
+  paymentUrl String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

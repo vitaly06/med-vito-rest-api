@@ -336,6 +336,47 @@ ALTER SEQUENCE public."OkseiProduct_id_seq" OWNED BY public."OkseiProduct".id;
 
 
 --
+-- Name: Payment; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Payment" (
+    id integer NOT NULL,
+    "orderId" text NOT NULL,
+    "paymentId" text NOT NULL,
+    "userId" integer NOT NULL,
+    amount double precision NOT NULL,
+    status text NOT NULL,
+    "paymentUrl" text,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."Payment" OWNER TO postgres;
+
+--
+-- Name: Payment_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Payment_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Payment_id_seq" OWNER TO postgres;
+
+--
+-- Name: Payment_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Payment_id_seq" OWNED BY public."Payment".id;
+
+
+--
 -- Name: PhoneNumberView; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -916,6 +957,13 @@ ALTER TABLE ONLY public."OkseiProduct" ALTER COLUMN id SET DEFAULT nextval('publ
 
 
 --
+-- Name: Payment id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Payment" ALTER COLUMN id SET DEFAULT nextval('public."Payment_id_seq"'::regclass);
+
+
+--
 -- Name: PhoneNumberView id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1076,6 +1124,19 @@ COPY public."Message" (id, content, "senderId", "chatId", "isRead", "readAt", "c
 
 COPY public."OkseiProduct" (id, name, description, price, image, "createdAt") FROM stdin;
 1	iPhone 15 Pro	Новый iPhone 15 Pro в отличном состоянии	120000	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/1c68c479-ade3-43ff-91eb-b8428b46ed74.jpg	2025-12-12 08:53:25.175
+\.
+
+
+--
+-- Data for Name: Payment; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Payment" (id, "orderId", "paymentId", "userId", amount, status, "paymentUrl", "createdAt", "updatedAt") FROM stdin;
+1	7106521-1766690209318	7629971919	7106521	1000	PENDING	https://pay.tbank.ru/ahpkMYdA	2025-12-25 19:16:49.644	2025-12-25 19:16:49.644
+2	7106521-1766690350760	7629983326	7106521	1000	PENDING	https://pay.tbank.ru/mYjJpEkG	2025-12-25 19:19:11.103	2025-12-25 19:19:11.103
+3	7106521-1766690451846	7629991661	7106521	1000	PENDING	https://pay.tbank.ru/AqmD5LpC	2025-12-25 19:20:52.116	2025-12-25 19:20:52.116
+4	7106521-1766690912537	7630030365	7106521	1000	PENDING	https://pay.tbank.ru/4KnshkYJ	2025-12-25 19:28:32.789	2025-12-25 19:28:32.789
+5	7106521-1766690970273	7630035082	7106521	10	PENDING	https://pay.tbank.ru/w0hLiyV6	2025-12-25 19:29:30.546	2025-12-25 19:29:30.546
 \.
 
 
@@ -1900,6 +1961,13 @@ SELECT pg_catalog.setval('public."OkseiProduct_id_seq"', 1, true);
 
 
 --
+-- Name: Payment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Payment_id_seq"', 5, true);
+
+
+--
 -- Name: PhoneNumberView_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -2029,6 +2097,14 @@ ALTER TABLE ONLY public."Message"
 
 ALTER TABLE ONLY public."OkseiProduct"
     ADD CONSTRAINT "OkseiProduct_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: Payment Payment_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Payment"
+    ADD CONSTRAINT "Payment_pkey" PRIMARY KEY (id);
 
 
 --
@@ -2185,6 +2261,20 @@ CREATE UNIQUE INDEX "Chat_buyerId_sellerId_productId_key" ON public."Chat" USING
 --
 
 CREATE UNIQUE INDEX "FavoriteAction_userId_productId_key" ON public."FavoriteAction" USING btree ("userId", "productId");
+
+
+--
+-- Name: Payment_orderId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "Payment_orderId_key" ON public."Payment" USING btree ("orderId");
+
+
+--
+-- Name: Payment_paymentId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "Payment_paymentId_key" ON public."Payment" USING btree ("paymentId");
 
 
 --
@@ -2348,6 +2438,14 @@ ALTER TABLE ONLY public."Message"
 
 ALTER TABLE ONLY public."Message"
     ADD CONSTRAINT "Message_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Payment Payment_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Payment"
+    ADD CONSTRAINT "Payment_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
