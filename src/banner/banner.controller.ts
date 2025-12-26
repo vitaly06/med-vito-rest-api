@@ -44,7 +44,22 @@ export class BannerController {
     description: 'Изображение баннера',
     type: CreateBannerDto,
   })
-  @ApiResponse({ status: 201, description: 'Баннер успешно создан' })
+  @ApiResponse({
+    status: 201,
+    description: 'Баннер успешно создан',
+    schema: {
+      example: {
+        message: 'Баннер успешно создан',
+        banner: {
+          id: 1,
+          photoUrl:
+            'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/abc123.jpg',
+          createdAt: '2025-12-27T10:00:00.000Z',
+          updatedAt: '2025-12-27T10:00:00.000Z',
+        },
+      },
+    },
+  })
   @ApiResponse({ status: 401, description: 'Не авторизован' })
   @ApiResponse({ status: 403, description: 'Доступ запрещён' })
   async create(@UploadedFile() file: Express.Multer.File) {
@@ -56,7 +71,28 @@ export class BannerController {
     summary: 'Получить все баннеры',
     description: 'Возвращает список всех баннеров',
   })
-  @ApiResponse({ status: 200, description: 'Список баннеров получен' })
+  @ApiResponse({
+    status: 200,
+    description: 'Список баннеров получен',
+    schema: {
+      example: [
+        {
+          id: 1,
+          photoUrl:
+            'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/abc123.jpg',
+          createdAt: '2025-12-27T10:00:00.000Z',
+          updatedAt: '2025-12-27T10:00:00.000Z',
+        },
+        {
+          id: 2,
+          photoUrl:
+            'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/def456.jpg',
+          createdAt: '2025-12-27T11:00:00.000Z',
+          updatedAt: '2025-12-27T11:00:00.000Z',
+        },
+      ],
+    },
+  })
   async findAll() {
     return this.bannerService.findAll();
   }
@@ -72,7 +108,19 @@ export class BannerController {
     description: 'ID баннера',
     example: 1,
   })
-  @ApiResponse({ status: 200, description: 'Баннер найден' })
+  @ApiResponse({
+    status: 200,
+    description: 'Баннер найден',
+    schema: {
+      example: {
+        id: 1,
+        photoUrl:
+          'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/abc123.jpg',
+        createdAt: '2025-12-27T10:00:00.000Z',
+        updatedAt: '2025-12-27T10:00:00.000Z',
+      },
+    },
+  })
   @ApiResponse({ status: 404, description: 'Баннер не найден' })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.bannerService.findOne(id);
@@ -97,7 +145,22 @@ export class BannerController {
     description: 'Новое изображение баннера',
     type: UpdateBannerDto,
   })
-  @ApiResponse({ status: 200, description: 'Баннер успешно обновлён' })
+  @ApiResponse({
+    status: 200,
+    description: 'Баннер успешно обновлён',
+    schema: {
+      example: {
+        message: 'Баннер успешно обновлён',
+        banner: {
+          id: 1,
+          photoUrl:
+            'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/new123.jpg',
+          createdAt: '2025-12-27T10:00:00.000Z',
+          updatedAt: '2025-12-27T12:00:00.000Z',
+        },
+      },
+    },
+  })
   @ApiResponse({ status: 401, description: 'Не авторизован' })
   @ApiResponse({ status: 403, description: 'Доступ запрещён' })
   @ApiResponse({ status: 404, description: 'Баннер не найден' })
@@ -121,7 +184,15 @@ export class BannerController {
     description: 'ID баннера',
     example: 1,
   })
-  @ApiResponse({ status: 200, description: 'Баннер успешно удалён' })
+  @ApiResponse({
+    status: 200,
+    description: 'Баннер успешно удалён',
+    schema: {
+      example: {
+        message: 'Баннер успешно удалён',
+      },
+    },
+  })
   @ApiResponse({ status: 401, description: 'Не авторизован' })
   @ApiResponse({ status: 403, description: 'Доступ запрещён' })
   @ApiResponse({ status: 404, description: 'Баннер не найден' })

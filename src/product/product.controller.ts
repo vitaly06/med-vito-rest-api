@@ -352,14 +352,13 @@ export class ProductController {
   }
 
   @ApiOperation({
-    summary: 'Получение товаров текущего пользователя',
+    summary: 'Получение товаров пользователя',
     description:
       'Возвращает список всех товаров, созданных текущим пользователем',
   })
-  @Get('my-products')
-  @UseGuards(SessionAuthGuard)
-  async getMyProducts(@Req() req: Request & { user: any }) {
-    return await this.productService.getProductsByUserId(req.user.id);
+  @Get('user-products/:id')
+  async getMyProducts(@Param('id') id: string) {
+    return await this.productService.getProductsByUserId(+id);
   }
 
   @ApiTags('Избранное')

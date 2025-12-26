@@ -1137,6 +1137,7 @@ COPY public."Payment" (id, "orderId", "paymentId", "userId", amount, status, "pa
 3	7106521-1766690451846	7629991661	7106521	1000	PENDING	https://pay.tbank.ru/AqmD5LpC	2025-12-25 19:20:52.116	2025-12-25 19:20:52.116
 4	7106521-1766690912537	7630030365	7106521	1000	PENDING	https://pay.tbank.ru/4KnshkYJ	2025-12-25 19:28:32.789	2025-12-25 19:28:32.789
 5	7106521-1766690970273	7630035082	7106521	10	PENDING	https://pay.tbank.ru/w0hLiyV6	2025-12-25 19:29:30.546	2025-12-25 19:29:30.546
+6	7106521-1766737026277	7633516030	7106521	1000	PENDING	https://pay.tbank.ru/Y42XjEyF	2025-12-26 08:17:06.881	2025-12-26 08:17:06.881
 \.
 
 
@@ -1964,7 +1965,7 @@ SELECT pg_catalog.setval('public."OkseiProduct_id_seq"', 1, true);
 -- Name: Payment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Payment_id_seq"', 5, true);
+SELECT pg_catalog.setval('public."Payment_id_seq"', 6, true);
 
 
 --
