@@ -1890,10 +1890,8 @@ COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType
 COPY public."_UserFavorites" ("A", "B") FROM stdin;
 4081087	86
 4081087	119
-4163503	5231119
-3235109	1970246
-6053931	1970246
-4163503	1970246
+1970246	3235109
+1970246	6053931
 1250840	282
 \.
 
