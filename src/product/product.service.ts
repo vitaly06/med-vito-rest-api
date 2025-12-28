@@ -547,11 +547,8 @@ export class ProductService {
     ) {
       const {
         search,
-        categoryId,
         categorySlug,
-        subCategoryId,
         subCategorySlug,
-        typeId,
         typeSlug,
         minPrice,
         maxPrice,
@@ -585,7 +582,7 @@ export class ProductService {
         ];
       }
 
-      // Фильтр по категории (приоритет у slug)
+      // Фильтр по категории (только по slug)
       if (categorySlug) {
         const category = await this.prisma.category.findUnique({
           where: { slug: categorySlug },
@@ -593,11 +590,9 @@ export class ProductService {
         if (category) {
           whereConditions.categoryId = category.id;
         }
-      } else if (categoryId) {
-        whereConditions.categoryId = parseInt(categoryId);
       }
 
-      // Фильтр по подкатегории (приоритет у slug)
+      // Фильтр по подкатегории (только по slug)
       if (subCategorySlug) {
         const subCategory = await this.prisma.subCategory.findFirst({
           where: { slug: subCategorySlug },
@@ -605,11 +600,9 @@ export class ProductService {
         if (subCategory) {
           whereConditions.subCategoryId = subCategory.id;
         }
-      } else if (subCategoryId) {
-        whereConditions.subCategoryId = parseInt(subCategoryId);
       }
 
-      // Фильтр по типу подкатегории (приоритет у slug)
+      // Фильтр по типу подкатегории (только по slug)
       if (typeSlug) {
         const type = await this.prisma.subcategotyType.findFirst({
           where: { slug: typeSlug },
@@ -617,8 +610,6 @@ export class ProductService {
         if (type) {
           whereConditions.typeId = type.id;
         }
-      } else if (typeId) {
-        whereConditions.typeId = parseInt(typeId);
       }
 
       // Фильтр по цене
@@ -917,16 +908,34 @@ export class ProductService {
           price: true,
           userId: true,
           videoUrl: true,
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          subCategory: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          type: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
         },
       });
 
       if (products.length > 0) {
         // Берём случайный товар из этой подкатегории
         const randomIndex = Math.floor(Math.random() * products.length);
-        randomProductsList.push({
-          ...products[randomIndex],
-          subCategoryName: subCat.name,
-        });
+        randomProductsList.push(products[randomIndex]);
       }
     }
 
@@ -969,6 +978,27 @@ export class ProductService {
         createdAt: true,
         price: true,
         videoUrl: true,
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        subCategory: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        type: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
       },
     });
 
@@ -993,10 +1023,25 @@ export class ProductService {
       const hours = createdAt.getHours().toString().padStart(2, '0');
       const minutes = createdAt.getMinutes().toString().padStart(2, '0');
 
+      // Удаляем вложенные объекты и добавляем плоские поля
+      const { category, subCategory, type, promotions, ...rest } = product;
+
       return {
-        ...product,
+        ...rest,
         images: product.images || [], // URL уже полные из S3
         createdAt: `${day}.${month}.${year} в ${hours}:${minutes}`,
+        // Плоские поля для категории
+        categoryId: category?.id,
+        categoryName: category?.name,
+        categorySlug: category?.slug,
+        // Плоские поля для подкатегории
+        subCategoryId: subCategory?.id,
+        subCategoryName: subCategory?.name,
+        subCategorySlug: subCategory?.slug,
+        // Плоские поля для типа
+        typeId: type?.id,
+        typeName: type?.name,
+        typeSlug: type?.slug,
       };
     });
   }
@@ -1096,6 +1141,27 @@ export class ProductService {
             createdAt: true,
             price: true,
             videoUrl: true,
+            category: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+            subCategory: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+            type: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
           },
         },
       },
@@ -1130,18 +1196,21 @@ export class ProductService {
           select: {
             id: true,
             name: true,
+            slug: true,
           },
         },
         subCategory: {
           select: {
             id: true,
             name: true,
+            slug: true,
           },
         },
         type: {
           select: {
             id: true,
             name: true,
+            slug: true,
           },
         },
         fieldValues: {
@@ -1184,7 +1253,6 @@ export class ProductService {
       ...product,
       fieldValues: product.fieldValues.map((field) => {
         return {
-          id: field.id,
           [field.field.name]: field.value,
         };
       }),
