@@ -136,7 +136,7 @@ export class PaymentService {
         this.prisma.log.create({
           data: {
             userId: payment.userId,
-            action: `Пополнение баланса: id: ${payment.userId}; email: ${payment.user.email};\nсумма: ${payment.amount}; баланс: ${payment.user.balance}; бонусный баланс: ${payment.user.bonusBalance}`,
+            action: `Пополнение баланса: id: ${payment.userId}; email: ${payment.user.email};\nсумма пополнения: ${payment.amount}; баланс: ${payment.user.balance + payment.amount}; бонусный баланс: ${payment.user.bonusBalance}`,
           },
         }),
       ]);
