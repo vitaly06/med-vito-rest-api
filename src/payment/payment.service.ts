@@ -88,7 +88,7 @@ export class PaymentService {
       });
 
       return {
-        paymentId: data.PaymentId,
+        paymentId: data.PaymentId.toString(),
         paymentUrl: data.PaymentURL,
         orderId,
         amount,
@@ -109,8 +109,11 @@ export class PaymentService {
       throw new BadRequestException('Неверная подпись уведомления');
     }
 
+    const paymentId = notification.PaymentId.toString();
+
     const payment = await this.prisma.payment.findUnique({
-      where: { paymentId: notification.PaymentId },
+      where: { paymentId },
+      include: { user: true },
     });
 
     if (!payment) {
@@ -121,13 +124,19 @@ export class PaymentService {
     if (notification.Status === 'CONFIRMED') {
       await this.prisma.$transaction([
         this.prisma.payment.update({
-          where: { paymentId: notification.PaymentId },
+          where: { paymentId },
           data: { status: 'COMPLETED' },
         }),
         this.prisma.user.update({
           where: { id: payment.userId },
           data: {
             balance: { increment: payment.amount },
+          },
+        }),
+        this.prisma.log.create({
+          data: {
+            userId: payment.userId,
+            action: `Пополнение баланса: id: ${payment.userId}; email: ${payment.user.email};\nсумма: ${payment.amount}; баланс: ${payment.user.balance}; бонусный баланс: ${payment.user.bonusBalance}`,
           },
         }),
       ]);
@@ -138,7 +147,7 @@ export class PaymentService {
       notification.Status === 'CANCELED'
     ) {
       await this.prisma.payment.update({
-        where: { paymentId: notification.PaymentId },
+        where: { paymentId },
         data: { status: 'FAILED' },
       });
     }
