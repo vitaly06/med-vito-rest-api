@@ -257,6 +257,41 @@ ALTER SEQUENCE public."FavoriteAction_id_seq" OWNED BY public."FavoriteAction".i
 
 
 --
+-- Name: Log; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Log" (
+    id integer NOT NULL,
+    "userId" integer NOT NULL,
+    action text NOT NULL
+);
+
+
+ALTER TABLE public."Log" OWNER TO postgres;
+
+--
+-- Name: Log_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Log_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Log_id_seq" OWNER TO postgres;
+
+--
+-- Name: Log_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Log_id_seq" OWNED BY public."Log".id;
+
+
+--
 -- Name: Message; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -943,6 +978,13 @@ ALTER TABLE ONLY public."FavoriteAction" ALTER COLUMN id SET DEFAULT nextval('pu
 
 
 --
+-- Name: Log id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Log" ALTER COLUMN id SET DEFAULT nextval('public."Log_id_seq"'::regclass);
+
+
+--
 -- Name: Message id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1105,6 +1147,14 @@ COPY public."FavoriteAction" (id, "userId", "productId", "addedAt") FROM stdin;
 76	7106521	2161612	2025-12-02 07:34:18.185
 75	7106521	4758351	2025-12-02 07:34:17.402
 78	3235109	8776759	2025-12-03 00:00:00.214
+\.
+
+
+--
+-- Data for Name: Log; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Log" (id, "userId", action) FROM stdin;
 \.
 
 
@@ -1888,8 +1938,6 @@ COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType
 --
 
 COPY public."_UserFavorites" ("A", "B") FROM stdin;
-1970246	3235109
-1970246	6053931
 \.
 
 
@@ -1936,6 +1984,13 @@ SELECT pg_catalog.setval('public."Chat_id_seq"', 145, true);
 --
 
 SELECT pg_catalog.setval('public."FavoriteAction_id_seq"', 79, true);
+
+
+--
+-- Name: Log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Log_id_seq"', 1, false);
 
 
 --
@@ -2073,6 +2128,14 @@ ALTER TABLE ONLY public."Chat"
 
 ALTER TABLE ONLY public."FavoriteAction"
     ADD CONSTRAINT "FavoriteAction_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: Log Log_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Log"
+    ADD CONSTRAINT "Log_pkey" PRIMARY KEY (id);
 
 
 --
@@ -2406,6 +2469,14 @@ ALTER TABLE ONLY public."FavoriteAction"
 
 ALTER TABLE ONLY public."FavoriteAction"
     ADD CONSTRAINT "FavoriteAction_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Log Log_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Log"
+    ADD CONSTRAINT "Log_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
