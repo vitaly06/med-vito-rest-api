@@ -1,0 +1,6 @@
+export enum BannerPlace {
+  PRODUCT_FEED = 'PRODUCT_FEED',
+  PROFILE = 'PROFILE',
+  FAVORITES = 'FAVORITES',
+  CHATS = 'CHATS',
+}

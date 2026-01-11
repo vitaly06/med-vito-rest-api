@@ -18,6 +18,20 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
+-- Name: BannerPlace; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public."BannerPlace" AS ENUM (
+    'PRODUCT_FEED',
+    'PROFILE',
+    'FAVORITES',
+    'CHATS'
+);
+
+
+ALTER TYPE public."BannerPlace" OWNER TO postgres;
+
+--
 -- Name: ProductModerate; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -112,7 +126,8 @@ CREATE TABLE public."Banner" (
     id integer NOT NULL,
     "photoUrl" text NOT NULL,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updatedAt" timestamp(3) without time zone NOT NULL
+    "updatedAt" timestamp(3) without time zone NOT NULL,
+    place public."BannerPlace" NOT NULL
 );
 
 
@@ -1093,7 +1108,7 @@ ALTER TABLE ONLY public."TypeField" ALTER COLUMN id SET DEFAULT nextval('public.
 -- Data for Name: Banner; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Banner" (id, "photoUrl", "createdAt", "updatedAt") FROM stdin;
+COPY public."Banner" (id, "photoUrl", "createdAt", "updatedAt", place) FROM stdin;
 \.
 
 
@@ -1188,6 +1203,7 @@ COPY public."Payment" (id, "orderId", "paymentId", "userId", amount, status, "pa
 4	7106521-1766690912537	7630030365	7106521	1000	PENDING	https://pay.tbank.ru/4KnshkYJ	2025-12-25 19:28:32.789	2025-12-25 19:28:32.789
 5	7106521-1766690970273	7630035082	7106521	10	PENDING	https://pay.tbank.ru/w0hLiyV6	2025-12-25 19:29:30.546	2025-12-25 19:29:30.546
 6	7106521-1766737026277	7633516030	7106521	1000	PENDING	https://pay.tbank.ru/Y42XjEyF	2025-12-26 08:17:06.881	2025-12-26 08:17:06.881
+7	7106521-1766992423382	7655497017	7106521	1	PENDING	https://pay.tbank.ru/VhEBQwOm	2025-12-29 07:13:44.223	2025-12-29 07:13:44.223
 \.
 
 
@@ -1924,8 +1940,8 @@ COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType
 7391202	kostyukov	geronimoprofitop@gmail.com	+79228744883	$2b$10$ulXOXoQl7aAYjf7uJ2opGOApWYjLTVFSWBrWyYAjJp80HAeDl97OS	INDIVIDUAL	2025-11-28 09:07:57.477	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
 6669460	Афонасьев Афиларет Михайлович	pr.actual@mail.ru	+79082734009	$2b$10$R0pbgCnq1AVwe9phmKu1GOT0emg48XzDbtYRBEn/xEyCFd8aNYX7y	INDIVIDUAL	2025-12-01 08:28:35.989	2025-12-08 12:30:51.217	\N	f	1	t	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/71116356-ea56-4dd5-ac1a-86c5a6e2e11b.jpg	f	0	0	f	12	2025-12-24 18:33:10.973	0
 1208299	Кокеев Фирилл Батькович	test@test.com	+79953501391	$2b$10$0GEA/Uvq4NrHTLuOetQTXuoviQG19DrdEX4NIFUwD.54aF7ePJveO	INDIVIDUAL	2025-11-28 09:07:44.576	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
-7106521	Попов Матвей Иванович	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C	INDIVIDUAL	2025-11-06 19:33:46.625	2025-12-19 11:36:27.898	\N	f	3	f	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/eac42b51-e66a-4d76-bad2-c6db0efd947b.jpg	t	0	2500	f	12	2025-12-24 18:33:10.973	0
 2321239	Прокофьева Валерия Денисовна	lin.ferr@mail.ru	+79225406669	$2b$10$7mnxrJ2LJ0S5RoBoo8gVteXYR.o2kM/nnm07SpxHT37YZqEghfVAC	INDIVIDUAL	2025-11-28 09:08:42.207	2025-12-19 12:04:30.85	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+7106521	Попов Матвей Иванович	vitaly.sadikov1@yandex.ru	+79510341677	$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C	INDIVIDUAL	2025-11-06 19:33:46.625	2026-01-11 17:11:38.153	\N	f	3	f	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/eac42b51-e66a-4d76-bad2-c6db0efd947b.jpg	t	0	2500	f	12	2026-01-11 17:11:38.151	0
 2681599	Корякина Ирина	ikoryakina47@gmail.com	+79228579009	$2b$10$48dtDNK6DIH0yBgup4eqeeG8k5NPkHuhqBNvQ2yCJqayB3sNthYOS	INDIVIDUAL	2025-12-01 08:08:29.883	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
 7132269	йцукенгшщзх	qwertyui123@gmail.com	+75678903456	$2b$10$hhmWdTv8RdWeJ1ofHOjaTuKBgOo2JUky9za7NTJ.uCcfrH3W2CK/S	INDIVIDUAL	2025-12-01 14:29:11.538	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
 4146092	Фокеев Кирилл	test1@test.com	+71234567890	$2b$10$FELoBjJj0J8IeMy2YhKlIeniLkjz86fijJS2HOFJ3XvJ3fnIulg2i	INDIVIDUAL	2025-12-02 10:48:41.186	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
@@ -1938,6 +1954,17 @@ COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType
 --
 
 COPY public."_UserFavorites" ("A", "B") FROM stdin;
+28	86
+28	119
+23	4081087
+127	4081087
+94	4081087
+21	4081087
+4163503	5231119
+3235109	1970246
+6053931	1970246
+4163503	1970246
+282	1250840
 \.
 
 
@@ -2011,7 +2038,7 @@ SELECT pg_catalog.setval('public."OkseiProduct_id_seq"', 1, true);
 -- Name: Payment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Payment_id_seq"', 6, true);
+SELECT pg_catalog.setval('public."Payment_id_seq"', 7, true);
 
 
 --

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { S3Service } from 'src/s3/s3.service';
+import { BannerPlace } from './entities/banner-place.enum';
 
 @Injectable()
 export class BannerService {
@@ -9,7 +10,7 @@ export class BannerService {
     private readonly s3Service: S3Service,
   ) {}
 
-  async create(file: Express.Multer.File) {
+  async create(file: Express.Multer.File, place: BannerPlace) {
     // Загружаем изображение в S3
     const photoUrl = await this.s3Service.uploadFile(file, 'banners');
 
@@ -17,6 +18,7 @@ export class BannerService {
     const banner = await this.prisma.banner.create({
       data: {
         photoUrl,
+        place,
       },
     });
 
@@ -25,6 +27,17 @@ export class BannerService {
 
   async findAll() {
     return this.prisma.banner.findMany({
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  async findByPlace(place: BannerPlace) {
+    return this.prisma.banner.findMany({
+      where: {
+        place,
+      },
       orderBy: {
         createdAt: 'desc',
       },
@@ -43,7 +56,7 @@ export class BannerService {
     return banner;
   }
 
-  async update(id: number, file?: Express.Multer.File) {
+  async update(id: number, file?: Express.Multer.File, place?: BannerPlace) {
     // Проверяем существование баннера
     const existingBanner = await this.findOne(id);
 
@@ -59,6 +72,11 @@ export class BannerService {
       // Загружаем новое изображение
       const photoUrl = await this.s3Service.uploadFile(file, 'banners');
       updateData.photoUrl = photoUrl;
+    }
+
+    // Если передано место размещения
+    if (place) {
+      updateData.place = place;
     }
 
     // Обновляем баннер

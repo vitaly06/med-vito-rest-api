@@ -24,6 +24,13 @@ enum ProductModerate {
   DENIDED
 }
 
+enum BannerPlace {
+  PRODUCT_FEED
+  PROFILE
+  FAVORITES
+  CHATS
+}
+
 model Log {
   id Int @id @default(autoincrement())
   userId Int
@@ -513,6 +520,9 @@ model Banner {
   
   // URL изображения баннера
   photoUrl String
+  
+  // Место размещения баннера на сайте
+  place BannerPlace
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

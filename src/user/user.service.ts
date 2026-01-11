@@ -148,17 +148,12 @@ export class UserService {
       });
     }
 
-    const {
-      bonusBalance,
-      freeAdsLimit,
-      lastAdLimitReset,
-      ...userWithoutBonus
-    } = checkUser;
+    const { freeAdsLimit, lastAdLimitReset, ...userWithoutBonus } = checkUser;
     const remainingFreeAds = Math.max(0, freeAdsLimit - usedFreeAds);
 
     return {
       ...userWithoutBonus,
-      balance: checkUser.balance + bonusBalance,
+      // balance: checkUser.balance + bonusBalance,
       profileType: this.profileTypes[checkUser.profileType],
       rating:
         reviews.reduce((sum, review) => sum + review.rating, 0) /

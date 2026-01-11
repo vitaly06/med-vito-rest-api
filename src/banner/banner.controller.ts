@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -20,11 +21,13 @@ import {
   ApiBearerAuth,
   ApiResponse,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { BannerService } from './banner.service';
 import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
 import { CreateBannerDto } from './dto/create-banner.dto';
 import { UpdateBannerDto } from './dto/update-banner.dto';
+import { BannerPlace } from './entities/banner-place.enum';
 
 @ApiTags('Banners')
 @Controller('banner')
@@ -37,11 +40,12 @@ export class BannerController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Создание баннера',
-    description: 'Создаёт новый баннер с загрузкой изображения в S3',
+    description:
+      'Создаёт новый баннер с загрузкой изображения в S3 и указанием места размещения',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
-    description: 'Изображение баннера',
+    description: 'Изображение и место размещения баннера',
     type: CreateBannerDto,
   })
   @ApiResponse({
@@ -49,27 +53,37 @@ export class BannerController {
     description: 'Баннер успешно создан',
     schema: {
       example: {
-        message: 'Баннер успешно создан',
-        banner: {
-          id: 1,
-          photoUrl:
-            'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/abc123.jpg',
-          createdAt: '2025-12-27T10:00:00.000Z',
-          updatedAt: '2025-12-27T10:00:00.000Z',
-        },
+        id: 1,
+        photoUrl:
+          'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/abc123.jpg',
+        place: 'PRODUCT_FEED',
+        createdAt: '2025-12-27T10:00:00.000Z',
+        updatedAt: '2025-12-27T10:00:00.000Z',
       },
     },
   })
+  @ApiResponse({ status: 400, description: 'Некорректные данные' })
   @ApiResponse({ status: 401, description: 'Не авторизован' })
   @ApiResponse({ status: 403, description: 'Доступ запрещён' })
-  async create(@UploadedFile() file: Express.Multer.File) {
-    return this.bannerService.create(file);
+  async create(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('place') place: BannerPlace,
+  ) {
+    return this.bannerService.create(file, place);
   }
 
   @Get()
   @ApiOperation({
-    summary: 'Получить все баннеры',
-    description: 'Возвращает список всех баннеров',
+    summary: 'Получить баннеры',
+    description:
+      'Возвращает список всех баннеров или баннеры по месту размещения',
+  })
+  @ApiQuery({
+    name: 'place',
+    enum: BannerPlace,
+    required: false,
+    description: 'Фильтр по месту размещения баннера',
+    example: BannerPlace.PRODUCT_FEED,
   })
   @ApiResponse({
     status: 200,
@@ -80,6 +94,7 @@ export class BannerController {
           id: 1,
           photoUrl:
             'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/abc123.jpg',
+          place: 'PRODUCT_FEED',
           createdAt: '2025-12-27T10:00:00.000Z',
           updatedAt: '2025-12-27T10:00:00.000Z',
         },
@@ -87,13 +102,17 @@ export class BannerController {
           id: 2,
           photoUrl:
             'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/def456.jpg',
+          place: 'PROFILE',
           createdAt: '2025-12-27T11:00:00.000Z',
           updatedAt: '2025-12-27T11:00:00.000Z',
         },
       ],
     },
   })
-  async findAll() {
+  async findAll(@Query('place') place?: BannerPlace) {
+    if (place) {
+      return this.bannerService.findByPlace(place);
+    }
     return this.bannerService.findAll();
   }
 
@@ -116,6 +135,7 @@ export class BannerController {
         id: 1,
         photoUrl:
           'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/abc123.jpg',
+        place: 'PRODUCT_FEED',
         createdAt: '2025-12-27T10:00:00.000Z',
         updatedAt: '2025-12-27T10:00:00.000Z',
       },
@@ -132,7 +152,7 @@ export class BannerController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Обновить баннер',
-    description: 'Обновляет изображение баннера',
+    description: 'Обновляет изображение и/или место размещения баннера',
   })
   @ApiConsumes('multipart/form-data')
   @ApiParam({
@@ -142,7 +162,7 @@ export class BannerController {
     example: 1,
   })
   @ApiBody({
-    description: 'Новое изображение баннера',
+    description: 'Новое изображение и/или место размещения баннера',
     type: UpdateBannerDto,
   })
   @ApiResponse({
@@ -150,25 +170,25 @@ export class BannerController {
     description: 'Баннер успешно обновлён',
     schema: {
       example: {
-        message: 'Баннер успешно обновлён',
-        banner: {
-          id: 1,
-          photoUrl:
-            'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/new123.jpg',
-          createdAt: '2025-12-27T10:00:00.000Z',
-          updatedAt: '2025-12-27T12:00:00.000Z',
-        },
+        id: 1,
+        photoUrl:
+          'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/new123.jpg',
+        place: 'FAVORITES',
+        createdAt: '2025-12-27T10:00:00.000Z',
+        updatedAt: '2025-12-27T12:00:00.000Z',
       },
     },
   })
+  @ApiResponse({ status: 400, description: 'Некорректные данные' })
   @ApiResponse({ status: 401, description: 'Не авторизован' })
   @ApiResponse({ status: 403, description: 'Доступ запрещён' })
   @ApiResponse({ status: 404, description: 'Баннер не найден' })
   async update(
     @Param('id', ParseIntPipe) id: number,
     @UploadedFile() file?: Express.Multer.File,
+    @Body('place') place?: BannerPlace,
   ) {
-    return this.bannerService.update(id, file);
+    return this.bannerService.update(id, file, place);
   }
 
   @Delete(':id')

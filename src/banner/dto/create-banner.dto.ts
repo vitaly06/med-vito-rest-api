@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty } from 'class-validator';
+import { IsNotEmpty, IsEnum } from 'class-validator';
+import { BannerPlace } from '../entities/banner-place.enum';
 
 export class CreateBannerDto {
   @ApiProperty({
@@ -9,4 +10,13 @@ export class CreateBannerDto {
   })
   @IsNotEmpty({ message: 'Изображение баннера обязательно' })
   image: any;
+
+  @ApiProperty({
+    description: 'Место размещения баннера на сайте',
+    enum: BannerPlace,
+    example: BannerPlace.PRODUCT_FEED,
+  })
+  @IsEnum(BannerPlace, { message: 'Некорректное значение места размещения' })
+  @IsNotEmpty({ message: 'Место размещения баннера обязательно' })
+  place: BannerPlace;
 }
