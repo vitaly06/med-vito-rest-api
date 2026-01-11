@@ -1,20 +1,22 @@
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
-  ForbiddenException,
-  BadRequestException,
-  Inject,
 } from '@nestjs/common';
+
+import { TicketStatus } from '@prisma/client';
+import * as cacheManager from 'cache-manager';
+
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateTicketDto,
-  SendSupportMessageDto,
   GetTicketsQueryDto,
+  SendSupportMessageDto,
   UpdateTicketDto,
 } from './dto';
-import { TicketStatus } from '@prisma/client';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import * as cacheManager from 'cache-manager';
 
 @Injectable()
 export class SupportService {
@@ -338,7 +340,7 @@ export class SupportService {
       });
 
       // Обновляем статус тикета и назначаем модератора если нужно
-      let updateData: any = { updatedAt: new Date() };
+      const updateData: any = { updatedAt: new Date() };
 
       if (isModerator) {
         // Если отвечает модератор, меняем статус на "в работе" и назначаем себя

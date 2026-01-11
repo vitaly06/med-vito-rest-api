@@ -1,15 +1,17 @@
-import { Controller, Get, Query, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
   ApiBearerAuth,
+  ApiOperation,
   ApiQuery,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
+
 import { Request } from 'express';
-import { StatisticsService } from './statistics.service';
 import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
-import { StatisticsQueryDto, PeriodEnum } from './dto/statistics-query.dto';
+
+import { PeriodEnum, StatisticsQueryDto } from './dto/statistics-query.dto';
+import { StatisticsService } from './statistics.service';
 
 @ApiTags('Statistics')
 @ApiBearerAuth()

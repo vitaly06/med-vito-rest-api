@@ -8,11 +8,13 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { TypeFieldService } from './type-field.service';
 import { ApiOperation } from '@nestjs/swagger';
+
 import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
+
 import { CreateTypeFieldDto } from './dto/create-type-field.dto';
 import { UpdateTypeFieldDto } from './dto/update-type-field.dto';
+import { TypeFieldService } from './type-field.service';
 
 @Controller('type-field')
 export class TypeFieldController {

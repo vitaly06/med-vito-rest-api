@@ -1,16 +1,17 @@
 import {
-  Controller,
-  Post,
-  Delete,
+  BadRequestException,
   Body,
-  UseInterceptors,
+  Controller,
+  Delete,
+  Post,
   UploadedFile,
   UploadedFiles,
-  BadRequestException,
+  UseInterceptors,
 } from '@nestjs/common';
-import { S3Service } from './s3.service';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+
+import { S3Service } from './s3.service';
 
 @Controller('s3')
 export class S3Controller {

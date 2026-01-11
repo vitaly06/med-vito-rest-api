@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+
 import { ProfileType } from '@prisma/client';
 import {
   IsEmail,

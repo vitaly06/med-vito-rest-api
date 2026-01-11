@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
-import { SubcategoryTypeService } from './subcategory-type.service';
-import { SubcategoryTypeController } from './subcategory-type.controller';
+
 import { AuthModule } from 'src/auth/auth.module';
+
+import { SubcategoryTypeController } from './subcategory-type.controller';
+import { SubcategoryTypeService } from './subcategory-type.service';
 
 @Module({
   imports: [AuthModule],

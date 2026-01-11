@@ -1,26 +1,28 @@
 import {
+  Body,
   Controller,
   Get,
-  Post,
   Param,
-  Body,
+  ParseIntPipe,
+  Post,
   Query,
   Req,
   UseGuards,
-  ParseIntPipe,
 } from '@nestjs/common';
-import { ChatService } from './chat.service';
-import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
-import { StartChatDto, GetMessagesDto } from './dto/index';
-import { Request } from 'express';
 import {
-  ApiTags,
-  ApiOperation,
   ApiBearerAuth,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
+
+import { Request } from 'express';
+import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
+
+import { ChatService } from './chat.service';
+import { GetMessagesDto, StartChatDto } from './dto/index';
 
 @ApiTags('Chat')
 @Controller('chat')

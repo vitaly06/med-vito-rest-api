@@ -1,12 +1,13 @@
 import {
-  Controller,
-  Post,
-  Get,
   Body,
-  Query,
+  Controller,
+  Get,
   HttpException,
   HttpStatus,
+  Post,
+  Query,
 } from '@nestjs/common';
+
 import { AddressService } from './address.service';
 import { AddressSuggestion } from './dto/address-suggestion.dto';
 import { CreateAddressDto } from './dto/create-address.dto';
@@ -33,5 +34,4 @@ export class AddressController {
 
     return { valid: true, message: 'Адрес корректен' };
   }
-  
 }

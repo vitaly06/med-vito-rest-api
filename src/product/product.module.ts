@@ -1,14 +1,16 @@
 import { Module } from '@nestjs/common';
-import { ProductService } from './product.service';
-import { ProductController } from './product.controller';
 import { MulterModule } from '@nestjs/platform-express';
+
 import { memoryStorage } from 'multer';
 import { AuthModule } from 'src/auth/auth.module';
-import { PrismaModule } from 'src/prisma/prisma.module';
 import { OptionalSessionAuthGuard } from 'src/auth/guards/optional-session-auth.guard';
-import { UserModule } from 'src/user/user.module';
-import { S3Module } from 'src/s3/s3.module';
 import { ChatModule } from 'src/chat/chat.module';
+import { PrismaModule } from 'src/prisma/prisma.module';
+import { S3Module } from 'src/s3/s3.module';
+import { UserModule } from 'src/user/user.module';
+
+import { ProductController } from './product.controller';
+import { ProductService } from './product.service';
 
 @Module({
   imports: [

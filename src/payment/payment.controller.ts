@@ -1,24 +1,26 @@
 import {
-  Controller,
-  Post,
   Body,
+  Controller,
   Get,
-  UseGuards,
-  Req,
   HttpCode,
   HttpStatus,
+  Post,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
+  ApiBearerAuth,
   ApiOperation,
   ApiResponse,
-  ApiBearerAuth,
+  ApiTags,
 } from '@nestjs/swagger';
-import { PaymentService } from './payment.service';
+
 import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
-import { CreatePaymentDto } from './dto/create-payment.dto';
+
 import { CheckStatusDto } from './dto/check-status.dto';
+import { CreatePaymentDto } from './dto/create-payment.dto';
 import { PaymentNotificationDto } from './dto/payment-notification.dto';
+import { PaymentService } from './payment.service';
 
 @ApiTags('Платежи')
 @Controller('payment')

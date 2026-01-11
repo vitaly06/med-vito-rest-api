@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsEnum } from 'class-validator';
+
+import { IsEnum, IsNotEmpty } from 'class-validator';
+
 import { BannerPlace } from '../entities/banner-place.enum';
 
 export class CreateBannerDto {
