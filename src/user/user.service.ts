@@ -10,8 +10,9 @@ import { ConfigService } from '@nestjs/config';
 
 import { MailerService } from '@nestjs-modules/mailer';
 import * as cacheManager_1 from 'cache-manager';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { S3Service } from 'src/s3/s3.service';
+
+import { PrismaService } from '@/prisma/prisma.service';
+import { S3Service } from '@/s3/s3.service';
 
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 

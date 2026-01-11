@@ -1,6 +1,7 @@
 import { Transform } from 'class-transformer';
 import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
-import { ProfileType } from 'src/auth/enum/profile-type.enum';
+
+import { ProfileType } from '@/auth/enum/profile-type.enum';
 
 export class UpdateSettingsDto {
   @IsOptional()

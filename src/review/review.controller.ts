@@ -10,7 +10,8 @@ import {
 import { ApiOperation } from '@nestjs/swagger';
 
 import { Request } from 'express';
-import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
+
+import { SessionAuthGuard } from '@/auth/guards/session-auth.guard';
 
 import { SendReviewDto } from './dto/send-review.dto';
 import { ReviewService } from './review.service';

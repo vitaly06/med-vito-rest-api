@@ -16,10 +16,10 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { ProfileType } from '@prisma/client';
 import { Request } from 'express';
-import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
-import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
+
+import { AdminSessionAuthGuard } from '@/auth/guards/admin-session-auth.guard';
+import { SessionAuthGuard } from '@/auth/guards/session-auth.guard';
 
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { UpdateUserDto } from './dto/update-user.dto';

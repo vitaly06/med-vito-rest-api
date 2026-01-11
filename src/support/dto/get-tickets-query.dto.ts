@@ -1,4 +1,8 @@
-import { TicketPriority, TicketStatus, TicketTheme } from '@prisma/client';
+import {
+  TicketPriority,
+  TicketStatus,
+  TicketTheme,
+} from 'prisma/generated/client';
 import { Transform } from 'class-transformer';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
 

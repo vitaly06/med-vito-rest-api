@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
 
-import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
+import { SessionAuthGuard } from '@/auth/guards/session-auth.guard';
 
 import { AddPromotionDto } from './add-promotion.dto';
 import { PromotionService } from './promotion.service';

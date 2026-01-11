@@ -1,4 +1,4 @@
-import { TicketPriority, TicketTheme } from '@prisma/client';
+import { TicketPriority, TicketTheme } from 'prisma/generated/client';
 import { IsEnum, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
 export class CreateTicketDto {

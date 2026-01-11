@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
 
-import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
+import { AdminSessionAuthGuard } from '@/auth/guards/admin-session-auth.guard';
 
 import { CreateTypeFieldDto } from './dto/create-type-field.dto';
 import { UpdateTypeFieldDto } from './dto/update-type-field.dto';

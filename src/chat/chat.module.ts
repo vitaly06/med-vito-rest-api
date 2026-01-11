@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 
-import { AuthModule } from 'src/auth/auth.module';
-import { WsSessionAuthGuard } from 'src/auth/guards/ws-session-auth.guard';
-import { PrismaModule } from 'src/prisma/prisma.module';
+import { AuthModule } from '@/auth/auth.module';
+import { WsSessionAuthGuard } from '@/auth/guards/ws-session-auth.guard';
+import { PrismaModule } from '@/prisma/prisma.module';
 
 import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';

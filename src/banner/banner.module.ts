@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 
-import { AuthModule } from 'src/auth/auth.module';
-import { PrismaModule } from 'src/prisma/prisma.module';
-import { S3Module } from 'src/s3/s3.module';
+import { AuthModule } from '@/auth/auth.module';
+import { PrismaModule } from '@/prisma/prisma.module';
+import { S3Module } from '@/s3/s3.module';
 
 import { BannerController } from './banner.controller';
 import { BannerService } from './banner.service';

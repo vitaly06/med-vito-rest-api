@@ -11,7 +11,8 @@ import {
 } from '@nestjs/websockets';
 
 import { Server, Socket } from 'socket.io';
-import { WsSessionAuthGuard } from 'src/auth/guards/ws-session-auth.guard';
+
+import { WsSessionAuthGuard } from '@/auth/guards/ws-session-auth.guard';
 
 import { ChatService } from './chat.service';
 

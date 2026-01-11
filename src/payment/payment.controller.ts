@@ -15,7 +15,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
+import { SessionAuthGuard } from '@/auth/guards/session-auth.guard';
 
 import { CheckStatusDto } from './dto/check-status.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 
-import { AuthModule } from 'src/auth/auth.module';
+import { AuthModule } from '@/auth/auth.module';
 
 import { TypeFieldController } from './type-field.controller';
 import { TypeFieldService } from './type-field.service';

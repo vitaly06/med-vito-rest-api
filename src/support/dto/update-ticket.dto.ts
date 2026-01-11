@@ -1,4 +1,4 @@
-import { TicketPriority, TicketStatus } from '@prisma/client';
+import { TicketPriority, TicketStatus } from 'prisma/generated/client';
 import { IsEnum, IsOptional } from 'class-validator';
 
 export class UpdateTicketDto {

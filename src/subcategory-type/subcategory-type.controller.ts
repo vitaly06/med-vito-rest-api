@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
 
-import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
+import { AdminSessionAuthGuard } from '@/auth/guards/admin-session-auth.guard';
 
 import { CreateSubcategoryTypeDto } from './dto/create-subcategory-type.dto';
 import { UpdateSubcategoryTypeDto } from './dto/update-subcategory-type.dto';

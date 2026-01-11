@@ -19,7 +19,8 @@ import {
 } from '@nestjs/swagger';
 
 import { Request } from 'express';
-import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
+
+import { SessionAuthGuard } from '@/auth/guards/session-auth.guard';
 
 import { ChatService } from './chat.service';
 import { GetMessagesDto, StartChatDto } from './dto/index';

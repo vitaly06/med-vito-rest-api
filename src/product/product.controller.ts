@@ -9,12 +9,11 @@ import {
   Put,
   Query,
   Req,
-  UploadedFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -27,9 +26,9 @@ import {
 
 import type { Request } from 'express';
 
-import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
-import { OptionalSessionAuthGuard } from 'src/auth/guards/optional-session-auth.guard';
-import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
+import { AdminSessionAuthGuard } from '@/auth/guards/admin-session-auth.guard';
+import { OptionalSessionAuthGuard } from '@/auth/guards/optional-session-auth.guard';
+import { SessionAuthGuard } from '@/auth/guards/session-auth.guard';
 
 import { createProductDto } from './dto/create-product.dto';
 import { SearchProductsDto } from './dto/search-products.dto';

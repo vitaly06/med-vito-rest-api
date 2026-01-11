@@ -15,8 +15,9 @@ import * as bcrypt from 'bcrypt';
 import * as cacheManager_1 from 'cache-manager';
 import { randomBytes } from 'crypto';
 import { Response } from 'express';
-import { generateUniqueId } from 'src/common/utils/id-generator';
-import { PrismaService } from 'src/prisma/prisma.service';
+
+import { generateUniqueId } from '@/common/utils/id-generator';
+import { PrismaService } from '@/prisma/prisma.service';
 
 import { SignInDto } from './dto/sign-in.dto';
 import { SignUpDto } from './dto/sign-up.dto';

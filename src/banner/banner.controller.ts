@@ -24,7 +24,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
+import { AdminSessionAuthGuard } from '@/auth/guards/admin-session-auth.guard';
 
 import { BannerService } from './banner.service';
 import { CreateBannerDto } from './dto/create-banner.dto';

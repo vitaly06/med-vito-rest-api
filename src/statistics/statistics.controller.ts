@@ -8,7 +8,8 @@ import {
 } from '@nestjs/swagger';
 
 import { Request } from 'express';
-import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
+
+import { SessionAuthGuard } from '@/auth/guards/session-auth.guard';
 
 import { PeriodEnum, StatisticsQueryDto } from './dto/statistics-query.dto';
 import { StatisticsService } from './statistics.service';

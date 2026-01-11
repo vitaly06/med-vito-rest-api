@@ -7,8 +7,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
-import { TicketStatus } from '@prisma/client';
 import * as cacheManager from 'cache-manager';
+import { TicketStatus } from 'prisma/generated/enums';
 
 import { PrismaService } from '../prisma/prisma.service';
 import {

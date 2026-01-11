@@ -6,12 +6,12 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { ChatService } from 'src/chat/chat.service';
-import { ChatGateway } from 'src/chat/gateway';
-import { generateUniqueId } from 'src/common/utils/id-generator';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { S3Service } from 'src/s3/s3.service';
-import { UserService } from 'src/user/user.service';
+import { ChatService } from '@/chat/chat.service';
+import { ChatGateway } from '@/chat/gateway';
+import { generateUniqueId } from '@/common/utils/id-generator';
+import { PrismaService } from '@/prisma/prisma.service';
+import { S3Service } from '@/s3/s3.service';
+import { UserService } from '@/user/user.service';
 
 import { createProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
