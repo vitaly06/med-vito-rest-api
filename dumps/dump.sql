@@ -1109,6 +1109,10 @@ ALTER TABLE ONLY public."TypeField" ALTER COLUMN id SET DEFAULT nextval('public.
 --
 
 COPY public."Banner" (id, "photoUrl", "createdAt", "updatedAt", place) FROM stdin;
+1	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/3aaca434-943c-423f-b2b7-2a0e27354f30.png	2026-01-11 19:18:55.768	2026-01-11 19:18:55.768	PRODUCT_FEED
+2	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/88f01b62-b8f4-4fcf-9de7-e7160a2cf286.png	2026-01-11 19:19:22.773	2026-01-11 19:19:22.773	PROFILE
+3	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/ed332202-ca96-47fb-8b49-425cacd3e739.png	2026-01-11 19:19:39.78	2026-01-11 19:19:39.78	FAVORITES
+4	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/db7395f3-dd21-49fc-9278-393642b85f19.png	2026-01-11 19:19:52.414	2026-01-11 19:19:52.414	CHATS
 \.
 
 
@@ -1989,7 +1993,7 @@ df00ed7f-80fe-4458-8f8b-83fe88304cc8	8d8cfe1eacb1a375fc8254a31aa50217e946af0d14f
 -- Name: Banner_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Banner_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."Banner_id_seq"', 4, true);
 
 
 --
