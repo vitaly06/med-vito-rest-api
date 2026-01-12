@@ -1,5 +1,4 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ProfileType } from '@prisma/client';
 import {
   IsEmail,
   IsEnum,
@@ -8,6 +7,7 @@ import {
   IsString,
   Min,
 } from 'class-validator';
+import { ProfileType } from 'prisma/generated/enums';
 
 export class UpdateUserDto {
   @ApiProperty({

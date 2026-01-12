@@ -12,7 +12,6 @@ import {
   Query,
   Patch,
   Put,
-  UploadedFile,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
@@ -20,7 +19,7 @@ import { OptionalSessionAuthGuard } from 'src/auth/guards/optional-session-auth.
 import { createProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { SearchProductsDto } from './dto/search-products.dto';
-import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
 import {
   ApiTags,

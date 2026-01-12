@@ -1,5 +1,5 @@
 import { IsEnum, IsNotEmpty, IsString, MaxLength } from 'class-validator';
-import { TicketTheme, TicketPriority } from '@prisma/client';
+import { TicketPriority, TicketTheme } from 'prisma/generated/enums';
 
 export class CreateTicketDto {
   @IsEnum(TicketTheme, { message: 'Некорректная тема обращения' })
