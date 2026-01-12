@@ -20,7 +20,6 @@ import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { ProfileType } from '@prisma/client';
 import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
 
 @Controller('user')

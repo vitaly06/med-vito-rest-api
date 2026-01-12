@@ -60,7 +60,7 @@ export class BannerService {
     // Проверяем существование баннера
     const existingBanner = await this.findOne(id);
 
-    let updateData: any = {};
+    const updateData: any = {};
 
     // Если есть новое изображение
     if (file) {

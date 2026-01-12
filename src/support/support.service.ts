@@ -12,9 +12,9 @@ import {
   GetTicketsQueryDto,
   UpdateTicketDto,
 } from './dto';
-import { TicketStatus } from '@prisma/client';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import * as cacheManager from 'cache-manager';
+import { TicketStatus } from 'prisma/generated/enums';
 
 @Injectable()
 export class SupportService {
@@ -338,7 +338,7 @@ export class SupportService {
       });
 
       // Обновляем статус тикета и назначаем модератора если нужно
-      let updateData: any = { updatedAt: new Date() };
+      const updateData: any = { updatedAt: new Date() };
 
       if (isModerator) {
         // Если отвечает модератор, меняем статус на "в работе" и назначаем себя

@@ -1,46 +1,28 @@
-# Development stage
-FROM node:20-alpine AS development
+FROM node:24-alpine AS builder
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# Устанавливаем Nest CLI глобально
-RUN npm install -g @nestjs/cli
-
-# Копируем файлы зависимостей
 COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile
 
-# Устанавливаем зависимости
-RUN yarn install
+COPY prisma ./prisma
+RUN yarn prisma generate
 
-# Копируем остальные файлы
 COPY . .
-
-
-# Генерируем Prisma Client
-RUN npx prisma generate
-
-# Собираем приложение
 RUN yarn build
 
-# Production stage
-FROM node:20-alpine AS production
+FROM node:24-alpine
 
-ARG NODE_ENV=production
-ENV NODE_ENV=${NODE_ENV}
+WORKDIR /app
 
-WORKDIR /usr/src/app
-
-# Копируем только необходимые файлы
 COPY package.json yarn.lock ./
-COPY --from=development /usr/src/app/node_modules ./node_modules
-COPY --from=development /usr/src/app/dist ./dist
-COPY --from=development /usr/src/app/prisma ./prisma
-# COPY --from=development /usr/src/app/storage ./storage
-# COPY --from=development /usr/src/app/uploads ./uploads
-COPY --from=development /usr/src/app/templates ./templates
-# Устанавливаем только production зависимости
-RUN yarn install --production
+RUN yarn install --production --frozen-lockfile
 
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+
+USER node
 EXPOSE 3000
 
-CMD ["yarn", "start:prod"]
+CMD ["sh", "-c", "yarn prisma migrate deploy && node dist/src/main"]
