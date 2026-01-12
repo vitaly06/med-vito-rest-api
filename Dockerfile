@@ -22,7 +22,6 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
-USER node
 EXPOSE 3000
 
-CMD ["sh", "-c", "yarn prisma migrate deploy && node dist/src/main"]
+CMD ["sh", "-c", "yarn prisma db push --skip-generate && node dist/src/main"]
