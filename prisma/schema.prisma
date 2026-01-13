@@ -5,7 +5,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum ProfileType {
@@ -524,6 +523,8 @@ model Banner {
   
   // Место размещения баннера на сайте
   place BannerPlace
+
+  navigateToUrl String
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
