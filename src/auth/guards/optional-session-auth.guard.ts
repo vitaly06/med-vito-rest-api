@@ -1,7 +1,9 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+
 import { Request } from 'express';
-import { AuthService } from '../auth.service';
 import { PrismaService } from 'src/prisma/prisma.service';
+
+import { AuthService } from '../auth.service';
 
 @Injectable()
 export class OptionalSessionAuthGuard implements CanActivate {

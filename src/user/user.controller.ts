@@ -1,26 +1,28 @@
 import {
+  Body,
   Controller,
+  Delete,
   Get,
   Param,
-  Req,
-  UseGuards,
-  Query,
-  Post,
-  UseInterceptors,
-  Body,
-  UploadedFile,
   Patch,
+  Post,
   Put,
-  Delete,
+  Query,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { UserService } from './user.service';
-import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
-import { Request } from 'express';
-import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+
+import { Request } from 'express';
+import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
+import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
+
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
+import { UserService } from './user.service';
 
 @Controller('user')
 export class UserController {

@@ -1,37 +1,40 @@
 import {
   Body,
   Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
   Post,
+  Put,
+  Query,
+  Req,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
-  Req,
-  Get,
-  Param,
-  Delete,
-  Query,
-  Patch,
-  Put,
 } from '@nestjs/common';
-import { ProductService } from './product.service';
-import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
-import { OptionalSessionAuthGuard } from 'src/auth/guards/optional-session-auth.guard';
-import { createProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
-import { SearchProductsDto } from './dto/search-products.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import type { Request } from 'express';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiConsumes,
-  ApiBody,
   ApiBearerAuth,
-  ApiResponse,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
   ApiQuery,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
+
+import type { Request } from 'express';
+
 import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
+import { OptionalSessionAuthGuard } from 'src/auth/guards/optional-session-auth.guard';
+import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
+
+import { createProductDto } from './dto/create-product.dto';
+import { SearchProductsDto } from './dto/search-products.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 import { ModerateState } from './enum/moderate-state.enum';
+import { ProductService } from './product.service';
 
 @ApiTags('Products')
 @Controller('product')

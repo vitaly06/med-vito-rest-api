@@ -1,14 +1,15 @@
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
-  Injectable,
   BadRequestException,
-  NotFoundException,
   ForbiddenException,
   Inject,
+  Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
+
 import * as cacheManager from 'cache-manager';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class ChatService {

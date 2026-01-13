@@ -1,17 +1,19 @@
+import { UseGuards } from '@nestjs/common';
 import {
-  WebSocketGateway,
-  SubscribeMessage,
-  MessageBody,
   ConnectedSocket,
-  OnGatewayInit,
+  MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
+  SubscribeMessage,
+  WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import { UseGuards } from '@nestjs/common';
+
 import { Server, Socket } from 'socket.io';
-import { ChatService } from './chat.service';
 import { WsSessionAuthGuard } from 'src/auth/guards/ws-session-auth.guard';
+
+import { ChatService } from './chat.service';
 
 interface AuthenticatedSocket extends Socket {
   userId?: number;
