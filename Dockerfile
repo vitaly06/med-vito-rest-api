@@ -20,8 +20,7 @@ RUN yarn install --production --frozen-lockfile
 
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "sleep 5 && yarn prisma db push --skip-generate --accept-data-loss && node dist/src/main"]
+CMD ["node", "dist/main.js"]
