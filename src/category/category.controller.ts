@@ -8,10 +8,12 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
-import { CategoryService } from './category.service';
 import { ApiOperation, ApiParam } from '@nestjs/swagger';
-import { CreateCategoryDto } from './dto/create-category.dto';
+
 import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
+
+import { CategoryService } from './category.service';
+import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @Controller('category')

@@ -1,11 +1,13 @@
 import {
-  Injectable,
-  ExecutionContext,
-  UnauthorizedException,
   CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+
 import { Socket } from 'socket.io';
+import { PrismaService } from 'src/prisma/prisma.service';
+
 import { AuthService } from '../auth.service';
 
 @Injectable()

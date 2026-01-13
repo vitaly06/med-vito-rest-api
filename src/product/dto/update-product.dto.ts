@@ -1,13 +1,15 @@
+import { ApiProperty } from '@nestjs/swagger';
+
+import { Transform } from 'class-transformer';
 import {
-  IsString,
+  IsEnum,
   IsNumber,
   IsOptional,
-  IsEnum,
-  Min,
+  IsString,
   IsUrl,
+  Min,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
+
 import { ProductState } from '../enum/product-state.enum';
 
 export class UpdateProductDto {

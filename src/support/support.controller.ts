@@ -1,24 +1,25 @@
 import {
-  Controller,
-  Post,
-  Get,
-  Put,
   Body,
-  Param,
-  Query,
-  UseGuards,
-  Request,
-  ParseIntPipe,
+  Controller,
   ForbiddenException,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Put,
+  Query,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
-import { SupportService } from './support.service';
+
+import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import {
   CreateTicketDto,
-  SendSupportMessageDto,
   GetTicketsQueryDto,
+  SendSupportMessageDto,
   UpdateTicketDto,
 } from './dto';
-import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
+import { SupportService } from './support.service';
 
 @Controller('support')
 @UseGuards(SessionAuthGuard)

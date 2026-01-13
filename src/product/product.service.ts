@@ -1,19 +1,21 @@
 import {
-  Injectable,
   BadRequestException,
   ForbiddenException,
+  Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { createProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
 import { ConfigService } from '@nestjs/config';
-import { UserService } from 'src/user/user.service';
-import { ModerateState } from './enum/moderate-state.enum';
-import { S3Service } from 'src/s3/s3.service';
+
 import { ChatService } from 'src/chat/chat.service';
 import { ChatGateway } from 'src/chat/gateway';
 import { generateUniqueId } from 'src/common/utils/id-generator';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { S3Service } from 'src/s3/s3.service';
+import { UserService } from 'src/user/user.service';
+
+import { createProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
+import { ModerateState } from './enum/moderate-state.enum';
 
 @Injectable()
 export class ProductService {

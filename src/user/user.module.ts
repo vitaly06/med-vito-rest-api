@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
-import { UserService } from './user.service';
-import { UserController } from './user.controller';
+import { MulterModule } from '@nestjs/platform-express';
+
+import { memoryStorage } from 'multer';
 import { AuthModule } from 'src/auth/auth.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
-import { MulterModule } from '@nestjs/platform-express';
-import { memoryStorage } from 'multer';
 import { S3Module } from 'src/s3/s3.module';
+
+import { UserController } from './user.controller';
+import { UserService } from './user.service';
 
 @Module({
   imports: [

@@ -1,3 +1,4 @@
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   BadRequestException,
   ForbiddenException,
@@ -7,17 +8,18 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { SignUpDto } from './dto/sign-up.dto';
-import * as bcrypt from 'bcrypt';
-import { SignInDto } from './dto/sign-in.dto';
-import { Response } from 'express';
-import { MailerService } from '@nestjs-modules/mailer';
-import * as cacheManager_1 from 'cache-manager';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
+
+import { MailerService } from '@nestjs-modules/mailer';
+import * as bcrypt from 'bcrypt';
+import * as cacheManager_1 from 'cache-manager';
 import { randomBytes } from 'crypto';
+import { Response } from 'express';
 import { generateUniqueId } from 'src/common/utils/id-generator';
+import { PrismaService } from 'src/prisma/prisma.service';
+
+import { SignInDto } from './dto/sign-in.dto';
+import { SignUpDto } from './dto/sign-up.dto';
 
 @Injectable()
 export class AuthService {

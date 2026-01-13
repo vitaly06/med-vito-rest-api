@@ -1,20 +1,22 @@
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
-  ForbiddenException,
-  BadRequestException,
-  Inject,
 } from '@nestjs/common';
+
+import * as cacheManager from 'cache-manager';
+import { TicketStatus } from 'prisma/generated/enums';
+
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateTicketDto,
-  SendSupportMessageDto,
   GetTicketsQueryDto,
+  SendSupportMessageDto,
   UpdateTicketDto,
 } from './dto';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import * as cacheManager from 'cache-manager';
-import { TicketStatus } from '@prisma/client';
 
 @Injectable()
 export class SupportService {

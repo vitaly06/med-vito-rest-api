@@ -1,22 +1,24 @@
 import {
   Body,
   Controller,
-  Post,
-  Res,
-  Req,
-  UseGuards,
-  Query,
   Get,
+  Post,
+  Query,
+  Req,
+  Res,
+  UseGuards,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { SignUpDto } from './dto/sign-up.dto';
-import { SignInDto } from './dto/sign-in.dto';
-import type { Response, Request } from 'express';
-import { SessionAuthGuard } from './guards/session-auth.guard';
-import { AdminSessionAuthGuard } from './guards/admin-session-auth.guard';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+
+import type { Request, Response } from 'express';
+
+import { AuthService } from './auth.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { SignInDto } from './dto/sign-in.dto';
+import { SignUpDto } from './dto/sign-up.dto';
+import { AdminSessionAuthGuard } from './guards/admin-session-auth.guard';
+import { SessionAuthGuard } from './guards/session-auth.guard';
 
 @Controller('auth')
 export class AuthController {

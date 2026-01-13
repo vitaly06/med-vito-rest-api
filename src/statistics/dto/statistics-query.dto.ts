@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsEnum, IsNumberString } from 'class-validator';
+
 import { Transform } from 'class-transformer';
+import { IsEnum, IsNumberString, IsOptional, IsString } from 'class-validator';
 
 export enum PeriodEnum {
   DAY = 'day',
