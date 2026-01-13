@@ -20,4 +20,10 @@ export class UpdateBannerDto {
   @IsOptional()
   @IsEnum(BannerPlace, { message: 'Некорректное значение места размещения' })
   place?: BannerPlace;
+
+  @ApiProperty({
+    description: 'Url, куда переносит баннер',
+  })
+  @IsOptional()
+  navigateToUrl?: string;
 }

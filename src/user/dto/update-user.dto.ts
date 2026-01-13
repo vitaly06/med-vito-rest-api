@@ -7,7 +7,7 @@ import {
   IsString,
   Min,
 } from 'class-validator';
-import { ProfileType } from 'prisma/generated/enums';
+import { ProfileType } from '@prisma/client';
 
 export class UpdateUserDto {
   @ApiProperty({

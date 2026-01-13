@@ -10,7 +10,11 @@ export class BannerService {
     private readonly s3Service: S3Service,
   ) {}
 
-  async create(file: Express.Multer.File, place: BannerPlace) {
+  async create(
+    file: Express.Multer.File,
+    place: BannerPlace,
+    navigateToUrl: string,
+  ) {
     // Загружаем изображение в S3
     const photoUrl = await this.s3Service.uploadFile(file, 'banners');
 
@@ -19,6 +23,7 @@ export class BannerService {
       data: {
         photoUrl,
         place,
+        navigateToUrl,
       },
     });
 
@@ -56,7 +61,12 @@ export class BannerService {
     return banner;
   }
 
-  async update(id: number, file?: Express.Multer.File, place?: BannerPlace) {
+  async update(
+    id: number,
+    file?: Express.Multer.File,
+    place?: BannerPlace,
+    navigateToUrl?: string,
+  ) {
     // Проверяем существование баннера
     const existingBanner = await this.findOne(id);
 
@@ -77,6 +87,11 @@ export class BannerService {
     // Если передано место размещения
     if (place) {
       updateData.place = place;
+    }
+
+    // Если передан URL навигации
+    if (navigateToUrl !== undefined) {
+      updateData.navigateToUrl = navigateToUrl;
     }
 
     // Обновляем баннер

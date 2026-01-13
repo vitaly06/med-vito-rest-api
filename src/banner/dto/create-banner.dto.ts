@@ -19,4 +19,10 @@ export class CreateBannerDto {
   @IsEnum(BannerPlace, { message: 'Некорректное значение места размещения' })
   @IsNotEmpty({ message: 'Место размещения баннера обязательно' })
   place: BannerPlace;
+
+  @ApiProperty({
+    description: 'Url, куда переносит баннер',
+  })
+  @IsNotEmpty({ message: 'Navigate url обязателен для заполнения' })
+  navigateToUrl: string;
 }

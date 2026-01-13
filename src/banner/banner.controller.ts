@@ -57,6 +57,7 @@ export class BannerController {
         photoUrl:
           'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/abc123.jpg',
         place: 'PRODUCT_FEED',
+        navigateToUrl: 'https://google.com',
         createdAt: '2025-12-27T10:00:00.000Z',
         updatedAt: '2025-12-27T10:00:00.000Z',
       },
@@ -68,8 +69,9 @@ export class BannerController {
   async create(
     @UploadedFile() file: Express.Multer.File,
     @Body('place') place: BannerPlace,
+    @Body('navigateToUrl') navigateToUrl: string,
   ) {
-    return this.bannerService.create(file, place);
+    return this.bannerService.create(file, place, navigateToUrl);
   }
 
   @Get()
@@ -187,8 +189,9 @@ export class BannerController {
     @Param('id', ParseIntPipe) id: number,
     @UploadedFile() file?: Express.Multer.File,
     @Body('place') place?: BannerPlace,
+    @Body('navigateToUrl') navigateToUrl?: string,
   ) {
-    return this.bannerService.update(id, file, place);
+    return this.bannerService.update(id, file, place, navigateToUrl);
   }
 
   @Delete(':id')

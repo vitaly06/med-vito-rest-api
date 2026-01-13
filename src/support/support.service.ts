@@ -14,7 +14,7 @@ import {
 } from './dto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import * as cacheManager from 'cache-manager';
-import { TicketStatus } from 'prisma/generated/enums';
+import { TicketStatus } from '@prisma/client';
 
 @Injectable()
 export class SupportService {
