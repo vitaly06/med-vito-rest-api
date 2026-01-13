@@ -8,7 +8,8 @@ import {
 } from '@nestjs/common';
 
 import * as cacheManager from 'cache-manager';
-import { TicketStatus } from 'prisma/generated/enums';
+
+import { TicketStatus } from '@/generated/prisma/enums';
 
 import { PrismaService } from '../prisma/prisma.service';
 import {

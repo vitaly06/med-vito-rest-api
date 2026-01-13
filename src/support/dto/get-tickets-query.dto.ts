@@ -1,10 +1,11 @@
 import { Transform } from 'class-transformer';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
+
 import {
   TicketPriority,
   TicketStatus,
   TicketTheme,
-} from 'prisma/generated/enums';
+} from '@/generated/prisma/enums';
 
 export class GetTicketsQueryDto {
   @IsOptional()
