@@ -122,16 +122,6 @@ model Role {
 
 }
 
-model OkseiProduct{
-  id Int @id @default(autoincrement())
-  name String
-  description String
-  price Int
-  image String?
-
-  createdAt DateTime @default(now())
-}
-
 model Product {
   id          Int          @id
   name        String
@@ -393,17 +383,16 @@ model Review {
 
   reviewedById Int
   reviewedBy User @relation("ReviewedBy", fields: [reviewedById], references: [id], onDelete: Cascade)
-
+  
+  reviewedUserId Int
+  reviewedUser User @relation("ReviewedUser", fields: [reviewedUserId], references: [id], onDelete: Cascade)
+ 
   text String? 
   rating Float
 
-  reviewedUserId Int
-  reviewedUser User @relation("ReviewedUser", fields: [reviewedUserId], references: [id], onDelete: Cascade)
-
-  reviewedAt DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([reviewedById, reviewedUserId])
-
 }
 
 model ProductView {

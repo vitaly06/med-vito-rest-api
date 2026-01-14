@@ -653,7 +653,7 @@ CREATE TABLE public."Review" (
     text text,
     rating double precision NOT NULL,
     "reviewedUserId" integer NOT NULL,
-    "reviewedAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 
@@ -1579,7 +1579,7 @@ COPY public."Promotion" (id, name, "pricePerDay", "createdAt", "updatedAt") FROM
 -- Data for Name: Review; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Review" (id, "reviewedById", text, rating, "reviewedUserId", "reviewedAt") FROM stdin;
+COPY public."Review" (id, "reviewedById", text, rating, "reviewedUserId", "createdAt") FROM stdin;
 \.
 
 

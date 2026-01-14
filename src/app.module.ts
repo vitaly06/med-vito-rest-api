@@ -26,23 +26,25 @@ import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
-    AuthModule,
-    PrismaModule,
-    UserModule,
-    ProductModule,
+    // Globals
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    CategoryModule,
-    MailModule,
+    PrismaModule,
     CacheModule.register({
-      ttl: 60 * 60 * 100,
       isGlobal: true,
+      ttl: 60 * 60 * 100,
       store: redisStore,
       // host: 'localhost',
       host: 'redis',
       port: 6379,
     }),
+
+    AuthModule,
+    UserModule,
+    ProductModule,
+    CategoryModule,
+    MailModule,
     ChatModule,
     StatisticsModule,
     ReviewModule,
