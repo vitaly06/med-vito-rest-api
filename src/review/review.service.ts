@@ -37,7 +37,7 @@ export class ReviewService {
       select: {
         rating: true,
         text: true,
-        reviewedAt: true,
+        createdAt: true,
         reviewedBy: {
           select: {
             id: true,
@@ -54,7 +54,7 @@ export class ReviewService {
       totalRating: Math.round(totalRating * 100) / 100 || 0,
       reviewsCount: reviews.length,
       reviews: reviews.map((review) => {
-        const createdAt = new Date(review.reviewedAt);
+        const createdAt = new Date(review.createdAt);
         const day = createdAt.getDate().toString().padStart(2, '0');
         const month = (createdAt.getMonth() + 1).toString().padStart(2, '0');
         const year = createdAt.getFullYear().toString().slice(-2);
