@@ -573,20 +573,30 @@ export class ProductService {
 
       // Поиск по тексту (название, описание)
       if (search) {
-        whereConditions.OR = [
-          {
-            name: {
-              contains: search,
-              mode: 'insensitive',
+        const parseSearch = parseInt(search);
+
+        if (!isNaN(parseSearch)) {
+          whereConditions.OR = [
+            {
+              id: parseSearch,
             },
-          },
-          {
-            description: {
-              contains: search,
-              mode: 'insensitive',
+          ];
+        } else {
+          whereConditions.OR = [
+            {
+              name: {
+                contains: search,
+                mode: 'insensitive',
+              },
             },
-          },
-        ];
+            {
+              description: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            },
+          ];
+        }
       }
 
       // Фильтр по категории (только по slug)
