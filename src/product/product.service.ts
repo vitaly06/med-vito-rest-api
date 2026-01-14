@@ -139,7 +139,9 @@ export class ProductService {
       if (dto.fieldValues) {
         console.log('fieldValues type:', typeof dto.fieldValues);
         console.log('fieldValues value:', dto.fieldValues);
-        const fieldIds = Object.keys(dto.fieldValues).map((id) => parseInt(id));
+        const fieldIds = Object.keys(dto.fieldValues)
+          .map((id) => parseInt(id))
+          .filter((id) => !isNaN(id));
 
         if (fieldIds.length > 0) {
           const fields = await this.prisma.typeField.findMany({
@@ -185,12 +187,12 @@ export class ProductService {
           // Создаем связанные значения полей, если они переданы
           fieldValues: dto.fieldValues
             ? {
-                create: Object.entries(dto.fieldValues).map(
-                  ([fieldId, value]) => ({
+                create: Object.entries(dto.fieldValues)
+                  .filter(([fieldId]) => !isNaN(parseInt(fieldId)))
+                  .map(([fieldId, value]) => ({
                     fieldId: parseInt(fieldId),
                     value: value,
-                  }),
-                ),
+                  })),
               }
             : undefined,
         },
@@ -284,9 +286,10 @@ export class ProductService {
         throw new ForbiddenException('Вы не можете редактировать чужой товар');
       }
 
-      // Валидация fieldValues - проверяем что все поля существуют и принадлежат типу товара
       if (dto.fieldValues) {
-        const fieldIds = Object.keys(dto.fieldValues).map((id) => parseInt(id));
+        const fieldIds = Object.keys(dto.fieldValues)
+          .map((id) => parseInt(id))
+          .filter((id) => !isNaN(id));
 
         if (fieldIds.length > 0) {
           const fields = await this.prisma.typeField.findMany({
@@ -361,13 +364,15 @@ export class ProductService {
         },
       });
 
-      // Обработка fieldValues - добавляем или обновляем
       if (dto.fieldValues) {
         for (const [fieldId, value] of Object.entries(dto.fieldValues)) {
+          const parsedFieldId = parseInt(fieldId);
+          if (isNaN(parsedFieldId)) continue;
+
           await this.prisma.productFieldValue.upsert({
             where: {
               fieldId_productId: {
-                fieldId: parseInt(fieldId),
+                fieldId: parsedFieldId,
                 productId: productId,
               },
             },
@@ -375,7 +380,7 @@ export class ProductService {
               value: value,
             },
             create: {
-              fieldId: parseInt(fieldId),
+              fieldId: parsedFieldId,
               productId: productId,
               value: value,
             },
