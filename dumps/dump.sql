@@ -1189,16 +1189,6 @@ COPY public."Message" (id, content, "senderId", "chatId", "isRead", "readAt", "c
 2	Куда цену задрал? 200 край	4146092	145	f	\N	2025-12-02 11:33:33.781	2025-12-02 11:33:33.781	\N
 \.
 
-
---
--- Data for Name: OkseiProduct; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public."OkseiProduct" (id, name, description, price, image, "createdAt") FROM stdin;
-1	iPhone 15 Pro	Новый iPhone 15 Pro в отличном состоянии	120000	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/1c68c479-ade3-43ff-91eb-b8428b46ed74.jpg	2025-12-12 08:53:25.175
-\.
-
-
 --
 -- Data for Name: Payment; Type: TABLE DATA; Schema: public; Owner: postgres
 --
