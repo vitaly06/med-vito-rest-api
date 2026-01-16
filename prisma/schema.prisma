@@ -507,7 +507,7 @@ model SupportMessage {
 // Баннер
 model Banner {
   id Int @id @default(autoincrement())
-  
+  name String
   // URL изображения баннера
   photoUrl String
   

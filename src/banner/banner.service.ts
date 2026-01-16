@@ -16,6 +16,7 @@ export class BannerService {
     file: Express.Multer.File,
     place: BannerPlace,
     navigateToUrl: string,
+    name: string,
   ) {
     // Загружаем изображение в S3
     const photoUrl = await this.s3Service.uploadFile(file, 'banners');
@@ -23,6 +24,7 @@ export class BannerService {
     // Создаём баннер в БД
     const banner = await this.prisma.banner.create({
       data: {
+        name,
         photoUrl,
         place,
         navigateToUrl,
@@ -68,6 +70,7 @@ export class BannerService {
     file?: Express.Multer.File,
     place?: BannerPlace,
     navigateToUrl?: string,
+    name?: string,
   ) {
     // Проверяем существование баннера
     const existingBanner = await this.findOne(id);
@@ -94,6 +97,10 @@ export class BannerService {
     // Если передан URL навигации
     if (navigateToUrl !== undefined) {
       updateData.navigateToUrl = navigateToUrl;
+    }
+
+    if (name) {
+      updateData.name = name;
     }
 
     // Обновляем баннер

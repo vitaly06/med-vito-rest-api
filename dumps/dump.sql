@@ -2,6 +2,7 @@
 -- PostgreSQL database dump
 --
 
+\restrict 9T7EzcwpZXYDTCHDLUumH9Fr8Gg2a3AocEF9orpaet00IHeBn0VWffbKDS3C0Ol
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -9,6 +10,7 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -128,7 +130,8 @@ CREATE TABLE public."Banner" (
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "updatedAt" timestamp(3) without time zone NOT NULL,
     place public."BannerPlace" NOT NULL,
-    "navigateToUrl" text NOT NULL
+    "navigateToUrl" text NOT NULL,
+    name text NOT NULL
 );
 
 
@@ -346,44 +349,6 @@ ALTER SEQUENCE public."Message_id_seq" OWNER TO postgres;
 --
 
 ALTER SEQUENCE public."Message_id_seq" OWNED BY public."Message".id;
-
-
---
--- Name: OkseiProduct; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public."OkseiProduct" (
-    id integer NOT NULL,
-    name text NOT NULL,
-    description text NOT NULL,
-    price integer NOT NULL,
-    image text,
-    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-
-ALTER TABLE public."OkseiProduct" OWNER TO postgres;
-
---
--- Name: OkseiProduct_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public."OkseiProduct_id_seq"
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public."OkseiProduct_id_seq" OWNER TO postgres;
-
---
--- Name: OkseiProduct_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public."OkseiProduct_id_seq" OWNED BY public."OkseiProduct".id;
 
 
 --
@@ -1008,13 +973,6 @@ ALTER TABLE ONLY public."Message" ALTER COLUMN id SET DEFAULT nextval('public."M
 
 
 --
--- Name: OkseiProduct id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public."OkseiProduct" ALTER COLUMN id SET DEFAULT nextval('public."OkseiProduct_id_seq"'::regclass);
-
-
---
 -- Name: Payment id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1109,11 +1067,11 @@ ALTER TABLE ONLY public."TypeField" ALTER COLUMN id SET DEFAULT nextval('public.
 -- Data for Name: Banner; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Banner" (id, "photoUrl", "createdAt", "updatedAt", place, "navigateToUrl") FROM stdin;
-1	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/3aaca434-943c-423f-b2b7-2a0e27354f30.png	2026-01-11 19:18:55.768	2026-01-11 19:18:55.768	PRODUCT_FEED	https://yandex.ru
-2	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/88f01b62-b8f4-4fcf-9de7-e7160a2cf286.png	2026-01-11 19:19:22.773	2026-01-11 19:19:22.773	PROFILE	https://google.com
-3	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/ed332202-ca96-47fb-8b49-425cacd3e739.png	2026-01-11 19:19:39.78	2026-01-11 19:19:39.78	FAVORITES	https://mail.ru
-4	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/db7395f3-dd21-49fc-9278-393642b85f19.png	2026-01-11 19:19:52.414	2026-01-11 19:19:52.414	CHATS	https://github.com
+COPY public."Banner" (id, "photoUrl", "createdAt", "updatedAt", place, "navigateToUrl", name) FROM stdin;
+1	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/3aaca434-943c-423f-b2b7-2a0e27354f30.png	2026-01-11 19:18:55.768	2026-01-11 19:18:55.768	PRODUCT_FEED	https://yandex.ru	Yandex Browser
+2	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/88f01b62-b8f4-4fcf-9de7-e7160a2cf286.png	2026-01-11 19:19:22.773	2026-01-11 19:19:22.773	PROFILE	https://google.com	Google Browser
+3	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/ed332202-ca96-47fb-8b49-425cacd3e739.png	2026-01-11 19:19:39.78	2026-01-11 19:19:39.78	FAVORITES	https://mail.ru	Mail.ru
+4	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/db7395f3-dd21-49fc-9278-393642b85f19.png	2026-01-11 19:19:52.414	2026-01-11 19:19:52.414	CHATS	https://github.com	Github
 \.
 
 
@@ -1191,15 +1149,6 @@ COPY public."Message" (id, content, "senderId", "chatId", "isRead", "readAt", "c
 
 
 --
--- Data for Name: OkseiProduct; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public."OkseiProduct" (id, name, description, price, image, "createdAt") FROM stdin;
-1	iPhone 15 Pro	Новый iPhone 15 Pro в отличном состоянии	120000	https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/1c68c479-ade3-43ff-91eb-b8428b46ed74.jpg	2025-12-12 08:53:25.175
-\.
-
-
---
 -- Data for Name: Payment; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -1238,9 +1187,9 @@ COPY public."Product" (id, name, price, state, description, address, images, "ca
 4215912	Детские книжки по математике	1000	USED	Превосходный источник знаний для вашего ребенка	Hawthorne Street, Кламат-Фолс, Klamath County, Орегон, 97601, Соединённые Штаты Америки	{https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/5e8875c2-aec8-4b2f-b618-2e220defa9cf.webp,https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/2248f3b6-63b3-44e7-84a4-ef35b2d7bcdc.jpg}	1	2	1208299	2025-11-28 09:21:17.846	2025-12-16 09:53:24.208	14	\N	f	APPROVED	\N
 1512888	Померанский шпиц, щенок	1	USED	Продаетcя очapовательная мини дeвочкa помepанcкoгo шпицa.28.09.2025 гoдa poждeния.\r\nДoкументы: Вет пacпoрт прививки oбpаботки по возрасту.\r\nОчeнь лаcкoвaя игpивая контактная .\r\nПpиучeна к пелeнки.\r\nKушaeт суxой коpм\r\nОтличнo ладит c дeтьми и другими живoтными .\r\nИщeм добрыe зaботливыe руки.\r\nРoдитeли:\r\nМама - померaнский шпиц, белый окрас (3,5 кг)\r\nПапа - померанский шпиц, пати колор (3 кг)\r\nБудет не больше 2,5 кг.	77/2, улица Терешковой, Новостройка, Центральный район, Оренбург, городской округ Оренбург, Оренбургская область, Приволжский федеральный округ, 460000, Россия	{https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/26aadd6d-3f95-4315-9a51-c59257705c32.png}	1	9	9851099	2025-12-02 11:21:39.796	2025-12-16 09:53:24.422	54	\N	f	APPROVED	\N
 5142108	Котёнок в добрые руки	1	USED	котёнок около 4 месяцев, стерелизован, мальчикрыжий, очень активный, игривый, с другими животными и детьми ладит. очень ласковый, постоянно мурчит	14, улица Терешковой, Новостройка, Центральный район, Оренбург, городской округ Оренбург, Оренбургская область, Приволжский федеральный округ, 460000, Россия	{https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/333a3c16-155f-4e82-9fbe-a878937a6f9f.png}	1	9	9851099	2025-12-02 11:24:58.868	2025-12-16 09:53:24.429	54	\N	f	APPROVED	\N
+5868178	папавпа	55454	NEW	павпвапаfdggdfgf212121	«Урал», Ленинский район, Пригородный, Пригородный сельсовет, Оренбургский район, Оренбургская область, Приволжский федеральный округ, 460041, Россия	{https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/396aecf1-b980-45ec-bd5a-ba238f1fdefb.jpg}	1	5	7106521	2025-12-03 19:36:04.58	2026-01-14 19:08:58.604	27	\N	f	MODERATE	\N
 4332941	Графин в виде рыбы	500	NEW	Замечательный графин в виде рыбы	г Оренбург, ул Киевская	{https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/67533ddf-2495-4aed-b405-a68922a398bf.jpg}	1	11	4146092	2025-12-02 10:50:32.345	2025-12-16 09:53:24.22	63	\N	f	APPROVED	\N
 3982248	Сковорода антипригарная	1000	NEW	Сковорода. Можно пожарить все что угодно	г Оренбург, ул Днепропетровская	{https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/299e425b-f6c0-49bb-a7e8-3c7c591ce39d.jpg}	1	11	4146092	2025-12-02 10:53:18.109	2025-12-16 09:53:24.223	63	\N	f	APPROVED	\N
-5868178	папавпа	55454	NEW	павпвапа	«Урал», Ленинский район, Пригородный, Пригородный сельсовет, Оренбургский район, Оренбургская область, Приволжский федеральный округ, 460041, Россия	{https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/396aecf1-b980-45ec-bd5a-ba238f1fdefb.jpg}	1	5	7106521	2025-12-03 19:36:04.58	2025-12-16 09:53:24.232	27	\N	f	MODERATE	\N
 4758351	Медицинское кресло	15798	NEW	Инвалидное кресло для комфортной и активной жизни.\r\n*  Мягкое сиденье и удобная спинка обеспечат комфорт даже при длительном использовании. Легко складывается для транспортировки.\r\n*  Регулируется под индивидуальные потребности. [Указать преимущества, например, наличие подголовника, антиопрокидыватели. \r\n\r\n✈✈✈✈✈ Можно отправить!\r\n\r\nЦена реальная. Звоните или пишите" 	г Оренбург, пр-кт Победы, д 10	{https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/5fe6a6e0-d9a6-418d-bca1-dda8509a758f.jpg,https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/659a2e57-a129-468f-9dea-c500bce1dcaa.jpg,https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/b4410b84-3d31-43b7-a9b0-0d10516b503b.jpg}	1	5	6669460	2025-12-01 09:07:28.717	2025-12-16 09:53:24.346	29	\N	f	APPROVED	\N
 2693271	Стакан	200	NEW	Просто стакан.	г Оренбург, ул Житомирская	{https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/4cfed187-e55c-4014-8c59-cd2450aca91e.jpg}	1	11	4146092	2025-12-02 10:55:45.209	2025-12-16 09:53:24.226	63	\N	f	APPROVED	\N
 3563632	Ингалятор	2000	NEW	Ингалятор для ингаляций	г Оренбург, ул Луганская	{https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/products/08d81171-c46d-4857-b7d9-bb7a983d5ab4.jpg}	1	15	4146092	2025-12-02 11:05:14.587	2025-12-16 09:53:24.234	73	\N	f	APPROVED	\N
@@ -2199,13 +2148,6 @@ SELECT pg_catalog.setval('public."Message_id_seq"', 2, true);
 
 
 --
--- Name: OkseiProduct_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public."OkseiProduct_id_seq"', 1, true);
-
-
---
 -- Name: Payment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -2342,14 +2284,6 @@ ALTER TABLE ONLY public."Log"
 
 ALTER TABLE ONLY public."Message"
     ADD CONSTRAINT "Message_pkey" PRIMARY KEY (id);
-
-
---
--- Name: OkseiProduct OkseiProduct_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public."OkseiProduct"
-    ADD CONSTRAINT "OkseiProduct_pkey" PRIMARY KEY (id);
 
 
 --
@@ -2921,4 +2855,5 @@ GRANT CREATE ON SCHEMA public TO PUBLIC;
 -- PostgreSQL database dump complete
 --
 
+\unrestrict 9T7EzcwpZXYDTCHDLUumH9Fr8Gg2a3AocEF9orpaet00IHeBn0VWffbKDS3C0Ol
 

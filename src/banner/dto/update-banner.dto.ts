@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import { IsEnum, IsOptional } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 
 import { BannerPlace } from '../entities/banner-place.enum';
 
@@ -12,6 +12,14 @@ export class UpdateBannerDto {
     required: false,
   })
   image?: any;
+
+  @ApiProperty({
+    description: 'Текст баннера',
+    required: false,
+  })
+  @IsOptional()
+  @IsString({ message: 'Текст баннера должен быть строкой' })
+  name?: string;
 
   @ApiProperty({
     description: 'Место размещения баннера на сайте',
