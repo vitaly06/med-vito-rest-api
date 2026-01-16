@@ -54,7 +54,7 @@ model User {
   isBanned Boolean @default(false)
 
   // Лимит бесплатных объявлений в месяц
-  freeAdsLimit Int @default(12)
+  freeAdsLimit Int @default(6)
   // Количество использованных бесплатных объявлений в текущем месяце
   usedFreeAds Int @default(0)
   // Дата последнего сброса лимита (начало месяца)
