@@ -5,7 +5,7 @@ services:
     env_file:
       - .env
     ports:
-      - "3000:3000"
+      - '3000:3000'
     networks:
       - backend_network
     depends_on:
@@ -20,11 +20,10 @@ services:
       - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # - ./dumps/full-dump.sql:/docker-entrypoint-initdb.d/01-dump.sql
     networks:
       - backend_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d ${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d ${POSTGRES_DB}']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -36,7 +35,7 @@ services:
     networks:
       - backend_network
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping"]
+      test: ['CMD-SHELL', 'redis-cli ping']
       interval: 5s
       timeout: 3s
       retries: 5

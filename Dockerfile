@@ -15,14 +15,20 @@ FROM node:24-alpine
 
 WORKDIR /app
 
+# Устанавливаем postgresql-client для psql
+RUN apk add --no-cache postgresql-client
+
 COPY package.json yarn.lock ./
 RUN yarn install --production --frozen-lockfile
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./
+COPY --from=builder /app/dumps ./dumps
+COPY start.sh ./
 
-USER node
+RUN chmod +x start.sh
+
 EXPOSE 3000
 
-CMD ["yarn", "start:migrate:prod"]
+CMD ["sh", "./start.sh"]
