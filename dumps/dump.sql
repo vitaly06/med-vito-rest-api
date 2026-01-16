@@ -2,7 +2,6 @@
 -- PostgreSQL database dump
 --
 
-\restrict 9T7EzcwpZXYDTCHDLUumH9Fr8Gg2a3AocEF9orpaet00IHeBn0VWffbKDS3C0Ol
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -10,7 +9,6 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -1147,7 +1145,10 @@ COPY public."Message" (id, content, "senderId", "chatId", "isRead", "readAt", "c
 2	Куда цену задрал? 200 край	4146092	145	f	\N	2025-12-02 11:33:33.781	2025-12-02 11:33:33.781	\N
 \.
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> f1c41c332997e386df9e0e6df97cd9ea4c37fd52
 --
 -- Data for Name: Payment; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -2855,5 +2856,4 @@ GRANT CREATE ON SCHEMA public TO PUBLIC;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 9T7EzcwpZXYDTCHDLUumH9Fr8Gg2a3AocEF9orpaet00IHeBn0VWffbKDS3C0Ol
 

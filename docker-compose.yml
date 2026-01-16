@@ -20,7 +20,7 @@ services:
       - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./dumps/dump.sql:/docker-entrypoint-initdb.d/01-dump.sql
+      # - ./dumps/full-dump.sql:/docker-entrypoint-initdb.d/01-dump.sql
     networks:
       - backend_network
     healthcheck:
