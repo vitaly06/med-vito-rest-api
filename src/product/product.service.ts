@@ -759,12 +759,35 @@ export class ProductService {
         take: limit,
       });
 
-      // Сортируем товары по продвижению
-      const sortedProducts = products.sort((a, b) => {
-        const aPromo = a.promotions[0]?.promotion?.pricePerDay || 0;
-        const bPromo = b.promotions[0]?.promotion?.pricePerDay || 0;
-        return bPromo - aPromo; // Сначала более дорогие продвижения
-      });
+      // Перемешиваем товары: 1 люкс, 5 обычных, 1 люкс, 5 обычных...
+      // Стандарт не влияет на позицию
+      const luxProducts = products.filter(
+        (p) => (p.promotions[0]?.promotion?.pricePerDay || 0) >= 100,
+      );
+      const regularProducts = products.filter(
+        (p) => (p.promotions[0]?.promotion?.pricePerDay || 0) < 100,
+      );
+
+      const sortedProducts: typeof products = [];
+      let luxIndex = 0;
+      let regularIndex = 0;
+
+      while (
+        luxIndex < luxProducts.length ||
+        regularIndex < regularProducts.length
+      ) {
+        // Добавляем 1 люкс товар
+        if (luxIndex < luxProducts.length) {
+          sortedProducts.push(luxProducts[luxIndex]);
+          luxIndex++;
+        }
+
+        // Добавляем до 5 обычных товаров
+        for (let i = 0; i < 5 && regularIndex < regularProducts.length; i++) {
+          sortedProducts.push(regularProducts[regularIndex]);
+          regularIndex++;
+        }
+      }
 
       // Форматируем результат как в обычном findAll
       console.log(sortedProducts.length);
@@ -858,19 +881,35 @@ export class ProductService {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Сортируем товары: сначала с продвижением (дорогие → дешевые), потом без продвижения
-    const sortedProducts = allProducts.sort((a, b) => {
-      const aPromo = a.promotions[0]?.promotion?.pricePerDay || 0;
-      const bPromo = b.promotions[0]?.promotion?.pricePerDay || 0;
+    // Перемешиваем товары: 1 люкс, 5 обычных, 1 люкс, 5 обычных...
+    // Стандарт не влияет на позицию, только выделяется рамкой
+    const luxProducts = allProducts.filter(
+      (p) => (p.promotions[0]?.promotion?.pricePerDay || 0) >= 100,
+    );
+    const regularProducts = allProducts.filter(
+      (p) => (p.promotions[0]?.promotion?.pricePerDay || 0) < 100,
+    );
 
-      // Если у обоих есть продвижение или у обоих нет - сортируем по цене продвижения
-      if ((aPromo > 0 && bPromo > 0) || (aPromo === 0 && bPromo === 0)) {
-        return bPromo - aPromo;
+    const sortedProducts: typeof allProducts = [];
+    let luxIndex = 0;
+    let regularIndex = 0;
+
+    while (
+      luxIndex < luxProducts.length ||
+      regularIndex < regularProducts.length
+    ) {
+      // Добавляем 1 люкс товар
+      if (luxIndex < luxProducts.length) {
+        sortedProducts.push(luxProducts[luxIndex]);
+        luxIndex++;
       }
 
-      // Товары с продвижением всегда выше товаров без продвижения
-      return bPromo > 0 ? 1 : -1;
-    });
+      // Добавляем до 5 обычных товаров
+      for (let i = 0; i < 5 && regularIndex < regularProducts.length; i++) {
+        sortedProducts.push(regularProducts[regularIndex]);
+        regularIndex++;
+      }
+    }
 
     // Форматируем оба списка
     if (userId) {
@@ -1468,5 +1507,148 @@ export class ProductService {
       orderBy: { createdAt: 'desc' },
     });
     return this.formatProductsResponse(allProducts);
+  }
+
+  /**
+   * Получить все товары с активными продвижениями
+   */
+  async getAllPromotedProducts() {
+    const products = await this.prisma.product.findMany({
+      where: {
+        promotions: {
+          some: {
+            isPaid: true,
+            endDate: {
+              gte: new Date(),
+            },
+          },
+        },
+      },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        subCategory: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        type: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+        promotions: {
+          where: {
+            isPaid: true,
+            endDate: {
+              gte: new Date(),
+            },
+          },
+          include: {
+            promotion: {
+              select: {
+                id: true,
+                name: true,
+                pricePerDay: true,
+              },
+            },
+          },
+          orderBy: {
+            promotion: {
+              pricePerDay: 'desc',
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return products.map((product) => ({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      images: product.images,
+      category: product.category,
+      subCategory: product.subCategory,
+      type: product.type,
+      user: product.user,
+      createdAt: product.createdAt,
+      promotions: product.promotions.map((promo) => ({
+        id: promo.id,
+        promotionType: promo.promotion.name,
+        pricePerDay: promo.promotion.pricePerDay,
+        startDate: promo.startDate,
+        endDate: promo.endDate,
+        isActive: promo.isActive,
+        days: promo.days,
+        totalPrice: promo.totalPrice,
+      })),
+    }));
+  }
+
+  /**
+   * Включить/отключить продвижение
+   */
+  async togglePromotion(promotionId: number) {
+    const promotion = await this.prisma.productPromotion.findUnique({
+      where: { id: promotionId },
+      include: {
+        product: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!promotion) {
+      throw new NotFoundException('Продвижение не найдено');
+    }
+
+    const updated = await this.prisma.productPromotion.update({
+      where: { id: promotionId },
+      data: {
+        isActive: !promotion.isActive,
+      },
+      include: {
+        promotion: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+
+    return {
+      message: `Продвижение ${updated.isActive ? 'включено' : 'отключено'}`,
+      promotion: {
+        id: updated.id,
+        productId: updated.productId,
+        productName: promotion.product.name,
+        promotionType: updated.promotion.name,
+        isActive: updated.isActive,
+        startDate: updated.startDate,
+        endDate: updated.endDate,
+      },
+    };
   }
 }

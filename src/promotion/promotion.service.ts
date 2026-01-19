@@ -83,20 +83,20 @@ export class PromotionService {
       },
     });
 
-    // Логика списания: сначала с бонусного баланса, потом с основного
+    // Логика списания: сначала с основного баланса, потом с бонусного
     let remainingAmount = totalPrice;
     let bonusUsed = 0;
     let balanceUsed = 0;
 
-    // Сначала списываем с бонусного баланса
-    if (checkProduct.user.bonusBalance > 0) {
-      bonusUsed = Math.min(checkProduct.user.bonusBalance, remainingAmount);
-      remainingAmount -= bonusUsed;
+    // Сначала списываем с основного баланса
+    if (checkProduct.user.balance > 0) {
+      balanceUsed = Math.min(checkProduct.user.balance, remainingAmount);
+      remainingAmount -= balanceUsed;
     }
 
-    // Если остались деньги к списанию, списываем с основного баланса
+    // Если остались деньги к списанию, списываем с бонусного баланса
     if (remainingAmount > 0) {
-      balanceUsed = remainingAmount;
+      bonusUsed = remainingAmount;
     }
 
     // Списываем средства с балансов

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 6h56Txr7fMTLB4a7h7AhWQ2OShNGOYydpfviSUThDMNrMrYxwRuMuP3W1iCLXne
+\restrict JJ28Gy5ot2WBSP4DqL0DN9uAiz9a69tkjRb01tm5xh4DIYbrYCCXZaKT6vMEo6F
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -20,35 +20,10 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Data for Name: Banner; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: Role; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 SET SESSION AUTHORIZATION DEFAULT;
-
-ALTER TABLE public."Banner" DISABLE TRIGGER ALL;
-
-INSERT INTO public."Banner" (id, "photoUrl", "createdAt", "updatedAt", place, "navigateToUrl", name) VALUES (1, 'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/3aaca434-943c-423f-b2b7-2a0e27354f30.png', '2026-01-11 19:18:55.768', '2026-01-11 19:18:55.768', 'PRODUCT_FEED', 'https://yandex.ru', 'Yandex Browser');
-INSERT INTO public."Banner" (id, "photoUrl", "createdAt", "updatedAt", place, "navigateToUrl", name) VALUES (2, 'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/88f01b62-b8f4-4fcf-9de7-e7160a2cf286.png', '2026-01-11 19:19:22.773', '2026-01-11 19:19:22.773', 'PROFILE', 'https://google.com', 'Google Browser');
-INSERT INTO public."Banner" (id, "photoUrl", "createdAt", "updatedAt", place, "navigateToUrl", name) VALUES (3, 'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/ed332202-ca96-47fb-8b49-425cacd3e739.png', '2026-01-11 19:19:39.78', '2026-01-11 19:19:39.78', 'FAVORITES', 'https://mail.ru', 'Mail.ru');
-INSERT INTO public."Banner" (id, "photoUrl", "createdAt", "updatedAt", place, "navigateToUrl", name) VALUES (4, 'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/db7395f3-dd21-49fc-9278-393642b85f19.png', '2026-01-11 19:19:52.414', '2026-01-11 19:19:52.414', 'CHATS', 'https://github.com', 'Github');
-
-
-ALTER TABLE public."Banner" ENABLE TRIGGER ALL;
-
---
--- Data for Name: Category; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-ALTER TABLE public."Category" DISABLE TRIGGER ALL;
-
-INSERT INTO public."Category" (id, name, "createdAt", slug, "updatedAt") VALUES (1, 'Личные вещи', '2025-12-15 19:18:08.497', 'lichnye-veschi', '2025-12-15 17:21:30.479');
-
-
-ALTER TABLE public."Category" ENABLE TRIGGER ALL;
-
---
--- Data for Name: Role; Type: TABLE DATA; Schema: public; Owner: postgres
---
 
 ALTER TABLE public."Role" DISABLE TRIGGER ALL;
 
@@ -60,7 +35,73 @@ INSERT INTO public."Role" (id, name) VALUES (3, 'admin');
 ALTER TABLE public."Role" ENABLE TRIGGER ALL;
 
 --
--- Data for Name: SubCategory; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+ALTER TABLE public."User" DISABLE TRIGGER ALL;
+
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (3432589, 'Исаев Максим Андреевич', 'sima.isaev2305@mail.ru', '+79501859919', '$2b$10$VI6Gb9KuiHWEnbndcyi1WemTTQgKWwVhpcOfnEEj7W18T8Gw.TPou', 'INDIVIDUAL', '2025-11-28 09:06:55.938', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (3235109, 'Арзамасцев Даниил', 'arzamastsevdaniil@gmail.com', '+79068346355', '$2b$10$NvJVMH9Kn16C7hSuCtRAf./yj8/jgaeUg2ZI0IAkxt2Tc/Cf5DR8G', 'INDIVIDUAL', '2025-12-01 05:48:10.726', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (9371169, 'Захаров АР ВЛ', 'Zahar83s@mail.ru', '+79878600551', '$2b$10$TfLU49EmrMYrTPd46fQv6.QNkD3tEE2WnHVmy8qIdYzHVOX4PLe4q', 'INDIVIDUAL', '2025-11-28 09:07:21.428', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (4761896, 'Гатин Ян Талгатович', 'ggg2107@gmail.com', '+79228386030', '$2b$10$aUbIJdrSn4qPvErIPV8E6uo162lESkmE7orVVIrS/2v8/k8qUQjvm', 'INDIVIDUAL', '2025-11-28 09:08:47.126', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (8633592, 'Махар Святой Рог', 'vmahauri029@gmail.com', '+79123557497', '$2b$10$UbWFDK5KoI92FFzmWZw.s.jslpRNGreNJFQi30q4ZWI9lB02sqegS', 'INDIVIDUAL', '2025-11-28 09:07:05.955', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (6251884, 'Попов Матвей Иванович', 'trrina04@mail.ru', '+79878993845', '$2b$10$cfHgsH42YXRqYPpoZbbhAuFK4bg.81DSzN4JNMGmkLffNma7mLmB.', 'INDIVIDUAL', '2025-12-03 19:26:12.827', '2025-12-08 12:30:51.217', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (8964288, 'Макаров Николай', 'bapenick445@gmail.com', '+79225387481', '$2b$10$DHSa1l.0cj7MK.b7ATupL.f7yXnjfGBUEr7Wezf1wul9x2z2eOIkO', 'INDIVIDUAL', '2025-11-28 09:07:33.445', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (6053931, 'Голосняк Юлия Викторовна', 'juliagolosnyak@mail.ru', '+79328538922', '$2b$10$9VP3OmZRjdumTgAJWCBGGe5ozGVZG0Z/okvuWwUdx1wxmJG7brTES', 'INDIVIDUAL', '2025-11-28 09:07:19.394', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (8261539, 'Подрядов Екатерина Сергеевна', 'podradovakata91@gmail.com', '+79083234725', '$2b$10$sdWaXECQtpyEqc61gS4MrOlsoz4nsjYb1gGC1xD2VVFgr/pUqwB3m', 'INDIVIDUAL', '2025-11-28 09:07:29.962', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (5966833, 'Каверина Мария', 'kunafina_ruslana7@mail.ru', '+79228362555', '$2b$10$AY/2V0DgPQ1.ZorhEmTMfOb4o8hq1EkOR9qkHx4/RgG7Cq6OFAOo2', 'INDIVIDUAL', '2025-11-28 09:07:42.429', '2025-12-08 12:30:51.217', NULL, false, 1, true, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (2287442, 'Абвгдеивич Егор Константинович', 'barabulkabarabulka@gmail.com', '+72280303111', '$2b$10$PPEwZxCaLahLuE4XtqI2k.UxgqrcfBgCoXBHT1EUoq86kYraokwz2', 'INDIVIDUAL', '2025-11-28 09:08:14.573', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (6038643, 'дар', 'bdi-2006@mail.ru', '+79123400130', '$2b$10$TROWXU059pwS6Q98JIfGDOL1kzA0oohdraWoB3ZxpEgGqEU//.qQ6', 'INDIVIDUAL', '2025-11-28 09:06:52.861', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (7391202, 'kostyukov', 'geronimoprofitop@gmail.com', '+79228744883', '$2b$10$ulXOXoQl7aAYjf7uJ2opGOApWYjLTVFSWBrWyYAjJp80HAeDl97OS', 'INDIVIDUAL', '2025-11-28 09:07:57.477', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (6669460, 'Афонасьев Афиларет Михайлович', 'pr.actual@mail.ru', '+79082734009', '$2b$10$R0pbgCnq1AVwe9phmKu1GOT0emg48XzDbtYRBEn/xEyCFd8aNYX7y', 'INDIVIDUAL', '2025-12-01 08:28:35.989', '2025-12-08 12:30:51.217', NULL, false, 1, true, 'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/71116356-ea56-4dd5-ac1a-86c5a6e2e11b.jpg', false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (1208299, 'Кокеев Фирилл Батькович', 'test@test.com', '+79953501391', '$2b$10$0GEA/Uvq4NrHTLuOetQTXuoviQG19DrdEX4NIFUwD.54aF7ePJveO', 'INDIVIDUAL', '2025-11-28 09:07:44.576', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (2321239, 'Прокофьева Валерия Денисовна', 'lin.ferr@mail.ru', '+79225406669', '$2b$10$7mnxrJ2LJ0S5RoBoo8gVteXYR.o2kM/nnm07SpxHT37YZqEghfVAC', 'INDIVIDUAL', '2025-11-28 09:08:42.207', '2025-12-19 12:04:30.85', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (7106521, 'Попов Матвей Иванович', 'vitaly.sadikov1@yandex.ru', '+79510341677', '$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C', 'INDIVIDUAL', '2025-11-06 19:33:46.625', '2026-01-11 17:11:38.153', NULL, false, 3, false, 'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/eac42b51-e66a-4d76-bad2-c6db0efd947b.jpg', true, 0, 2500, false, 12, '2026-01-11 17:11:38.151', 0);
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (2681599, 'Корякина Ирина', 'ikoryakina47@gmail.com', '+79228579009', '$2b$10$48dtDNK6DIH0yBgup4eqeeG8k5NPkHuhqBNvQ2yCJqayB3sNthYOS', 'INDIVIDUAL', '2025-12-01 08:08:29.883', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (7132269, 'йцукенгшщзх', 'qwertyui123@gmail.com', '+75678903456', '$2b$10$hhmWdTv8RdWeJ1ofHOjaTuKBgOo2JUky9za7NTJ.uCcfrH3W2CK/S', 'INDIVIDUAL', '2025-12-01 14:29:11.538', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (4146092, 'Фокеев Кирилл', 'test1@test.com', '+71234567890', '$2b$10$FELoBjJj0J8IeMy2YhKlIeniLkjz86fijJS2HOFJ3XvJ3fnIulg2i', 'INDIVIDUAL', '2025-12-02 10:48:41.186', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (9851099, 'Черешков Данила Алексеевич', 'chereshkov.da2006@gmail.com', '+79123431910', '$2b$10$hvt0jXBTO6PcqEzKYDKYUO7hivY2kCsC/7Bzwix242L8YDeP6UgnW', 'INDIVIDUAL', '2025-12-02 10:47:25.87', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
+
+
+ALTER TABLE public."User" ENABLE TRIGGER ALL;
+
+--
+-- Data for Name: Banner; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+ALTER TABLE public."Banner" DISABLE TRIGGER ALL;
+
+INSERT INTO public."Banner" (id, "photoUrl", "createdAt", "updatedAt", place, "navigateToUrl", name, "userId") VALUES (1, 'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/3aaca434-943c-423f-b2b7-2a0e27354f30.png', '2026-01-11 19:18:55.768', '2026-01-11 19:18:55.768', 'PRODUCT_FEED', 'https://yandex.ru', 'Yandex Browser', 7106521);
+INSERT INTO public."Banner" (id, "photoUrl", "createdAt", "updatedAt", place, "navigateToUrl", name, "userId") VALUES (2, 'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/88f01b62-b8f4-4fcf-9de7-e7160a2cf286.png', '2026-01-11 19:19:22.773', '2026-01-11 19:19:22.773', 'PROFILE', 'https://google.com', 'Google Browser', 7106521);
+INSERT INTO public."Banner" (id, "photoUrl", "createdAt", "updatedAt", place, "navigateToUrl", name, "userId") VALUES (3, 'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/ed332202-ca96-47fb-8b49-425cacd3e739.png', '2026-01-11 19:19:39.78', '2026-01-11 19:19:39.78', 'FAVORITES', 'https://mail.ru', 'Mail.ru', 7106521);
+INSERT INTO public."Banner" (id, "photoUrl", "createdAt", "updatedAt", place, "navigateToUrl", name, "userId") VALUES (4, 'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/db7395f3-dd21-49fc-9278-393642b85f19.png', '2026-01-11 19:19:52.414', '2026-01-11 19:19:52.414', 'CHATS', 'https://github.com', 'Github', 7106521);
+
+
+ALTER TABLE public."Banner" ENABLE TRIGGER ALL;
+
+--
+-- Data for Name: BannerView; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+ALTER TABLE public."BannerView" DISABLE TRIGGER ALL;
+
+
+
+ALTER TABLE public."BannerView" ENABLE TRIGGER ALL;
+
+--
+-- Data for Name: Category; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+ALTER TABLE public."Category" DISABLE TRIGGER ALL;
+
+INSERT INTO public."Category" (id, name, "createdAt", slug, "updatedAt") VALUES (1, 'Личные вещи', '2025-12-15 19:18:08.497', 'lichnye-veschi', '2025-12-15 17:21:30.479');
+
+
+ALTER TABLE public."Category" ENABLE TRIGGER ALL;
+
+--
+-- Data for Name: SubCategory; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 ALTER TABLE public."SubCategory" DISABLE TRIGGER ALL;
@@ -82,7 +123,7 @@ INSERT INTO public."SubCategory" (id, name, "categoryId", "createdAt", slug, "up
 ALTER TABLE public."SubCategory" ENABLE TRIGGER ALL;
 
 --
--- Data for Name: SubcategotyType; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: SubcategotyType; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 ALTER TABLE public."SubcategotyType" DISABLE TRIGGER ALL;
@@ -164,38 +205,7 @@ INSERT INTO public."SubcategotyType" (id, name, "subcategoryId", "createdAt", sl
 ALTER TABLE public."SubcategotyType" ENABLE TRIGGER ALL;
 
 --
--- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-ALTER TABLE public."User" DISABLE TRIGGER ALL;
-
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (3432589, 'Исаев Максим Андреевич', 'sima.isaev2305@mail.ru', '+79501859919', '$2b$10$VI6Gb9KuiHWEnbndcyi1WemTTQgKWwVhpcOfnEEj7W18T8Gw.TPou', 'INDIVIDUAL', '2025-11-28 09:06:55.938', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (3235109, 'Арзамасцев Даниил', 'arzamastsevdaniil@gmail.com', '+79068346355', '$2b$10$NvJVMH9Kn16C7hSuCtRAf./yj8/jgaeUg2ZI0IAkxt2Tc/Cf5DR8G', 'INDIVIDUAL', '2025-12-01 05:48:10.726', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (9371169, 'Захаров АР ВЛ', 'Zahar83s@mail.ru', '+79878600551', '$2b$10$TfLU49EmrMYrTPd46fQv6.QNkD3tEE2WnHVmy8qIdYzHVOX4PLe4q', 'INDIVIDUAL', '2025-11-28 09:07:21.428', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (4761896, 'Гатин Ян Талгатович', 'ggg2107@gmail.com', '+79228386030', '$2b$10$aUbIJdrSn4qPvErIPV8E6uo162lESkmE7orVVIrS/2v8/k8qUQjvm', 'INDIVIDUAL', '2025-11-28 09:08:47.126', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (8633592, 'Махар Святой Рог', 'vmahauri029@gmail.com', '+79123557497', '$2b$10$UbWFDK5KoI92FFzmWZw.s.jslpRNGreNJFQi30q4ZWI9lB02sqegS', 'INDIVIDUAL', '2025-11-28 09:07:05.955', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (6251884, 'Попов Матвей Иванович', 'trrina04@mail.ru', '+79878993845', '$2b$10$cfHgsH42YXRqYPpoZbbhAuFK4bg.81DSzN4JNMGmkLffNma7mLmB.', 'INDIVIDUAL', '2025-12-03 19:26:12.827', '2025-12-08 12:30:51.217', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (8964288, 'Макаров Николай', 'bapenick445@gmail.com', '+79225387481', '$2b$10$DHSa1l.0cj7MK.b7ATupL.f7yXnjfGBUEr7Wezf1wul9x2z2eOIkO', 'INDIVIDUAL', '2025-11-28 09:07:33.445', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (6053931, 'Голосняк Юлия Викторовна', 'juliagolosnyak@mail.ru', '+79328538922', '$2b$10$9VP3OmZRjdumTgAJWCBGGe5ozGVZG0Z/okvuWwUdx1wxmJG7brTES', 'INDIVIDUAL', '2025-11-28 09:07:19.394', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (8261539, 'Подрядов Екатерина Сергеевна', 'podradovakata91@gmail.com', '+79083234725', '$2b$10$sdWaXECQtpyEqc61gS4MrOlsoz4nsjYb1gGC1xD2VVFgr/pUqwB3m', 'INDIVIDUAL', '2025-11-28 09:07:29.962', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (5966833, 'Каверина Мария', 'kunafina_ruslana7@mail.ru', '+79228362555', '$2b$10$AY/2V0DgPQ1.ZorhEmTMfOb4o8hq1EkOR9qkHx4/RgG7Cq6OFAOo2', 'INDIVIDUAL', '2025-11-28 09:07:42.429', '2025-12-08 12:30:51.217', NULL, false, 1, true, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (2287442, 'Абвгдеивич Егор Константинович', 'barabulkabarabulka@gmail.com', '+72280303111', '$2b$10$PPEwZxCaLahLuE4XtqI2k.UxgqrcfBgCoXBHT1EUoq86kYraokwz2', 'INDIVIDUAL', '2025-11-28 09:08:14.573', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (6038643, 'дар', 'bdi-2006@mail.ru', '+79123400130', '$2b$10$TROWXU059pwS6Q98JIfGDOL1kzA0oohdraWoB3ZxpEgGqEU//.qQ6', 'INDIVIDUAL', '2025-11-28 09:06:52.861', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (7391202, 'kostyukov', 'geronimoprofitop@gmail.com', '+79228744883', '$2b$10$ulXOXoQl7aAYjf7uJ2opGOApWYjLTVFSWBrWyYAjJp80HAeDl97OS', 'INDIVIDUAL', '2025-11-28 09:07:57.477', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (6669460, 'Афонасьев Афиларет Михайлович', 'pr.actual@mail.ru', '+79082734009', '$2b$10$R0pbgCnq1AVwe9phmKu1GOT0emg48XzDbtYRBEn/xEyCFd8aNYX7y', 'INDIVIDUAL', '2025-12-01 08:28:35.989', '2025-12-08 12:30:51.217', NULL, false, 1, true, 'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/71116356-ea56-4dd5-ac1a-86c5a6e2e11b.jpg', false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (1208299, 'Кокеев Фирилл Батькович', 'test@test.com', '+79953501391', '$2b$10$0GEA/Uvq4NrHTLuOetQTXuoviQG19DrdEX4NIFUwD.54aF7ePJveO', 'INDIVIDUAL', '2025-11-28 09:07:44.576', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (2321239, 'Прокофьева Валерия Денисовна', 'lin.ferr@mail.ru', '+79225406669', '$2b$10$7mnxrJ2LJ0S5RoBoo8gVteXYR.o2kM/nnm07SpxHT37YZqEghfVAC', 'INDIVIDUAL', '2025-11-28 09:08:42.207', '2025-12-19 12:04:30.85', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (7106521, 'Попов Матвей Иванович', 'vitaly.sadikov1@yandex.ru', '+79510341677', '$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C', 'INDIVIDUAL', '2025-11-06 19:33:46.625', '2026-01-11 17:11:38.153', NULL, false, 3, false, 'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/eac42b51-e66a-4d76-bad2-c6db0efd947b.jpg', true, 0, 2500, false, 12, '2026-01-11 17:11:38.151', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (2681599, 'Корякина Ирина', 'ikoryakina47@gmail.com', '+79228579009', '$2b$10$48dtDNK6DIH0yBgup4eqeeG8k5NPkHuhqBNvQ2yCJqayB3sNthYOS', 'INDIVIDUAL', '2025-12-01 08:08:29.883', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (7132269, 'йцукенгшщзх', 'qwertyui123@gmail.com', '+75678903456', '$2b$10$hhmWdTv8RdWeJ1ofHOjaTuKBgOo2JUky9za7NTJ.uCcfrH3W2CK/S', 'INDIVIDUAL', '2025-12-01 14:29:11.538', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (4146092, 'Фокеев Кирилл', 'test1@test.com', '+71234567890', '$2b$10$FELoBjJj0J8IeMy2YhKlIeniLkjz86fijJS2HOFJ3XvJ3fnIulg2i', 'INDIVIDUAL', '2025-12-02 10:48:41.186', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (9851099, 'Черешков Данила Алексеевич', 'chereshkov.da2006@gmail.com', '+79123431910', '$2b$10$hvt0jXBTO6PcqEzKYDKYUO7hivY2kCsC/7Bzwix242L8YDeP6UgnW', 'INDIVIDUAL', '2025-12-02 10:47:25.87', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-
-
-ALTER TABLE public."User" ENABLE TRIGGER ALL;
-
---
--- Data for Name: Product; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: Product; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 ALTER TABLE public."Product" DISABLE TRIGGER ALL;
@@ -385,7 +395,7 @@ INSERT INTO public."Product" (id, name, price, state, description, address, imag
 ALTER TABLE public."Product" ENABLE TRIGGER ALL;
 
 --
--- Data for Name: Chat; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: Chat; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 ALTER TABLE public."Chat" DISABLE TRIGGER ALL;
@@ -411,7 +421,7 @@ INSERT INTO public."Chat" (id, "productId", "buyerId", "sellerId", "unreadCountB
 ALTER TABLE public."Chat" ENABLE TRIGGER ALL;
 
 --
--- Data for Name: FavoriteAction; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: FavoriteAction; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 ALTER TABLE public."FavoriteAction" DISABLE TRIGGER ALL;
@@ -433,7 +443,7 @@ INSERT INTO public."FavoriteAction" (id, "userId", "productId", "addedAt") VALUE
 ALTER TABLE public."FavoriteAction" ENABLE TRIGGER ALL;
 
 --
--- Data for Name: Log; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: Log; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 ALTER TABLE public."Log" DISABLE TRIGGER ALL;
@@ -445,7 +455,7 @@ INSERT INTO public."Log" (id, "userId", action) VALUES (2, 2287442, 'Попол�
 ALTER TABLE public."Log" ENABLE TRIGGER ALL;
 
 --
--- Data for Name: Message; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: Message; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 ALTER TABLE public."Message" DISABLE TRIGGER ALL;
@@ -457,7 +467,7 @@ INSERT INTO public."Message" (id, content, "senderId", "chatId", "isRead", "read
 ALTER TABLE public."Message" ENABLE TRIGGER ALL;
 
 --
--- Data for Name: Payment; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: Payment; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 ALTER TABLE public."Payment" DISABLE TRIGGER ALL;
@@ -474,7 +484,7 @@ INSERT INTO public."Payment" (id, "orderId", "paymentId", "userId", amount, stat
 ALTER TABLE public."Payment" ENABLE TRIGGER ALL;
 
 --
--- Data for Name: PhoneNumberView; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: PhoneNumberView; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 ALTER TABLE public."PhoneNumberView" DISABLE TRIGGER ALL;
@@ -484,7 +494,7 @@ ALTER TABLE public."PhoneNumberView" DISABLE TRIGGER ALL;
 ALTER TABLE public."PhoneNumberView" ENABLE TRIGGER ALL;
 
 --
--- Data for Name: TypeField; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: TypeField; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 ALTER TABLE public."TypeField" DISABLE TRIGGER ALL;
@@ -878,7 +888,7 @@ INSERT INTO public."TypeField" (id, name, "isRequired", "typeId") VALUES (384, '
 ALTER TABLE public."TypeField" ENABLE TRIGGER ALL;
 
 --
--- Data for Name: ProductFieldValue; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: ProductFieldValue; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 ALTER TABLE public."ProductFieldValue" DISABLE TRIGGER ALL;
@@ -1032,19 +1042,19 @@ INSERT INTO public."ProductFieldValue" (id, value, "fieldId", "productId") VALUE
 ALTER TABLE public."ProductFieldValue" ENABLE TRIGGER ALL;
 
 --
--- Data for Name: Promotion; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: Promotion; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 ALTER TABLE public."Promotion" DISABLE TRIGGER ALL;
 
-INSERT INTO public."Promotion" (id, name, "pricePerDay", "createdAt", "updatedAt") VALUES (1, 'Стандарт', 50, '2025-12-08 12:37:51.475', '2025-12-08 12:37:32.223');
 INSERT INTO public."Promotion" (id, name, "pricePerDay", "createdAt", "updatedAt") VALUES (2, 'Люкс', 100, '2025-12-08 12:37:51.475', '2025-12-08 12:37:44.761');
+INSERT INTO public."Promotion" (id, name, "pricePerDay", "createdAt", "updatedAt") VALUES (1, 'Стандарт', 50, '2025-12-08 12:37:51.475', '2025-12-08 12:37:32.223');
 
 
 ALTER TABLE public."Promotion" ENABLE TRIGGER ALL;
 
 --
--- Data for Name: ProductPromotion; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: ProductPromotion; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 ALTER TABLE public."ProductPromotion" DISABLE TRIGGER ALL;
@@ -1054,7 +1064,7 @@ ALTER TABLE public."ProductPromotion" DISABLE TRIGGER ALL;
 ALTER TABLE public."ProductPromotion" ENABLE TRIGGER ALL;
 
 --
--- Data for Name: ProductView; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: ProductView; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 ALTER TABLE public."ProductView" DISABLE TRIGGER ALL;
@@ -1142,7 +1152,7 @@ INSERT INTO public."ProductView" (id, "viewedById", "productId", "viewedAt") VAL
 ALTER TABLE public."ProductView" ENABLE TRIGGER ALL;
 
 --
--- Data for Name: Review; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: Review; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 ALTER TABLE public."Review" DISABLE TRIGGER ALL;
@@ -1152,7 +1162,7 @@ ALTER TABLE public."Review" DISABLE TRIGGER ALL;
 ALTER TABLE public."Review" ENABLE TRIGGER ALL;
 
 --
--- Data for Name: SupportTicket; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: SupportTicket; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 ALTER TABLE public."SupportTicket" DISABLE TRIGGER ALL;
@@ -1162,7 +1172,7 @@ ALTER TABLE public."SupportTicket" DISABLE TRIGGER ALL;
 ALTER TABLE public."SupportTicket" ENABLE TRIGGER ALL;
 
 --
--- Data for Name: SupportMessage; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: SupportMessage; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 ALTER TABLE public."SupportMessage" DISABLE TRIGGER ALL;
@@ -1172,7 +1182,7 @@ ALTER TABLE public."SupportMessage" DISABLE TRIGGER ALL;
 ALTER TABLE public."SupportMessage" ENABLE TRIGGER ALL;
 
 --
--- Data for Name: _UserFavorites; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: _UserFavorites; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 ALTER TABLE public."_UserFavorites" DISABLE TRIGGER ALL;
@@ -1182,7 +1192,7 @@ ALTER TABLE public."_UserFavorites" DISABLE TRIGGER ALL;
 ALTER TABLE public."_UserFavorites" ENABLE TRIGGER ALL;
 
 --
--- Data for Name: _prisma_migrations; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: _prisma_migrations; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 ALTER TABLE public._prisma_migrations DISABLE TRIGGER ALL;
@@ -1194,133 +1204,140 @@ INSERT INTO public._prisma_migrations (id, checksum, finished_at, migration_name
 ALTER TABLE public._prisma_migrations ENABLE TRIGGER ALL;
 
 --
--- Name: Banner_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: BannerView_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public."BannerView_id_seq"', 1, false);
+
+
+--
+-- Name: Banner_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."Banner_id_seq"', 4, true);
 
 
 --
--- Name: Category_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: Category_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."Category_id_seq"', 2, true);
 
 
 --
--- Name: Chat_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: Chat_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."Chat_id_seq"', 145, true);
 
 
 --
--- Name: FavoriteAction_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: FavoriteAction_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."FavoriteAction_id_seq"', 79, true);
 
 
 --
--- Name: Log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: Log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."Log_id_seq"', 2, true);
 
 
 --
--- Name: Message_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: Message_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."Message_id_seq"', 2, true);
 
 
 --
--- Name: Payment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: Payment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."Payment_id_seq"', 7, true);
 
 
 --
--- Name: PhoneNumberView_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: PhoneNumberView_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."PhoneNumberView_id_seq"', 1, true);
 
 
 --
--- Name: ProductFieldValue_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: ProductFieldValue_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."ProductFieldValue_id_seq"', 256, true);
 
 
 --
--- Name: ProductPromotion_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: ProductPromotion_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."ProductPromotion_id_seq"', 1, false);
 
 
 --
--- Name: ProductView_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: ProductView_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."ProductView_id_seq"', 667, true);
 
 
 --
--- Name: Promotion_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: Promotion_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."Promotion_id_seq"', 2, true);
 
 
 --
--- Name: Review_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: Review_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."Review_id_seq"', 2, true);
 
 
 --
--- Name: Role_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: Role_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."Role_id_seq"', 3, true);
 
 
 --
--- Name: SubCategory_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SubCategory_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."SubCategory_id_seq"', 15, true);
 
 
 --
--- Name: SubcategotyType_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SubcategotyType_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."SubcategotyType_id_seq"', 75, true);
 
 
 --
--- Name: SupportMessage_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SupportMessage_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."SupportMessage_id_seq"', 1, false);
 
 
 --
--- Name: SupportTicket_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SupportTicket_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."SupportTicket_id_seq"', 1, false);
 
 
 --
--- Name: TypeField_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TypeField_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."TypeField_id_seq"', 209, true);
@@ -1330,5 +1347,5 @@ SELECT pg_catalog.setval('public."TypeField_id_seq"', 209, true);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 6h56Txr7fMTLB4a7h7AhWQ2OShNGOYydpfviSUThDMNrMrYxwRuMuP3W1iCLXne
+\unrestrict JJ28Gy5ot2WBSP4DqL0DN9uAiz9a69tkjRb01tm5xh4DIYbrYCCXZaKT6vMEo6F
 

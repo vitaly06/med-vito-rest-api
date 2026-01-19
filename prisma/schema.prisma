@@ -111,6 +111,12 @@ model User {
   // Платежи пользователя
   payments Payment[] @relation("UserPayments")
 
+  // Баннеры пользователя
+  banners Banner[] @relation("UserBanners")
+  
+  // Просмотры баннеров пользователем
+  bannerViews BannerView[] @relation("UserBannerViews")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -516,8 +522,37 @@ model Banner {
 
   navigateToUrl String
   
+  // Пользователь, создавший баннер
+  userId Int
+  user   User @relation("UserBanners", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Просмотры баннера
+  views BannerView[] @relation("BannerViews")
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Просмотры баннеров
+model BannerView {
+  id Int @id @default(autoincrement())
+
+  // Какой баннер просмотрели
+  bannerId Int
+  banner   Banner @relation("BannerViews", fields: [bannerId], references: [id], onDelete: Cascade)
+
+  // Кто просмотрел (опционально, для анонимных пользователей может быть null)
+  userId Int?
+  user   User? @relation("UserBannerViews", fields: [userId], references: [id], onDelete: SetNull)
+
+  // IP адрес для отслеживания уникальных просмотров
+  ipAddress String?
+
+  // Дата и время просмотра
+  viewedAt DateTime @default(now())
+
+  @@index([bannerId])
+  @@index([userId])
 }
 
 // Платежи через Т-Банк

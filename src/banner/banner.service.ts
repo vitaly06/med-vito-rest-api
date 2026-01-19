@@ -17,6 +17,7 @@ export class BannerService {
     place: BannerPlace,
     navigateToUrl: string,
     name: string,
+    userId: number,
   ) {
     // Загружаем изображение в S3
     const photoUrl = await this.s3Service.uploadFile(file, 'banners');
@@ -28,6 +29,7 @@ export class BannerService {
         photoUrl,
         place,
         navigateToUrl,
+        userId,
       },
     });
 
@@ -51,6 +53,14 @@ export class BannerService {
         createdAt: 'desc',
       },
     });
+  }
+
+  async findRandom(limit: number = 5) {
+    return this.prisma.$queryRaw`
+      SELECT * FROM "Banner"
+      ORDER BY RANDOM()
+      LIMIT ${limit}
+    `;
   }
 
   async findOne(id: number) {
@@ -127,5 +137,109 @@ export class BannerService {
     });
 
     return { message: 'Баннер успешно удалён' };
+  }
+
+  /**
+   * Зарегистрировать просмотр баннера
+   */
+  async registerView(bannerId: number, userId?: number, ipAddress?: string) {
+    // Проверяем существование баннера
+    await this.findOne(bannerId);
+
+    // Проверяем, был ли просмотр от этого пользователя/IP за последние 24 часа
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const orConditions: Array<{ userId?: number; ipAddress?: string }> = [];
+    if (userId) orConditions.push({ userId });
+    if (ipAddress) orConditions.push({ ipAddress });
+
+    const existingView = await this.prisma.bannerView.findFirst({
+      where: {
+        bannerId,
+        viewedAt: { gte: twentyFourHoursAgo },
+        ...(orConditions.length > 0 && { OR: orConditions }),
+      },
+    });
+
+    // Если уже был просмотр - не дублируем
+    if (existingView) {
+      return existingView;
+    }
+
+    // Создаём запись о просмотре
+    return this.prisma.bannerView.create({
+      data: {
+        bannerId,
+        userId,
+        ipAddress,
+      },
+    });
+  }
+
+  /**
+   * Получить статистику по баннеру
+   */
+  async getBannerStats(bannerId: number) {
+    // Проверяем существование баннера
+    const banner = await this.findOne(bannerId);
+
+    // Общее количество просмотров
+    const totalViews = await this.prisma.bannerView.count({
+      where: { bannerId },
+    });
+
+    // Уникальные пользователи
+    const uniqueUsers = await this.prisma.bannerView.groupBy({
+      by: ['userId'],
+      where: {
+        bannerId,
+        userId: { not: null },
+      },
+    });
+
+    // Просмотры по дням (последние 30 дней)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const viewsByDay = await this.prisma.$queryRaw`
+      SELECT DATE("viewedAt") as date, COUNT(*) as views
+      FROM "BannerView"
+      WHERE "bannerId" = ${bannerId}
+        AND "viewedAt" >= ${thirtyDaysAgo}
+      GROUP BY DATE("viewedAt")
+      ORDER BY date DESC
+    `;
+
+    return {
+      banner,
+      totalViews,
+      uniqueUsers: uniqueUsers.length,
+      viewsByDay,
+    };
+  }
+
+  /**
+   * Получить общую статистику по всем баннерам пользователя
+   */
+  async getUserBannersStats(userId: number) {
+    const banners = await this.prisma.banner.findMany({
+      where: { userId },
+      include: {
+        _count: {
+          select: { views: true },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return banners.map((banner) => ({
+      id: banner.id,
+      name: banner.name,
+      place: banner.place,
+      totalViews: banner._count.views,
+      createdAt: banner.createdAt,
+    }));
   }
 }

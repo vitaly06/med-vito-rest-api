@@ -454,4 +454,35 @@ export class ProductController {
   async allProductsToModerate() {
     return await this.productService.allProductsToModerate();
   }
+
+  @ApiOperation({
+    summary: 'Получить все товары с активными продвижениями',
+    description:
+      'Возвращает список всех товаров, у которых есть оплаченные продвижения',
+  })
+  @UseGuards(AdminSessionAuthGuard)
+  @ApiTags('Управление продвижением товаров (админка)')
+  @ApiResponse({
+    status: 200,
+    description: 'Список продвигаемых товаров',
+  })
+  @Get('promoted-products')
+  async getAllPromotedProducts() {
+    return await this.productService.getAllPromotedProducts();
+  }
+
+  @ApiOperation({
+    summary: 'Включить/отключить продвижение',
+    description: 'Переключает статус isActive для конкретного продвижения',
+  })
+  @UseGuards(AdminSessionAuthGuard)
+  @ApiTags('Управление продвижением товаров (админка)')
+  @ApiResponse({
+    status: 200,
+    description: 'Статус продвижения изменен',
+  })
+  @Put('toggle-promotion/:promotionId')
+  async togglePromotion(@Param('promotionId') promotionId: string) {
+    return await this.productService.togglePromotion(+promotionId);
+  }
 }

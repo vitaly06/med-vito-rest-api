@@ -3,11 +3,13 @@ import {
   Controller,
   Delete,
   Get,
+  Ip,
   Param,
   ParseIntPipe,
   Post,
   Put,
   Query,
+  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -23,8 +25,11 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Request } from 'express';
 
 import { AdminSessionAuthGuard } from 'src/auth/guards/admin-session-auth.guard';
+import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
+import { OptionalSessionAuthGuard } from 'src/auth/guards/optional-session-auth.guard';
 
 import { BannerService } from './banner.service';
 import { CreateBannerDto } from './dto/create-banner.dto';
@@ -37,7 +42,7 @@ export class BannerController {
   constructor(private readonly bannerService: BannerService) {}
 
   @Post()
-  @UseGuards(AdminSessionAuthGuard)
+  @UseGuards(SessionAuthGuard)
   @UseInterceptors(FileInterceptor('image'))
   @ApiBearerAuth()
   @ApiOperation({
@@ -61,6 +66,7 @@ export class BannerController {
         place: 'PRODUCT_FEED',
         name: 'Google Browser',
         navigateToUrl: 'https://google.com',
+        userId: 1,
         createdAt: '2025-12-27T10:00:00.000Z',
         updatedAt: '2025-12-27T10:00:00.000Z',
       },
@@ -70,12 +76,43 @@ export class BannerController {
   @ApiResponse({ status: 401, description: 'Не авторизован' })
   @ApiResponse({ status: 403, description: 'Доступ запрещён' })
   async create(
+    @Req() request: Request & { user: any },
     @UploadedFile() file: Express.Multer.File,
     @Body('place') place: BannerPlace,
     @Body('navigateToUrl') navigateToUrl: string,
     @Body('name') name: string,
   ) {
-    return this.bannerService.create(file, place, navigateToUrl, name);
+    const userId = request.user.id;
+    return this.bannerService.create(file, place, navigateToUrl, name, userId);
+  }
+
+  @Get('random')
+  @ApiOperation({
+    summary: 'Получить случайные баннеры',
+    description:
+      'Возвращает 5 случайных баннеров из БД (или меньше, если их меньше 5)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Список случайных баннеров получен',
+    schema: {
+      example: [
+        {
+          id: 1,
+          photoUrl:
+            'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/abc123.jpg',
+          place: 'PRODUCT_FEED',
+          name: 'Yandex Browser',
+          navigateToUrl: 'https://yandex.ru',
+          userId: 7106521,
+          createdAt: '2025-12-27T10:00:00.000Z',
+          updatedAt: '2025-12-27T10:00:00.000Z',
+        },
+      ],
+    },
+  })
+  async findRandom() {
+    return this.bannerService.findRandom(5);
   }
 
   @Get()
@@ -226,5 +263,117 @@ export class BannerController {
   @ApiResponse({ status: 404, description: 'Баннер не найден' })
   async remove(@Param('id', ParseIntPipe) id: number) {
     return this.bannerService.remove(id);
+  }
+
+  @Post(':id/view')
+  @UseGuards(OptionalSessionAuthGuard)
+  @ApiOperation({
+    summary: 'Зарегистрировать просмотр баннера',
+    description:
+      'Регистрирует просмотр баннера для аналитики. Можно вызывать без авторизации',
+  })
+  @ApiParam({
+    name: 'id',
+    type: 'number',
+    description: 'ID баннера',
+    example: 1,
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Просмотр зарегистрирован',
+    schema: {
+      example: {
+        id: 1,
+        bannerId: 1,
+        userId: 1,
+        ipAddress: '192.168.1.1',
+        viewedAt: '2025-12-27T10:00:00.000Z',
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Баннер не найден' })
+  async registerView(
+    @Param('id', ParseIntPipe) bannerId: number,
+    @Req() request: Request & { user: any },
+    @Ip() ipAddress: string,
+  ) {
+    const userId = request.user?.id;
+    return this.bannerService.registerView(bannerId, userId, ipAddress);
+  }
+
+  @Get(':id/stats')
+  @UseGuards(SessionAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Получить статистику по баннеру',
+    description:
+      'Возвращает статистику просмотров для конкретного баннера (только для владельца)',
+  })
+  @ApiParam({
+    name: 'id',
+    type: 'number',
+    description: 'ID баннера',
+    example: 1,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Статистика по баннеру',
+    schema: {
+      example: {
+        bannerId: 1,
+        totalViews: 150,
+        uniqueUsers: 85,
+        viewsByDay: [
+          { date: '2025-01-15', views: 25 },
+          { date: '2025-01-16', views: 30 },
+        ],
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Не авторизован' })
+  @ApiResponse({ status: 403, description: 'Доступ запрещён' })
+  @ApiResponse({ status: 404, description: 'Баннер не найден' })
+  async getBannerStats(@Param('id', ParseIntPipe) bannerId: number) {
+    return this.bannerService.getBannerStats(bannerId);
+  }
+
+  @Get('my-stats/all')
+  @UseGuards(SessionAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Получить статистику по всем баннерам пользователя',
+    description:
+      'Возвращает статистику просмотров для всех баннеров текущего пользователя',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Статистика по баннерам пользователя',
+    schema: {
+      example: [
+        {
+          id: 1,
+          name: 'Google Browser',
+          photoUrl:
+            'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/abc123.jpg',
+          place: 'PRODUCT_FEED',
+          navigateToUrl: 'https://google.com',
+          totalViews: 150,
+        },
+        {
+          id: 2,
+          name: 'Yandex Search',
+          photoUrl:
+            'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/banners/def456.jpg',
+          place: 'PROFILE',
+          navigateToUrl: 'https://yandex.ru',
+          totalViews: 85,
+        },
+      ],
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Не авторизован' })
+  async getUserBannersStats(@Req() request: Request & { user: any }) {
+    const userId = request.user.id;
+    return this.bannerService.getUserBannersStats(userId);
   }
 }
