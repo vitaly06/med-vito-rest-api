@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict JJ28Gy5ot2WBSP4DqL0DN9uAiz9a69tkjRb01tm5xh4DIYbrYCCXZaKT6vMEo6F
+\restrict 4NiEYDyKlxvlgGqkeb5HvaMLHy97mCg56PzipZ49km854s9NGzFsWS5JEI3INTO
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -40,6 +40,7 @@ ALTER TABLE public."Role" ENABLE TRIGGER ALL;
 
 ALTER TABLE public."User" DISABLE TRIGGER ALL;
 
+INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (7106521, 'Попов Матвей Иванович', 'vitaly.sadikov1@yandex.ru', '+79510341677', '$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C', 'INDIVIDUAL', '2025-11-06 19:33:46.625', '2026-01-22 06:14:35.664', NULL, false, 3, false, 'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/eac42b51-e66a-4d76-bad2-c6db0efd947b.jpg', true, 0, 1800, false, 12, '2026-01-11 17:11:38.151', 0);
 INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (3432589, 'Исаев Максим Андреевич', 'sima.isaev2305@mail.ru', '+79501859919', '$2b$10$VI6Gb9KuiHWEnbndcyi1WemTTQgKWwVhpcOfnEEj7W18T8Gw.TPou', 'INDIVIDUAL', '2025-11-28 09:06:55.938', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
 INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (3235109, 'Арзамасцев Даниил', 'arzamastsevdaniil@gmail.com', '+79068346355', '$2b$10$NvJVMH9Kn16C7hSuCtRAf./yj8/jgaeUg2ZI0IAkxt2Tc/Cf5DR8G', 'INDIVIDUAL', '2025-12-01 05:48:10.726', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
 INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (9371169, 'Захаров АР ВЛ', 'Zahar83s@mail.ru', '+79878600551', '$2b$10$TfLU49EmrMYrTPd46fQv6.QNkD3tEE2WnHVmy8qIdYzHVOX4PLe4q', 'INDIVIDUAL', '2025-11-28 09:07:21.428', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
@@ -56,7 +57,6 @@ INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "prof
 INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (6669460, 'Афонасьев Афиларет Михайлович', 'pr.actual@mail.ru', '+79082734009', '$2b$10$R0pbgCnq1AVwe9phmKu1GOT0emg48XzDbtYRBEn/xEyCFd8aNYX7y', 'INDIVIDUAL', '2025-12-01 08:28:35.989', '2025-12-08 12:30:51.217', NULL, false, 1, true, 'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/71116356-ea56-4dd5-ac1a-86c5a6e2e11b.jpg', false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
 INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (1208299, 'Кокеев Фирилл Батькович', 'test@test.com', '+79953501391', '$2b$10$0GEA/Uvq4NrHTLuOetQTXuoviQG19DrdEX4NIFUwD.54aF7ePJveO', 'INDIVIDUAL', '2025-11-28 09:07:44.576', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
 INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (2321239, 'Прокофьева Валерия Денисовна', 'lin.ferr@mail.ru', '+79225406669', '$2b$10$7mnxrJ2LJ0S5RoBoo8gVteXYR.o2kM/nnm07SpxHT37YZqEghfVAC', 'INDIVIDUAL', '2025-11-28 09:08:42.207', '2025-12-19 12:04:30.85', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
-INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (7106521, 'Попов Матвей Иванович', 'vitaly.sadikov1@yandex.ru', '+79510341677', '$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C', 'INDIVIDUAL', '2025-11-06 19:33:46.625', '2026-01-11 17:11:38.153', NULL, false, 3, false, 'https://c15b4d655f70-medvito-data.s3.ru1.storage.beget.cloud/users/eac42b51-e66a-4d76-bad2-c6db0efd947b.jpg', true, 0, 2500, false, 12, '2026-01-11 17:11:38.151', 0);
 INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (2681599, 'Корякина Ирина', 'ikoryakina47@gmail.com', '+79228579009', '$2b$10$48dtDNK6DIH0yBgup4eqeeG8k5NPkHuhqBNvQ2yCJqayB3sNthYOS', 'INDIVIDUAL', '2025-12-01 08:08:29.883', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
 INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (7132269, 'йцукенгшщзх', 'qwertyui123@gmail.com', '+75678903456', '$2b$10$hhmWdTv8RdWeJ1ofHOjaTuKBgOo2JUky9za7NTJ.uCcfrH3W2CK/S', 'INDIVIDUAL', '2025-12-01 14:29:11.538', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
 INSERT INTO public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") VALUES (4146092, 'Фокеев Кирилл', 'test1@test.com', '+71234567890', '$2b$10$FELoBjJj0J8IeMy2YhKlIeniLkjz86fijJS2HOFJ3XvJ3fnIulg2i', 'INDIVIDUAL', '2025-12-02 10:48:41.186', '2025-12-08 12:30:43.354', NULL, false, 1, false, NULL, false, 0, 0, false, 12, '2025-12-24 18:33:10.973', 0);
@@ -1059,6 +1059,7 @@ ALTER TABLE public."Promotion" ENABLE TRIGGER ALL;
 
 ALTER TABLE public."ProductPromotion" DISABLE TRIGGER ALL;
 
+INSERT INTO public."ProductPromotion" (id, "productId", "promotionId", "userId", days, "totalPrice", "startDate", "endDate", "isActive", "isPaid", "createdAt", "updatedAt") VALUES (1, 5868178, 2, 7106521, 7, 700, '2026-01-22 06:14:35.62', '2026-01-29 06:14:35.62', true, true, '2026-01-22 06:14:35.628', '2026-01-22 06:14:35.672');
 
 
 ALTER TABLE public."ProductPromotion" ENABLE TRIGGER ALL;
@@ -1277,7 +1278,7 @@ SELECT pg_catalog.setval('public."ProductFieldValue_id_seq"', 256, true);
 -- Name: ProductPromotion_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public."ProductPromotion_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."ProductPromotion_id_seq"', 1, true);
 
 
 --
@@ -1347,5 +1348,5 @@ SELECT pg_catalog.setval('public."TypeField_id_seq"', 209, true);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict JJ28Gy5ot2WBSP4DqL0DN9uAiz9a69tkjRb01tm5xh4DIYbrYCCXZaKT6vMEo6F
+\unrestrict 4NiEYDyKlxvlgGqkeb5HvaMLHy97mCg56PzipZ49km854s9NGzFsWS5JEI3INTO
 
