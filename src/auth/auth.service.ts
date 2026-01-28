@@ -20,13 +20,18 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 import { SignInDto } from './dto/sign-in.dto';
 import { SignUpDto } from './dto/sign-up.dto';
+import { HttpService } from '@nestjs/axios';
+import { error } from 'console';
+import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class AuthService {
   baseUrl: string;
+  mtsToken: string;
   private readonly logger = new Logger('Auth');
   constructor(
     private readonly prisma: PrismaService,
+    private readonly httpService: HttpService,
     private readonly configService: ConfigService,
     private readonly mailerSerivce: MailerService,
     @Inject(CACHE_MANAGER) private cacheManager: cacheManager_1.Cache,
@@ -35,8 +40,10 @@ export class AuthService {
       'BASE_URL',
       'http://localhost:3000',
     );
+    this.mtsToken = this.configService.get<string>('MTS_TOKEN', 'Not found');
   }
 
+  // Регистрация с отправкой кода в смс
   async signUp(dto: SignUpDto) {
     const checkUser = await this.prisma.user.findFirst({
       where: {
@@ -48,14 +55,59 @@ export class AuthService {
       throw new BadRequestException('Данный пользователь уже существует');
     }
 
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    // Тело запроса на отправку смс на номер телефона
+    const verifyCode = await this.generateVerifyCode();
+    const data = {
+      submits: [
+        {
+          msid: dto.phoneNumber,
+          message: `Код подтверждения: ${verifyCode}`,
+        },
+      ],
+      // naming: 'Torgui Sam',
+      naming: 'MTSM_Test',
+    };
+    // Запись кода в redis
+    await this.cacheManager.set(
+      `verify-phone:${verifyCode}`,
+      JSON.stringify({
+        data: dto,
+        code: verifyCode,
+      }),
+      3600 * 1000,
+    );
 
+    const response = await this.sendSms(
+      'https://api.mts.ru/client-omni-adapter_production/1.0.2/mcom/messageManagement/messages',
+      data,
+    );
+
+    return { message: 'Код подтверждения отправлен на номер телефона' };
+  }
+
+  // Подтверждение номера телефона с помощью кода
+  async verifyMobileCode(code: string) {
+    // Достаём из кэша данные пользователя
+    const cachedDataStr = await this.cacheManager.get<string>(
+      `verify-phone:${code}`,
+    );
+    const cachedData = cachedDataStr ? JSON.parse(cachedDataStr) : null;
+    console.log(code);
+    if (!cachedData) {
+      console.log('Данные не найдены в кеше');
+    }
+    if (cachedData.code !== code) {
+      throw new BadRequestException('Неверный код подтверждения');
+    }
     const role = await this.prisma.role.findUnique({
       where: { name: 'default' },
     });
     if (!role) {
       throw new NotFoundException('Роль default не найдена');
     }
+
+    const hashedPassword = await bcrypt.hash(cachedData.data.password, 10);
+
     try {
       // Генерируем уникальный семизначный ID
       const userId = await generateUniqueId(this.prisma, 'user');
@@ -63,13 +115,16 @@ export class AuthService {
       await this.prisma.user.create({
         data: {
           id: userId,
-          ...dto,
+          ...cachedData.data,
           password: hashedPassword,
           roleId: role?.id,
         },
       });
 
-      this.logger.log(`Успешная регистрация: ${dto.email}, ${dto.phoneNumber}`);
+      this.logger.log(
+        `Успешная регистрация: ${cachedData.data.email}, ${cachedData.data.phoneNumber}`,
+      );
+      await this.cacheManager.del(`verify-phone:${code}`);
 
       return { message: 'Вы успешно зарегистрировались!' };
     } catch (e) {
@@ -294,5 +349,17 @@ export class AuthService {
 
   async generateVerifyCode(): Promise<string> {
     return Math.floor(100000 + Math.random() * 900000).toString(); // Генерирует 6 цифр (от 100000 до 999999)
+  }
+
+  // Отправка смс на номер телефона
+  async sendSms(url: string, data: any) {
+    // Установка токена в headers
+    const config = {
+      headers: {
+        Authorization: `Bearer ${this.mtsToken}`,
+      },
+    };
+
+    return (await lastValueFrom(this.httpService.post(url, data, config))).data;
   }
 }

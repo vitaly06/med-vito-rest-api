@@ -24,11 +24,20 @@ import { SessionAuthGuard } from './guards/session-auth.guard';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @ApiTags('Регистрация')
+  @ApiOperation({
+    summary: '',
+  })
   @Post('sign-up')
   async signUp(@Body() dto: SignUpDto) {
     return await this.authService.signUp(dto);
   }
 
+  @ApiTags('Регистрация')
+  @Post('verify-mobile-code')
+  async verifyMobileCode(@Query('code') code: string) {
+    return await this.authService.verifyMobileCode(code);
+  }
   @Post('sign-in')
   async signIn(
     @Body() dto: SignInDto,
@@ -82,7 +91,7 @@ export class AuthController {
 
   @ApiTags('Восстановление пароля')
   @ApiOperation({
-    summary: 'Смена4 пароля после подтверждения кода из почты',
+    summary: 'Смена пароля после подтверждения кода из почты',
   })
   @Post('change-password')
   async changePassword(@Body() dto: ChangePasswordDto) {

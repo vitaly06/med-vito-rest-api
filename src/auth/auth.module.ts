@@ -5,10 +5,11 @@ import { AuthService } from './auth.service';
 import { AdminSessionAuthGuard } from './guards/admin-session-auth.guard';
 import { OptionalSessionAuthGuard } from './guards/optional-session-auth.guard';
 import { SessionAuthGuard } from './guards/session-auth.guard';
+import { HttpModule } from '@nestjs/axios';
 import { WsSessionAuthGuard } from './guards/ws-session-auth.guard';
 
 @Module({
-  imports: [],
+  imports: [HttpModule],
   controllers: [AuthController],
   providers: [
     AuthService,
