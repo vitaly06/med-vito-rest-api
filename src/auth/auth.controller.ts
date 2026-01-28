@@ -38,6 +38,7 @@ export class AuthController {
   async verifyMobileCode(@Query('code') code: string) {
     return await this.authService.verifyMobileCode(code);
   }
+
   @Post('sign-in')
   async signIn(
     @Body() dto: SignInDto,

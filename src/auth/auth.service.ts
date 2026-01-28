@@ -67,6 +67,7 @@ export class AuthService {
       // naming: 'Torgui Sam',
       naming: 'MTSM_Test',
     };
+    console.log(verifyCode);
     // Запись кода в redis
     await this.cacheManager.set(
       `verify-phone:${verifyCode}`,
@@ -95,6 +96,7 @@ export class AuthService {
     console.log(code);
     if (!cachedData) {
       console.log('Данные не найдены в кеше');
+      throw new BadRequestException('Код подтверждения не найден или истек');
     }
     if (cachedData.code !== code) {
       throw new BadRequestException('Неверный код подтверждения');
