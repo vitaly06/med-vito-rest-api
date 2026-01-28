@@ -121,7 +121,7 @@ export class UserService {
     });
 
     const reviews = await this.prisma.review.findMany({
-      where: { reviewedUserId: id },
+      where: { reviewedUserId: id, moderateState: 'APPROVED' },
       select: {
         rating: true,
       },

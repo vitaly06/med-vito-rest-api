@@ -1,8 +1,13 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { PrismaService } from 'src/prisma/prisma.service';
 
 import { SendReviewDto } from './dto/send-review.dto';
+import { ModerateState } from './enum/moderate-state.enum';
 
 @Injectable()
 export class ReviewService {
@@ -33,7 +38,7 @@ export class ReviewService {
 
   async getUserReviews(userId: number) {
     const reviews = await this.prisma.review.findMany({
-      where: { reviewedUserId: userId },
+      where: { reviewedUserId: userId, moderateState: 'APPROVED' },
       select: {
         rating: true,
         text: true,
@@ -66,5 +71,63 @@ export class ReviewService {
         };
       }),
     };
+  }
+
+  async moderateReview(reviewId: number, status: ModerateState) {
+    if (!['APPROVED', 'DENIDED'].includes(status)) {
+      throw new BadRequestException(
+        'Неверный статус модерации. Доступные статуты: APPROVED, DENIDED',
+      );
+    }
+
+    const checkReview = await this.prisma.review.findUnique({
+      where: { id: reviewId },
+    });
+
+    if (!checkReview) {
+      throw new NotFoundException('Отзыв для модерации не найден');
+    }
+
+    // Обновляем товар
+    await this.prisma.review.update({
+      where: { id: reviewId },
+      data: {
+        moderateState: status,
+      },
+    });
+
+    if (status == 'APPROVED') {
+      return { message: 'Отзыв успешно опубликован' };
+    }
+    return { message: 'Отзыв успешно отклонён' };
+  }
+
+  async allReviewsToModerate() {
+    const reviews = await this.prisma.review.findMany({
+      where: { moderateState: 'MODERATE' },
+      select: {
+        id: true,
+        rating: true,
+        text: true,
+        createdAt: true,
+        reviewedBy: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
+        reviewedUser: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return reviews;
   }
 }

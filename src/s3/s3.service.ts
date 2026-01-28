@@ -78,12 +78,13 @@ export class S3Service {
         Key: fileName,
         Body: file.buffer,
         ContentType: file.mimetype,
-        ACL: 'public-read', // Файл будет доступен публично
+        // ACL убран - используем "Сделать все материалы публичными" из панели Beget
       });
 
       await this.s3Client.send(command);
 
-      return `https://${this.bucketName}.s3.ru1.storage.beget.cloud/${fileName}`;
+      // Path-style URL для совместимости с Beget
+      return `https://s3.ru1.storage.beget.cloud/${this.bucketName}/${fileName}`;
     } catch (error) {
       throw new BadRequestException(
         `Ошибка загрузки файла в S3: ${error.message}`,

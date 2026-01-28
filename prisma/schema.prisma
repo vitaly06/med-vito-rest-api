@@ -25,6 +25,18 @@ enum ProductModerate {
   DENIDED
 }
 
+enum ReviewModerate {
+  MODERATE
+  APPROVED
+  DENIDED
+}
+
+enum BannerModerate {
+  MODERATE
+  APPROVED
+  DENIDED
+}
+
 enum BannerPlace {
   PRODUCT_FEED
   PROFILE
@@ -389,7 +401,7 @@ model Review {
 
   reviewedById Int
   reviewedBy User @relation("ReviewedBy", fields: [reviewedById], references: [id], onDelete: Cascade)
-  
+  moderateState ReviewModerate @default(MODERATE)
   reviewedUserId Int
   reviewedUser User @relation("ReviewedUser", fields: [reviewedUserId], references: [id], onDelete: Cascade)
  
@@ -519,6 +531,7 @@ model Banner {
   
   // Место размещения баннера на сайте
   place BannerPlace
+  moderateState BannerModerate @default(MODERATE)
 
   navigateToUrl String
   

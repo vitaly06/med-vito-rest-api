@@ -1,9 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { PrismaService } from 'src/prisma/prisma.service';
 import { S3Service } from 'src/s3/s3.service';
 
 import { BannerPlace } from './entities/banner-place.enum';
+import { ModerateState } from './enum/moderate-state.enum';
 
 @Injectable()
 export class BannerService {
@@ -38,6 +43,9 @@ export class BannerService {
 
   async findAll() {
     return this.prisma.banner.findMany({
+      where: {
+        moderateState: 'APPROVED',
+      },
       orderBy: {
         createdAt: 'desc',
       },
@@ -48,6 +56,7 @@ export class BannerService {
     return this.prisma.banner.findMany({
       where: {
         place,
+        moderateState: 'APPROVED',
       },
       orderBy: {
         createdAt: 'desc',
@@ -58,6 +67,7 @@ export class BannerService {
   async findRandom(limit: number = 5) {
     return this.prisma.$queryRaw`
       SELECT * FROM "Banner"
+      WHERE "moderateState" = 'APPROVED'
       ORDER BY RANDOM()
       LIMIT ${limit}
     `;
@@ -241,5 +251,62 @@ export class BannerService {
       totalViews: banner._count.views,
       createdAt: banner.createdAt,
     }));
+  }
+
+  async moderateBanner(bannerId: number, status: ModerateState) {
+    if (!['MODERATE', 'APPROVED', 'DENIDED'].includes(status)) {
+      throw new BadRequestException(
+        'Неверный статус модерации. Доступные статусы: MODERATE, APPROVED, DENIDED',
+      );
+    }
+
+    const checkBanner = await this.prisma.banner.findUnique({
+      where: { id: bannerId },
+    });
+
+    if (!checkBanner) {
+      throw new NotFoundException('Баннер для модерации не найден');
+    }
+
+    // Обновляем баннер
+    await this.prisma.banner.update({
+      where: { id: bannerId },
+      data: {
+        moderateState: status,
+      },
+    });
+
+    if (status == 'APPROVED') {
+      return { message: 'Баннер успешно опубликован' };
+    } else if (status == 'DENIDED') {
+      return { message: 'Баннер успешно отклонён' };
+    }
+    return { message: 'Баннер возвращён на модерацию' };
+  }
+
+  async allBannersToModerate() {
+    const banners = await this.prisma.banner.findMany({
+      where: { moderateState: 'MODERATE' },
+      select: {
+        id: true,
+        name: true,
+        photoUrl: true,
+        place: true,
+        navigateToUrl: true,
+        createdAt: true,
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            photo: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return banners;
   }
 }

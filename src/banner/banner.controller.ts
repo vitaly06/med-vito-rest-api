@@ -35,6 +35,7 @@ import { BannerService } from './banner.service';
 import { CreateBannerDto } from './dto/create-banner.dto';
 import { UpdateBannerDto } from './dto/update-banner.dto';
 import { BannerPlace } from './entities/banner-place.enum';
+import { ModerateState } from './enum/moderate-state.enum';
 
 @ApiTags('Banners')
 @Controller('banner')
@@ -375,5 +376,32 @@ export class BannerController {
   async getUserBannersStats(@Req() request: Request & { user: any }) {
     const userId = request.user.id;
     return this.bannerService.getUserBannersStats(userId);
+  }
+
+  @ApiTags('Модерация баннеров')
+  @ApiOperation({ summary: 'Модерация баннера (одобрить/отклонить)' })
+  @UseGuards(AdminSessionAuthGuard)
+  @ApiQuery({
+    name: 'status',
+    enum: ModerateState,
+    required: true,
+    description: 'Статус модерации: MODERATE, APPROVED или DENIDED',
+  })
+  @Put('moderate/:id')
+  async moderateBanner(
+    @Param('id') id: string,
+    @Query('status') status: ModerateState,
+  ) {
+    return await this.bannerService.moderateBanner(+id, status);
+  }
+
+  @ApiTags('Модерация баннеров')
+  @ApiOperation({
+    summary: 'Все баннеры для модерации',
+  })
+  @UseGuards(AdminSessionAuthGuard)
+  @Get('/all-banners-to-moderate')
+  async allBannersToModerate() {
+    return await this.bannerService.allBannersToModerate();
   }
 }
