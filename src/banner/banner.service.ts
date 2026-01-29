@@ -24,6 +24,24 @@ export class BannerService {
     name: string,
     userId: number,
   ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        role: true,
+      },
+    });
+
+    let moderateStatus = ModerateState.MODERATE;
+
+    const checkRole = await this.prisma.role.findFirst({
+      where: {
+        name: 'admin',
+      },
+    });
+
+    if (user?.role && user?.role.id == checkRole?.id) {
+      moderateStatus = ModerateState.APPROVED;
+    }
     // Загружаем изображение в S3
     const photoUrl = await this.s3Service.uploadFile(file, 'banners');
 
@@ -32,6 +50,7 @@ export class BannerService {
       data: {
         name,
         photoUrl,
+        moderateState: moderateStatus,
         place,
         navigateToUrl,
         userId,

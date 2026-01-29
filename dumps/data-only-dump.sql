@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict adw17TgGvczgNVdT3ea55X69HLMulc5LyeDfAqMb3OJnKYqTVxStNDS6fKjb2vJ
+\restrict RFlONJ4I4hbYG0H4rDdkEaGPFo9JHJFbz8n8bimz17LdgdevnxUlxHJj8oCfmFE
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -18,6 +18,9 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+-- Temporarily disable triggers to avoid FK constraint issues during data load
+SET session_replication_role = 'replica';
 
 --
 -- Data for Name: Role; Type: TABLE DATA; Schema: public; Owner: postgres
@@ -52,7 +55,6 @@ COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType
 7391202	kostyukov	geronimoprofitop@gmail.com	+79228744883	$2b$10$ulXOXoQl7aAYjf7uJ2opGOApWYjLTVFSWBrWyYAjJp80HAeDl97OS	INDIVIDUAL	2025-11-28 09:07:57.477	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
 1208299	Кокеев Фирилл Батькович	test@test.com	+79953501391	$2b$10$0GEA/Uvq4NrHTLuOetQTXuoviQG19DrdEX4NIFUwD.54aF7ePJveO	INDIVIDUAL	2025-11-28 09:07:44.576	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
 2321239	Прокофьева Валерия Денисовна	lin.ferr@mail.ru	+79225406669	$2b$10$7mnxrJ2LJ0S5RoBoo8gVteXYR.o2kM/nnm07SpxHT37YZqEghfVAC	INDIVIDUAL	2025-11-28 09:08:42.207	2025-12-19 12:04:30.85	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
-6678761	Садиков Виталий Дмитриевич	vitaly.sadikov4@yandex.ru	+79123482231	$2b$10$V8eCJZ9r.GJHWJaxeF/gweDaVdQw3Mac6hvcVS7AztPG0/Ju13cOu	INDIVIDUAL	2026-01-28 07:11:48.553	2026-01-28 07:11:48.553	\N	f	1	f	\N	f	0	0	f	6	2026-01-28 07:11:48.553	0
 2681599	Корякина Ирина	ikoryakina47@gmail.com	+79228579009	$2b$10$48dtDNK6DIH0yBgup4eqeeG8k5NPkHuhqBNvQ2yCJqayB3sNthYOS	INDIVIDUAL	2025-12-01 08:08:29.883	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
 7132269	йцукенгшщзх	qwertyui123@gmail.com	+75678903456	$2b$10$hhmWdTv8RdWeJ1ofHOjaTuKBgOo2JUky9za7NTJ.uCcfrH3W2CK/S	INDIVIDUAL	2025-12-01 14:29:11.538	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
 4146092	Фокеев Кирилл	test1@test.com	+71234567890	$2b$10$FELoBjJj0J8IeMy2YhKlIeniLkjz86fijJS2HOFJ3XvJ3fnIulg2i	INDIVIDUAL	2025-12-02 10:48:41.186	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
@@ -70,6 +72,7 @@ COPY public."Banner" (id, "photoUrl", "createdAt", "updatedAt", place, "navigate
 3	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/banners/ed332202-ca96-47fb-8b49-425cacd3e739.png	2026-01-11 19:19:39.78	2026-01-11 19:19:39.78	FAVORITES	https://mail.ru	Mail.ru	7106521	MODERATE
 4	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/banners/db7395f3-dd21-49fc-9278-393642b85f19.png	2026-01-11 19:19:52.414	2026-01-11 19:19:52.414	CHATS	https://github.com	Github	7106521	MODERATE
 5	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/banners/3bf5d717-f2c4-4869-ab63-229bb98cb640.png	2026-01-22 07:06:55.183	2026-01-22 07:06:55.183	PRODUCT_FEED	https://google.com	test	7106521	MODERATE
+6	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/banners/d178fb16-ff5b-4932-9617-d3a47e92f025.png	2026-01-29 05:48:22.516	2026-01-29 05:48:22.516	PRODUCT_FEED	https://google.com	test	7106521	MODERATE
 \.
 
 
@@ -1069,21 +1072,21 @@ COPY public._prisma_migrations (id, checksum, finished_at, migration_name, logs,
 -- Name: BannerView_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."BannerView_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."BannerView_id_seq"', 1, true);
 
 
 --
 -- Name: Banner_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Banner_id_seq"', 5, true);
+SELECT pg_catalog.setval('public."Banner_id_seq"', 6, true);
 
 
 --
 -- Name: Category_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Category_id_seq"', 2, true);
+SELECT pg_catalog.setval('public."Category_id_seq"', 1, true);
 
 
 --
@@ -1160,7 +1163,7 @@ SELECT pg_catalog.setval('public."Promotion_id_seq"', 2, true);
 -- Name: Review_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Review_id_seq"', 2, true);
+SELECT pg_catalog.setval('public."Review_id_seq"', 1, true);
 
 
 --
@@ -1188,14 +1191,14 @@ SELECT pg_catalog.setval('public."SubcategotyType_id_seq"', 75, true);
 -- Name: SupportMessage_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."SupportMessage_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."SupportMessage_id_seq"', 1, true);
 
 
 --
 -- Name: SupportTicket_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."SupportTicket_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."SupportTicket_id_seq"', 1, true);
 
 
 --
@@ -1205,9 +1208,12 @@ SELECT pg_catalog.setval('public."SupportTicket_id_seq"', 1, false);
 SELECT pg_catalog.setval('public."TypeField_id_seq"', 209, true);
 
 
+-- Re-enable triggers after data load
+SET session_replication_role = 'origin';
+
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict adw17TgGvczgNVdT3ea55X69HLMulc5LyeDfAqMb3OJnKYqTVxStNDS6fKjb2vJ
+\unrestrict RFlONJ4I4hbYG0H4rDdkEaGPFo9JHJFbz8n8bimz17LdgdevnxUlxHJj8oCfmFE
 
