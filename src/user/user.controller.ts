@@ -73,6 +73,16 @@ export class UserController {
   }
 
   @ApiOperation({
+    summary: 'Получение количества оставшихся бесплатных объявлений',
+  })
+  @ApiTags('Пользователь')
+  @UseGuards(SessionAuthGuard)
+  @Get('remaining-free-ads')
+  async getRemainingFreeAds(@Req() req: Request & { user: any }) {
+    return await this.userService.getRemainingFreeAds(req.user.id);
+  }
+
+  @ApiOperation({
     summary: 'Получение номера телефона продавца',
   })
   @UseGuards(SessionAuthGuard)

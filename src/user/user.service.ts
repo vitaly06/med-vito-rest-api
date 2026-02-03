@@ -171,6 +171,51 @@ export class UserService {
     };
   }
 
+  async getRemainingFreeAds(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        freeAdsLimit: true,
+        usedFreeAds: true,
+        lastAdLimitReset: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+
+    const now = new Date();
+    const resetDate = new Date(user.lastAdLimitReset);
+    const isNewMonth =
+      now.getMonth() !== resetDate.getMonth() ||
+      now.getFullYear() !== resetDate.getFullYear();
+
+    let usedFreeAds = user.usedFreeAds;
+
+    // Если начался новый месяц, сбрасываем счётчик
+    if (isNewMonth) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          usedFreeAds: 0,
+          lastAdLimitReset: now,
+        },
+      });
+      usedFreeAds = 0;
+    }
+
+    const remaining = Math.max(0, user.freeAdsLimit - usedFreeAds);
+
+    return {
+      total: user.freeAdsLimit,
+      used: usedFreeAds,
+      remaining,
+      costPerAd: 50,
+      nextReset: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+    };
+  }
+
   async getPhoneNumber(userId: number, myId: number) {
     const checkUser = await this.prisma.user.findUnique({
       where: { id: userId },
