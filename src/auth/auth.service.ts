@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
   UnauthorizedException,
@@ -28,6 +29,7 @@ import { lastValueFrom } from 'rxjs';
 export class AuthService {
   baseUrl: string;
   mtsToken: string;
+  notisendApiKey: string;
   private readonly logger = new Logger('Auth');
   constructor(
     private readonly prisma: PrismaService,
@@ -41,10 +43,14 @@ export class AuthService {
       'http://localhost:3000',
     );
     this.mtsToken = this.configService.get<string>('MTS_TOKEN', 'Not found');
+    this.notisendApiKey = this.configService.get<string>(
+      'NOTISEND_API_KEY',
+      'Not found',
+    );
   }
 
   // Регистрация с отправкой кода в смс
-  async signUp(dto: SignUpDto) {
+  async signUp(dto: SignUpDto, where: string) {
     const checkUser = await this.prisma.user.findFirst({
       where: {
         OR: [{ phoneNumber: dto.phoneNumber }, { email: dto.email }],
@@ -57,15 +63,40 @@ export class AuthService {
 
     // Тело запроса на отправку смс на номер телефона
     const verifyCode = await this.generateVerifyCode();
-    const data = {
-      submits: [
-        {
-          msid: dto.phoneNumber,
-          message: `Код подтверждения: ${verifyCode}`,
-        },
-      ],
-      naming: 'Torguisamru',
-    };
+    switch (where.toLowerCase()) {
+      case 'telegram':
+        console.log(this.notisendApiKey);
+        const resp = await this.sendTgSms(
+          `https://sms.notisend.ru/api/message/send?project=torgui_sam&message=${encodeURIComponent('Код подтверждения: ' + verifyCode)}&recipients=${dto.phoneNumber}&apikey=${this.notisendApiKey}`,
+        );
+
+        console.log(resp);
+
+        if (resp.status == 'error') {
+          throw new InternalServerErrorException(
+            'Не удалось отправить сообщение',
+          );
+        }
+        break;
+      case 'sms':
+        const data = {
+          submits: [
+            {
+              msid: dto.phoneNumber,
+              message: `Код подтверждения: ${verifyCode}`,
+            },
+          ],
+          naming: 'Torguisamru',
+        };
+        const response = await this.sendSms(
+          'https://api.mts.ru/client-omni-adapter_production/1.0.2/mcom/messageManagement/messages',
+          data,
+        );
+        break;
+      default:
+        throw new BadRequestException('Where должен быть telegram или sms');
+    }
+
     console.log(verifyCode);
     // Запись кода в redis
     const redisKey = `verify-phone:${verifyCode}`;
@@ -76,49 +107,21 @@ export class AuthService {
 
     await this.cacheManager.set(redisKey, redisData, 3600 * 1000);
 
-    // Логирование для отладки
-    console.log('[REGISTER] Redis key:', redisKey);
-    console.log('[REGISTER] Redis TTL: 3600s (1 hour)');
-    console.log('[REGISTER] Phone:', dto.phoneNumber);
-
-    // Проверка что данные записались
-    const checkData = await this.cacheManager.get(redisKey);
-    console.log('[REGISTER] Data saved to Redis:', checkData ? 'YES' : 'NO');
-
-    const response = await this.sendSms(
-      'https://api.mts.ru/client-omni-adapter_production/1.0.2/mcom/messageManagement/messages',
-      data,
-    );
-
-    return { message: 'Код подтверждения отправлен на номер телефона' };
+    return { message: 'Код подтверждения успешно отправлен' };
   }
 
   // Подтверждение номера телефона с помощью кода
   async verifyMobileCode(code: string) {
     const redisKey = `verify-phone:${code}`;
-    console.log('[VERIFY] Searching Redis key:', redisKey);
-    console.log('[VERIFY] Code received:', code);
 
     // Достаём из кэша данные пользователя
     const cachedDataStr = await this.cacheManager.get<string>(redisKey);
-    console.log(
-      '[VERIFY] Raw data from Redis:',
-      cachedDataStr ? 'FOUND' : 'NOT FOUND',
-    );
 
     const cachedData = cachedDataStr ? JSON.parse(cachedDataStr) : null;
 
     if (!cachedData) {
-      console.log('[VERIFY] ERROR: Data not found in Redis cache');
-      console.log('[VERIFY] This means either:');
-      console.log('[VERIFY] 1. Code expired (TTL > 1 hour)');
-      console.log('[VERIFY] 2. Different Redis instance');
-      console.log('[VERIFY] 3. Code was not saved properly');
       throw new BadRequestException('Код подтверждения не найден или истек');
     }
-
-    console.log('[VERIFY] Found data for phone:', cachedData.data?.phoneNumber);
-    console.log('[VERIFY] Code match:', cachedData.code === code);
 
     if (cachedData.code !== code) {
       throw new BadRequestException('Неверный код подтверждения');
@@ -367,7 +370,9 @@ export class AuthService {
       this.logger.log('Письмо успешно отправлено:', result);
     } catch (error) {
       this.logger.error('Ошибка отправки письма:', error);
-      throw new BadRequestException(`Ошибка отправки письма: ${error.message}`);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Неизвестная ошибка';
+      throw new BadRequestException(`Ошибка отправки письма: ${errorMessage}`);
     }
   }
 
@@ -385,5 +390,9 @@ export class AuthService {
     };
 
     return (await lastValueFrom(this.httpService.post(url, data, config))).data;
+  }
+
+  async sendTgSms(url: string) {
+    return (await lastValueFrom(this.httpService.get(url))).data;
   }
 }

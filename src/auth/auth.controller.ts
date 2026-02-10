@@ -8,7 +8,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 
 import type { Request, Response } from 'express';
 
@@ -28,9 +28,10 @@ export class AuthController {
   @ApiOperation({
     summary: '',
   })
+  @ApiQuery({ name: 'where', required: true, enum: ['telegram', 'sms'] })
   @Post('sign-up')
-  async signUp(@Body() dto: SignUpDto) {
-    return await this.authService.signUp(dto);
+  async signUp(@Body() dto: SignUpDto, @Query('where') where: string) {
+    return await this.authService.signUp(dto, where);
   }
 
   @ApiTags('Регистрация')
