@@ -828,3 +828,36 @@ func _swaggerTypeFieldFindAll() {}
 // @Param id path int true "ID"
 // @Router /type-field/find-by-id/{id} [get]
 func _swaggerTypeFieldFindByID() {}
+
+// registerSwaggerDocSymbols — ссылки на заглушки и типы только для swag; без этого gopls/staticcheck видят «unused».
+func init() {
+	_ = []any{
+		_swaggerAddressSuggestions, _swaggerAddressValidate,
+		_swaggerAuthChangePassword, _swaggerAuthForgot, _swaggerAuthIsAdmin, _swaggerAuthLogout, _swaggerAuthMe,
+		_swaggerAuthSignIn, _swaggerAuthSignUp, _swaggerAuthVerifyForgot, _swaggerAuthVerifyMobile,
+		_swaggerBannerAllModerate, _swaggerBannerCreate, _swaggerBannerList, _swaggerBannerModerate, _swaggerBannerRandom,
+		_swaggerCategoryCreate, _swaggerCategoryDelete, _swaggerCategoryFindAll, _swaggerCategoryFindByID,
+		_swaggerCategoryFindBySlug, _swaggerCategoryPath, _swaggerCategoryUpdate,
+		_swaggerChatInfo, _swaggerChatList, _swaggerChatMessages, _swaggerChatStart,
+		_swaggerHealth, _swaggerLogFindAll,
+		_swaggerPaymentCheckStatus, _swaggerPaymentCreate, _swaggerPaymentHistory, _swaggerPaymentNotification,
+		_swaggerProductAll, _swaggerProductCard, _swaggerProductCreate, _swaggerProductDelete,
+		_swaggerProductModerate, _swaggerProductPatch,
+		_swaggerPromotionAdd, _swaggerPromotionAll,
+		_swaggerReviewModerate, _swaggerReviewModerateList, _swaggerReviewSend, _swaggerReviewUserReviews,
+		_swaggerStatisticsAnalytic, _swaggerStatisticsProducts,
+		_swaggerSubcategoryFindAll, _swaggerSubcategoryFindByID, _swaggerSubcategoryTypeFindAll, _swaggerSubcategoryTypeFindByID,
+		_swaggerSupportAllTickets, _swaggerSupportAssignTicket, _swaggerSupportCreateTicket, _swaggerSupportGetTicket,
+		_swaggerSupportMyTickets, _swaggerSupportSendMessage, _swaggerSupportStats, _swaggerSupportUpdateTicket,
+		_swaggerTypeFieldFindAll, _swaggerTypeFieldFindByID,
+		_swaggerUserAdminDelete, _swaggerUserAdminPatch, _swaggerUserFindAll, _swaggerUserInfo, _swaggerUserRemainingFreeAds,
+		_swaggerUserSetBalance, _swaggerUserShowNumber, _swaggerUserToggleBanned, _swaggerUserUpdateSettings,
+		_swaggerUserVerifyEmail, _swaggerUserVerifyEmailCode,
+		swaggerAddPromotion{}, swaggerAdminUpdateUser{}, swaggerChangePassword{}, swaggerCheckPayment{},
+		swaggerCreateCategory{}, swaggerCreatePayment{}, swaggerCreateSupportTicket{}, swaggerForgotEmail{},
+		swaggerPaymentCheckStateResponse{}, swaggerPaymentCreateResponse{}, swaggerPaymentHistoryItem{},
+		swaggerPaymentNotifyResponse{}, swaggerSendReview{}, swaggerSignIn{}, swaggerSignUp{}, swaggerStartChat{},
+		swaggerSupportMessage{}, swaggerTinkoffNotification{}, swaggerUpdateCategory{}, swaggerUpdateSupportTicket{},
+		swaggerValidateAddress{},
+	}
+}
