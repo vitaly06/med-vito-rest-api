@@ -1,0 +1,596 @@
+generator client {
+  provider = "prisma-client"
+  output = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ProfileType {
+  INDIVIDUAL
+  OOO
+  IP
+}
+
+enum ProductState {
+  NEW
+  USED
+}
+
+enum ProductModerate {
+  MODERATE
+  APPROVED
+  DENIDED
+}
+
+enum ReviewModerate {
+  MODERATE
+  APPROVED
+  DENIDED
+}
+
+enum BannerModerate {
+  MODERATE
+  APPROVED
+  DENIDED
+}
+
+enum BannerPlace {
+  PRODUCT_FEED
+  PROFILE
+  FAVORITES
+  CHATS
+}
+
+model Log {
+  id Int @id @default(autoincrement())
+  userId Int
+  user User @relation("UserLogs", fields: [userId], references: [id], onDelete: Cascade)
+  action String
+}
+
+model User {
+  id                    Int         @id
+  fullName              String      
+  email                 String      @unique
+  phoneNumber           String      @unique
+  password              String
+  rating                Int?
+  profileType           ProfileType @default(INDIVIDUAL)
+
+  balance Float @default(0)
+  bonusBalance Float @default(0)
+
+  isBanned Boolean @default(false)
+
+  // Лимит бесплатных объявлений в месяц
+  freeAdsLimit Int @default(6)
+  // Количество использованных бесплатных объявлений в текущем месяце
+  usedFreeAds Int @default(0)
+  // Дата последнего сброса лимита (начало месяца)
+  lastAdLimitReset DateTime @default(now())
+
+  photo String?
+  isAnswersCall Boolean? @default(false)
+
+  roleId Int?
+  role Role? @relation(fields: [roleId], references: [id])
+
+  isResetVerified Boolean @default(false)
+  isEmailVerified Boolean @default(false)
+
+  products  Product[]
+  favorites Product[] @relation("UserFavorites")
+
+  logs Log[] @relation("UserLogs")
+
+
+  // Чаты где пользователь покупатель
+  chatsAsBuyer  Chat[]    @relation("BuyerChats")
+  // Чаты где пользователь продавец  
+  chatsAsSeller Chat[]    @relation("SellerChats")
+  // Отправленные сообщения
+  sentMessages  Message[] @relation("SentMessages")
+
+  // Статистика показов номеров (кто показывал номера)
+  phoneNumberViews PhoneNumberView[] @relation("ViewedBy")
+  // Статистика чьи номера показывались
+  phoneNumberViewsReceived PhoneNumberView[] @relation("ViewedUser")
+
+  // Статистика просмотров товаров (какие товары смотрел пользователь)
+  productViews ProductView[] @relation("ProductViewedBy")
+
+  // Статистика добавлений в избранное (какие товары добавлял в избранное)
+  favoriteActions FavoriteAction[] @relation("FavoriteActions")
+  // Люди, которые писали отзывы
+  reviews Review[] @relation("ReviewedBy")
+  // Отзывы, которые писал пользователь
+  reviewsUser Review[] @relation("ReviewedUser")
+
+  // Система поддержки
+  // Тикеты, созданные пользователем
+  supportTickets SupportTicket[] @relation("UserSupportTickets")
+  // Тикеты, назначенные модератору
+  moderatorTickets SupportTicket[] @relation("ModeratorSupportTickets")
+  // Сообщения в системе поддержки
+  supportMessages SupportMessage[] @relation("SupportMessageAuthor")
+  
+  // Продвижения товаров пользователя
+  productPromotions ProductPromotion[]
+
+  // Платежи пользователя
+  payments Payment[] @relation("UserPayments")
+
+  // Баннеры пользователя
+  banners Banner[] @relation("UserBanners")
+  
+  // Просмотры баннеров пользователем
+  bannerViews BannerView[] @relation("UserBannerViews")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Role {
+  id Int @id @default(autoincrement())
+  name String @unique
+  users User[]
+
+}
+
+model Product {
+  id          Int          @id
+  name        String
+  price       Int
+  state       ProductState
+  description String?
+  address     String
+  videoUrl String?
+  images      String[]     @default([])
+
+  isHide Boolean @default(false)
+  moderateState ProductModerate @default(MODERATE)
+  moderationRejectionReason String?
+ 
+  categoryId  Int
+  category    Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  subCategoryId Int
+  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+
+  // Тип подкатегории (например: "Измерительные приборы", "Ортопедия")
+  typeId Int?
+  type   SubcategotyType? @relation(fields: [typeId], references: [id], onDelete: SetNull)
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  favoritedBy User[] @relation("UserFavorites")
+  // Чаты по этому товару
+  chats       Chat[]
+  
+  // Сообщения, связанные с этим товаром
+  relatedMessages Message[] @relation("MessageProduct")
+
+  // Статистика просмотров этого товара
+  views ProductView[] @relation("ProductViews")
+
+  // Статистика добавлений в избранное этого товара
+  favoriteActions FavoriteAction[] @relation("FavoriteActions")
+
+  // Значения дополнительных полей для товара
+  fieldValues ProductFieldValue[]
+  
+  // Продвижения этого товара
+  promotions ProductPromotion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Promotion {
+  id          Int    @id @default(autoincrement())
+  name        String @unique 
+  pricePerDay Int    // Цена за 1 день (50 или 100 рублей)
+  
+  // Продвижения товаров с этим тарифом
+  productPromotions ProductPromotion[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Продвижение конкретного товара
+model ProductPromotion {
+  id Int @id @default(autoincrement())
+  
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  promotionId Int
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  
+  userId Int // Пользователь, который оплатил продвижение
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  days       Int      // Количество дней продвижения
+  totalPrice Int      // Общая стоимость (days * pricePerDay)
+  startDate  DateTime // Дата начала продвижения
+  endDate    DateTime // Дата окончания продвижения
+  
+  isActive   Boolean  @default(true) // Активно ли продвижение
+  isPaid     Boolean  @default(false) // Оплачено ли
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Основная категория
+model Category {
+  id   Int    @id @default(autoincrement())
+  name String
+  slug String @unique @default("")
+
+  products Product[]
+
+  subCategories SubCategory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([slug])
+}
+
+// Подкатегории
+model SubCategory {
+  id   Int    @id @default(autoincrement())
+  name String
+  slug String @default("")
+
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  products Product[]
+
+  subcategoryTypes SubcategotyType[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([slug, categoryId])
+  @@index([slug])
+}
+
+model SubcategotyType {
+  id Int @id @default(autoincrement())
+  name String
+  slug String @default("")
+
+  subcategoryId Int
+  subcategory SubCategory @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
+
+  // Поля (атрибуты) для этого типа подкатегории
+  fields TypeField[]
+  
+  // Товары этого типа
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([slug, subcategoryId])
+  @@index([slug])
+}
+
+// Поля (атрибуты) для типа подкатегории
+model TypeField {
+  id Int @id @default(autoincrement())
+  name String // Название поля (например: "Вид", "Производитель")
+  isRequired Boolean @default(false) // Обязательное ли поле
+  
+  typeId Int
+  type SubcategotyType @relation(fields: [typeId], references: [id], onDelete: Cascade)
+
+  // Значения этого поля для конкретных товаров
+  values ProductFieldValue[]
+}
+
+// Значения полей для конкретного товара
+model ProductFieldValue {
+  id Int @id @default(autoincrement())
+  value String // Значение поля (например: "Тонометр", "Omron")
+
+  fieldId Int
+  field TypeField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  productId Int
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([fieldId, productId]) // Одно значение для каждого поля у товара
+}
+
+// Чат между покупателем и продавцом по конкретному товару
+model Chat {
+  id Int @id @default(autoincrement())
+
+  // Товар, по которому ведётся чат (опционально, для обычных чатов)
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // Покупатель (инициатор чата)
+  buyerId Int
+  buyer   User @relation("BuyerChats", fields: [buyerId], references: [id], onDelete: Cascade)
+
+  // Продавец (владелец товара)
+  sellerId Int
+  seller   User @relation("SellerChats", fields: [sellerId], references: [id], onDelete: Cascade)
+
+  // Признак чата модерации (между модератором и пользователем)
+  isModerationChat Boolean @default(false)
+
+  // Сообщения в чате
+  messages Message[]
+
+  // Количество непрочитанных сообщений для каждого участника
+  unreadCountBuyer  Int @default(0)
+  unreadCountSeller Int @default(0)
+
+  // Последнее сообщение для быстрого доступа
+  lastMessageId Int?
+  lastMessage   Message? @relation("LastMessage", fields: [lastMessageId], references: [id])
+  lastMessageAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Уникальный чат для каждой пары покупатель-продавец (без товара для чатов модерации)
+  @@unique([buyerId, sellerId, productId])
+}
+
+// Сообщения в чате
+model Message {
+  id Int @id @default(autoincrement())
+
+  // Текст сообщения
+  content String
+
+  // Отправитель
+  senderId Int
+  sender   User @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  // Чат, к которому относится сообщение
+  chatId Int
+  chat   Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  // Товар, к которому относится это сообщение (опционально, для контекста в чате модерации)
+  relatedProductId Int?
+  relatedProduct   Product? @relation("MessageProduct", fields: [relatedProductId], references: [id], onDelete: SetNull)
+
+  // Статус прочтения
+  isRead Boolean   @default(false)
+  readAt DateTime?
+
+  // Связь для последнего сообщения
+  lastMessageChats Chat[] @relation("LastMessage")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PhoneNumberView {
+  id Int @id @default(autoincrement())
+
+  // Кто смотрел номер
+  viewedById Int
+  viewedBy   User @relation("ViewedBy", fields: [viewedById], references: [id], onDelete: Cascade)
+
+  // Чей номер смотрели
+  viewedUserId Int
+  viewedUser   User @relation("ViewedUser", fields: [viewedUserId], references: [id], onDelete: Cascade)
+
+  // Дата и время просмотра
+  viewedAt DateTime @default(now())
+
+  @@unique([viewedById, viewedUserId]) 
+}
+
+model Review {
+  id Int @id @default(autoincrement())
+
+  reviewedById Int
+  reviewedBy User @relation("ReviewedBy", fields: [reviewedById], references: [id], onDelete: Cascade)
+  moderateState ReviewModerate @default(MODERATE)
+  reviewedUserId Int
+  reviewedUser User @relation("ReviewedUser", fields: [reviewedUserId], references: [id], onDelete: Cascade)
+ 
+  text String? 
+  rating Float
+
+  createdAt DateTime @default(now())
+
+  @@unique([reviewedById, reviewedUserId])
+}
+
+model ProductView {
+  id Int @id @default(autoincrement())
+
+  // Кто смотрел товар
+  viewedById Int
+  viewedBy   User @relation("ProductViewedBy", fields: [viewedById], references: [id], onDelete: Cascade)
+
+  // Какой товар смотрели
+  productId Int
+  product   Product @relation("ProductViews", fields: [productId], references: [id], onDelete: Cascade)
+
+  // Дата и время просмотра
+  viewedAt DateTime @default(now())
+
+  @@unique([viewedById, productId])
+}
+
+model FavoriteAction {
+  id Int @id @default(autoincrement())
+
+  // Кто добавил в избранное
+  userId Int
+  user   User @relation("FavoriteActions", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Какой товар добавили в избранное
+  productId Int
+  product   Product @relation("FavoriteActions", fields: [productId], references: [id], onDelete: Cascade)
+
+  // Дата и время добавления в избранное
+  addedAt DateTime @default(now())
+
+  @@unique([userId, productId])
+}
+
+// Энумы для системы поддержки
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketTheme {
+  TECHNICAL_ISSUE
+  ACCOUNT_PROBLEM
+  PAYMENT_ISSUE
+  PRODUCT_QUESTION
+  COMPLAINT
+  SUGGESTION
+  OTHER
+}
+
+// Тикет поддержки
+model SupportTicket {
+  id Int @id @default(autoincrement())
+
+  // Тема тикета
+  theme TicketTheme
+  
+  // Заголовок тикета
+  subject String
+  
+  // Статус тикета
+  status TicketStatus @default(OPEN)
+  
+  // Приоритет
+  priority TicketPriority @default(MEDIUM)
+
+  // Пользователь, создавший тикет
+  userId Int
+  user   User @relation("UserSupportTickets", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Модератор, назначенный на тикет (может быть null)
+  moderatorId Int?
+  moderator   User? @relation("ModeratorSupportTickets", fields: [moderatorId], references: [id], onDelete: SetNull)
+
+  // Сообщения в тикете
+  messages SupportMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Сообщения в тикете поддержки
+model SupportMessage {
+  id Int @id @default(autoincrement())
+
+  // Тикет, к которому относится сообщение
+  ticketId Int
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  // Автор сообщения
+  authorId Int
+  author   User @relation("SupportMessageAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Текст сообщения
+  text String
+
+  // Время отправки
+  sentAt DateTime @default(now())
+}
+
+// Баннер
+model Banner {
+  id Int @id @default(autoincrement())
+  name String
+  // URL изображения баннера
+  photoUrl String
+  
+  // Место размещения баннера на сайте
+  place BannerPlace
+  moderateState BannerModerate @default(MODERATE)
+
+  navigateToUrl String
+  
+  // Пользователь, создавший баннер
+  userId Int
+  user   User @relation("UserBanners", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Просмотры баннера
+  views BannerView[] @relation("BannerViews")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Просмотры баннеров
+model BannerView {
+  id Int @id @default(autoincrement())
+
+  // Какой баннер просмотрели
+  bannerId Int
+  banner   Banner @relation("BannerViews", fields: [bannerId], references: [id], onDelete: Cascade)
+
+  // Кто просмотрел (опционально, для анонимных пользователей может быть null)
+  userId Int?
+  user   User? @relation("UserBannerViews", fields: [userId], references: [id], onDelete: SetNull)
+
+  // IP адрес для отслеживания уникальных просмотров
+  ipAddress String?
+
+  // Дата и время просмотра
+  viewedAt DateTime @default(now())
+
+  @@index([bannerId])
+  @@index([userId])
+}
+
+// Платежи через Т-Банк
+model Payment {
+  id Int @id @default(autoincrement())
+  
+  // Уникальный ID заказа в системе
+  orderId String @unique
+  
+  // ID платежа в системе Т-Банк
+  paymentId String @unique
+  
+  // Пользователь
+  userId Int
+  user   User @relation("UserPayments", fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Сумма платежа в рублях
+  amount Float
+  
+  // Статус платежа
+  status String // PENDING, COMPLETED, FAILED
+  
+  // URL для оплаты
+  paymentUrl String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

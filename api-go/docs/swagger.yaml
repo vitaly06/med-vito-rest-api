@@ -1,0 +1,1604 @@
+basePath: /
+definitions:
+  main.swaggerAddPromotion:
+    properties:
+      days:
+        example: 7
+        type: integer
+      productId:
+        example: 123
+        type: integer
+      promotionId:
+        example: 1
+        type: integer
+    type: object
+  main.swaggerAdminUpdateUser:
+    properties:
+      bonusBalance:
+        type: number
+      email:
+        type: string
+      fullName:
+        type: string
+      phoneNumber:
+        type: string
+      profileType:
+        type: string
+    type: object
+  main.swaggerChangePassword:
+    properties:
+      password:
+        type: string
+      userId:
+        type: integer
+    type: object
+  main.swaggerCheckPayment:
+    properties:
+      paymentId:
+        example: "2673412345"
+        type: string
+    type: object
+  main.swaggerCreateCategory:
+    properties:
+      name:
+        example: Автомобили
+        type: string
+      slug:
+        example: avtomobili
+        type: string
+    type: object
+  main.swaggerCreatePayment:
+    properties:
+      amount:
+        example: 1000
+        type: number
+      description:
+        example: Пополнение баланса
+        type: string
+    type: object
+  main.swaggerCreateSupportTicket:
+    properties:
+      message:
+        type: string
+      priority:
+        example: MEDIUM
+        type: string
+      subject:
+        type: string
+      theme:
+        example: TECHNICAL_ISSUE
+        type: string
+    type: object
+  main.swaggerForgotEmail:
+    properties:
+      email:
+        type: string
+    type: object
+  main.swaggerPaymentCheckStateResponse:
+    properties:
+      amount:
+        example: 1000
+        type: number
+      orderId:
+        type: string
+      status:
+        example: CONFIRMED
+        type: string
+    type: object
+  main.swaggerPaymentCreateResponse:
+    properties:
+      amount:
+        example: 1000
+        type: number
+      orderId:
+        example: 123-1735123456789
+        type: string
+      paymentId:
+        example: "2673412345"
+        type: string
+      paymentUrl:
+        example: https://securepay.tinkoff.ru/...
+        type: string
+    type: object
+  main.swaggerPaymentHistoryItem:
+    properties:
+      amount:
+        type: number
+      createdAt:
+        type: string
+      id:
+        type: integer
+      orderId:
+        type: string
+      paymentId:
+        type: string
+      paymentUrl:
+        type: string
+      status:
+        example: COMPLETED
+        type: string
+      updatedAt:
+        type: string
+      userId:
+        type: integer
+    type: object
+  main.swaggerPaymentNotifyResponse:
+    properties:
+      message:
+        example: Баланс успешно пополнен
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  main.swaggerSendReview:
+    properties:
+      rating:
+        example: 5
+        type: number
+      reviewedUserId:
+        type: integer
+      text:
+        type: string
+    type: object
+  main.swaggerSignIn:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    type: object
+  main.swaggerSignUp:
+    properties:
+      email:
+        type: string
+      fullName:
+        type: string
+      password:
+        type: string
+      phoneNumber:
+        type: string
+    type: object
+  main.swaggerStartChat:
+    properties:
+      productId:
+        example: 1
+        type: integer
+    type: object
+  main.swaggerSupportMessage:
+    properties:
+      text:
+        type: string
+    type: object
+  main.swaggerTinkoffNotification:
+    properties:
+      Amount:
+        example: 100000
+        type: integer
+      ErrorCode:
+        example: "0"
+        type: string
+      OrderId:
+        example: 123-1735123456789
+        type: string
+      Pan:
+        example: 430000******0777
+        type: string
+      PaymentId:
+        example: "2673412345"
+        type: string
+      Status:
+        example: CONFIRMED
+        type: string
+      Success:
+        example: true
+        type: boolean
+      TerminalKey:
+        example: 1766153689307DEMO
+        type: string
+      Token:
+        example: подпись_от_банка
+        type: string
+    type: object
+  main.swaggerUpdateCategory:
+    properties:
+      name:
+        example: Автомобили
+        type: string
+      slug:
+        type: string
+    type: object
+  main.swaggerUpdateSupportTicket:
+    properties:
+      priority:
+        example: HIGH
+        type: string
+      status:
+        example: IN_PROGRESS
+        type: string
+    type: object
+  main.swaggerValidateAddress:
+    properties:
+      address:
+        type: string
+      addressDetails: {}
+    type: object
+host: localhost:3000
+info:
+  contact: {}
+  description: |-
+    REST API (Go/Fiber). Документация и Try it out: GET /docs/index.html. Для цепочки slug в path используй %2F (например elektronika%2Ftelefony).
+    **Socket.IO:** тот же хост и CORS что у REST; путь `/socket.io`; авторизация cookie `session_id`. Неймспейсы `/chat` и `/support`.
+    Клиент `socket.io`: надёжнее **v2.x / v3.x**; движок Go (`googollee/go-socket.io` ~v1.7) часто **не коннектится** с **socket.io-client v4** из‑за протокола handshake.
+    **/chat** — исходящие: `joinChat` {chatId}, `sendMessage` {chatId, content}, `markAsRead` {chatId}. Входящие: `newMessage`, `messagesRead`, `newChatMessage`.
+    **/support** — исходящие: `joinTicket`, `leaveTicket`, `sendSupportMessage` {ticketId, message:{text}}, `supportTyping` {ticketId, isTyping}, `updateTicketStatus` {ticketId, status} (модератор). Входящие: `newSupportMessage`, `moderatorResponse`, `supportUserTyping`, `ticketStatusUpdated`; по неймспейсу `newSupportTicket`; в комнате тикета `ticketAssigned`.
+  title: Med Vito REST API (Go)
+  version: "1.0"
+paths:
+  /address/suggestions:
+    get:
+      parameters:
+      - description: Строка поиска
+        in: query
+        name: query
+        required: true
+        type: string
+      - default: 5
+        description: Лимит
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+      summary: Подсказки адреса (DaData)
+      tags:
+      - address
+  /address/validate:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Адрес
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.swaggerValidateAddress'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Проверка адреса по первой подсказке DaData
+      tags:
+      - address
+  /auth/change-password:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Тело
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.swaggerChangePassword'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Новый пароль после verify-code
+      tags:
+      - auth
+  /auth/forgot-password:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: email
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.swaggerForgotEmail'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Запрос кода сброса на почту
+      tags:
+      - auth
+  /auth/isAdmin:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+      summary: Проверка роли admin
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Выход
+      tags:
+      - auth
+  /auth/me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      summary: Текущий пользователь
+      tags:
+      - auth
+  /auth/sign-in:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Логин
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.swaggerSignIn'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      summary: Вход (ставит cookie session_id)
+      tags:
+      - auth
+  /auth/sign-up:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: telegram или sms
+        enum:
+        - telegram
+        - sms
+        in: query
+        name: where
+        required: true
+        type: string
+      - description: Данные
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.swaggerSignUp'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Регистрация — отправка кода (query where=telegram|sms)
+      tags:
+      - auth
+  /auth/verify-code:
+    post:
+      parameters:
+      - description: Код из письма
+        in: query
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+      summary: Проверка кода сброса
+      tags:
+      - auth
+  /auth/verify-mobile-code:
+    post:
+      parameters:
+      - description: Код из SMS/TG
+        in: query
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Подтверждение телефона по коду
+      tags:
+      - auth
+  /banner:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      summary: Список одобренных баннеров (query place опционально)
+      tags:
+      - banner
+    post:
+      consumes:
+      - multipart/form-data
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: object
+      summary: 'Создать баннер (multipart: image, name, place, navigateToUrl; сессия)'
+      tags:
+      - banner
+  /banner/all-banners-to-moderate:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      summary: Очередь баннеров на модерацию (admin)
+      tags:
+      - banner
+  /banner/moderate/{id}:
+    put:
+      parameters:
+      - description: Banner id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: MODERATE|APPROVED|DENIDED
+        in: query
+        name: status
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Модерация баннера (admin, query status)
+      tags:
+      - banner
+  /banner/random:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      summary: Случайные одобренные баннеры
+      tags:
+      - banner
+  /category/create-category:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Тело
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.swaggerCreateCategory'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Создать категорию
+      tags:
+      - category-admin
+  /category/delete-category/{id}:
+    delete:
+      parameters:
+      - description: ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Удалить категорию
+      tags:
+      - category-admin
+  /category/find-all:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+      summary: Дерево всех категорий
+      tags:
+      - category
+  /category/find-by-id/{id}:
+    get:
+      parameters:
+      - description: ID категории
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Категория по id (полное дерево)
+      tags:
+      - category
+  /category/path/{slugPath}:
+    get:
+      description: 'В Swagger «Try it out» введи сегменты через %2F, например: elektronika%2Ftelefony'
+      parameters:
+      - description: Цепочка (или один сегмент)
+        in: path
+        name: slugPath
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Разрешение цепочки slug (категория / подкатегория / тип)
+      tags:
+      - category
+  /category/slug/{slug}:
+    get:
+      parameters:
+      - description: Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Категория по slug
+      tags:
+      - category
+  /category/update-category/{id}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Тело
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.swaggerUpdateCategory'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Обновить категорию
+      tags:
+      - category-admin
+  /chat:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+      summary: Список чатов пользователя
+      tags:
+      - chat
+  /chat/{id}:
+    get:
+      parameters:
+      - description: Chat id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      summary: Информация о чате
+      tags:
+      - chat
+  /chat/{id}/messages:
+    get:
+      parameters:
+      - description: Chat id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 1
+        description: Страница
+        in: query
+        name: page
+        type: integer
+      - default: 50
+        description: Лимит
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      summary: Сообщения чата (пагинация)
+      tags:
+      - chat
+  /chat/start:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: productId
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.swaggerStartChat'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Начать чат по товару
+      tags:
+      - chat
+  /health:
+    get:
+      description: Возвращает status ok
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Проверка живости сервиса
+      tags:
+      - system
+  /log/find-all:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+      summary: Список записей Log
+      tags:
+      - log
+  /payment/check-status:
+    post:
+      consumes:
+      - application/json
+      description: 'Сессия: cookie session_id. В теле — paymentId из ответа Init или
+        уведомления.'
+      parameters:
+      - description: paymentId
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.swaggerCheckPayment'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.swaggerPaymentCheckStateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Проверка статуса платежа в Т-Банке (GetState)
+      tags:
+      - payment
+  /payment/create:
+    post:
+      consumes:
+      - application/json
+      description: 'Init в Т-Банк. Нужны TINKOFF_TERMINAL_KEY и TINKOFF_SECRET_KEY.
+        Авторизация: cookie session_id после POST /auth/sign-in.'
+      parameters:
+      - description: Сумма в рублях (мин. 1)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.swaggerCreatePayment'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/main.swaggerPaymentCreateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Создание платежа для пополнения баланса
+      tags:
+      - payment
+  /payment/history:
+    get:
+      description: 'До 50 записей, новые сверху. Сессия: cookie session_id.'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.swaggerPaymentHistoryItem'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: История платежей пользователя
+      tags:
+      - payment
+  /payment/notification:
+    post:
+      consumes:
+      - application/json
+      description: Без сессии. Подпись Token проверяется по полям тела (как Nest).
+        Тело — как приходит от банка; пример ниже.
+      parameters:
+      - description: Уведомление
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.swaggerTinkoffNotification'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.swaggerPaymentNotifyResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Webhook уведомлений Т-Банка о статусе платежа
+      tags:
+      - payment
+  /product/{id}:
+    delete:
+      parameters:
+      - description: Product id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: Удалить свой товар
+      tags:
+      - product
+    patch:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: Product id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: Обновить товар (multipart)
+      tags:
+      - product
+  /product/all-products:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      summary: Список товаров / поиск (query; optional сессия для избранного)
+      tags:
+      - product
+  /product/create:
+    post:
+      consumes:
+      - multipart/form-data
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: object
+      summary: Создать товар (multipart, до 8 images, сессия)
+      tags:
+      - product
+  /product/moderate-product/{id}:
+    put:
+      parameters:
+      - description: Product id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: APPROVED|DENIDED
+        in: query
+        name: status
+        required: true
+        type: string
+      - description: Причина при DENIDED
+        in: query
+        name: reason
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Модерация (admin)
+      tags:
+      - product-admin
+  /product/product-card/{id}:
+    get:
+      parameters:
+      - description: Product id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: Карточка товара
+      tags:
+      - product
+  /promotion/add-promotion:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Тело
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.swaggerAddPromotion'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Подключить продвижение к товару (сессия)
+      tags:
+      - promotion
+  /promotion/all-promotions:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+      summary: Все типы продвижения (тарифы)
+      tags:
+      - promotion
+  /review/all-reviews-to-moderate:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      summary: Очередь отзывов на модерацию (admin)
+      tags:
+      - review-admin
+  /review/moderate-review/{id}:
+    put:
+      parameters:
+      - description: Review id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: APPROVED|DENIDED
+        in: query
+        name: status
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Модерация отзыва (admin)
+      tags:
+      - review-admin
+  /review/send-review:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Тело
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.swaggerSendReview'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Оставить отзыв продавцу (сессия)
+      tags:
+      - review
+  /review/user-reviews/{id}:
+    get:
+      parameters:
+      - description: User id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: Одобренные отзывы о пользователе
+      tags:
+      - review
+  /statistics/analytic:
+    get:
+      parameters:
+      - description: day week month quarter half-year year
+        in: query
+        name: period
+        type: string
+      - description: Фильтр по категории (через SubCategory)
+        in: query
+        name: categoryId
+        type: integer
+      - description: Подстрока в address (ILIKE)
+        in: query
+        name: region
+        type: string
+      - description: Конкретный товар
+        in: query
+        name: productId
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      summary: Статистика пользователя (просмотры, телефон, избранное)
+      tags:
+      - statistics
+  /statistics/products-analytic:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+      summary: Аналитика по каждому товару продавца
+      tags:
+      - statistics
+  /subcategory-type/find-all:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      summary: Все типы подкатегорий
+      tags:
+      - subcategory-type
+  /subcategory-type/find-by-id/{id}:
+    get:
+      parameters:
+      - description: ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: Тип подкатегории по id
+      tags:
+      - subcategory-type
+  /subcategory/find-all:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+      summary: Список подкатегорий
+      tags:
+      - subcategory
+  /subcategory/find-by-id/{id}:
+    get:
+      parameters:
+      - description: ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: Подкатегория по id
+      tags:
+      - subcategory
+  /support/stats:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      summary: Статистика тикетов (только admin)
+      tags:
+      - support
+  /support/tickets:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Тело
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.swaggerCreateSupportTicket'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: object
+      summary: Создать тикет поддержки
+      tags:
+      - support
+  /support/tickets/{id}:
+    get:
+      parameters:
+      - description: Ticket id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: Тикет с сообщениями
+      tags:
+      - support
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Ticket id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Поля
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.swaggerUpdateSupportTicket'
+      responses: {}
+      summary: Обновить тикет (модератор/admin)
+      tags:
+      - support
+  /support/tickets/{id}/assign:
+    put:
+      parameters:
+      - description: Ticket id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses: {}
+      summary: Назначить тикет на себя
+      tags:
+      - support
+  /support/tickets/{id}/messages:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Ticket id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Текст
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.swaggerSupportMessage'
+      responses: {}
+      summary: Сообщение в тикет
+      tags:
+      - support
+  /support/tickets/all:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      summary: Все тикеты (модератор/admin)
+      tags:
+      - support
+  /support/tickets/my:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      summary: Мои тикеты (пагинация, фильтры query)
+      tags:
+      - support
+  /type-field/find-all:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      summary: Все характеристики (поля типа)
+      tags:
+      - type-field
+  /type-field/find-by-id/{id}:
+    get:
+      parameters:
+      - description: ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: Характеристика по id
+      tags:
+      - type-field
+  /user/{id}:
+    delete:
+      parameters:
+      - description: User id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Удалить пользователя (админ, сессия)
+      tags:
+      - user-admin
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: User id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Поля
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.swaggerAdminUpdateUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Обновить пользователя (админ, сессия)
+      tags:
+      - user-admin
+  /user/find-all:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 'Список пользователей (админ: cookie session_id + роль admin)'
+      tags:
+      - user-admin
+  /user/info/{id}:
+    get:
+      parameters:
+      - description: User id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Карточка пользователя (рейтинг, лимит объявлений)
+      tags:
+      - user
+  /user/remaining-free-ads:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      summary: Остаток бесплатных объявлений (сессия)
+      tags:
+      - user
+  /user/set-balance/{userId}:
+    put:
+      parameters:
+      - description: User id
+        in: path
+        name: userId
+        required: true
+        type: integer
+      - description: Число
+        in: query
+        name: balance
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Установить bonusBalance (админ, сессия)
+      tags:
+      - user-admin
+  /user/show-number/{userId}:
+    get:
+      parameters:
+      - description: Продавец
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Показать номер продавца (сессия)
+      tags:
+      - user
+  /user/toggle-banned/{id}:
+    put:
+      parameters:
+      - description: User id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Бан / разбан (админ, сессия)
+      tags:
+      - user-admin
+  /user/update-settings:
+    patch:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: ФИО
+        in: formData
+        name: fullName
+        type: string
+      - description: Телефон
+        in: formData
+        name: phoneNumber
+        type: string
+      - description: true/false
+        in: formData
+        name: isAnswersCall
+        type: string
+      - description: INDIVIDUAL|OOO|IP
+        in: formData
+        name: profileType
+        type: string
+      - description: Аватар
+        in: formData
+        name: photo
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      summary: Обновление настроек (multipart, сессия)
+      tags:
+      - user
+  /user/verify-code:
+    post:
+      parameters:
+      - description: Код
+        in: query
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Подтвердить почту по коду из письма
+      tags:
+      - user
+  /user/verify-email:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Отправить код подтверждения на почту (сессия)
+      tags:
+      - user
+swagger: "2.0"
+tags:
+- description: Socket.IO на `/socket.io` (см. блок **Socket.IO** в описании API выше).
+    В Swagger нет Try it out для WS.
+  name: websocket
