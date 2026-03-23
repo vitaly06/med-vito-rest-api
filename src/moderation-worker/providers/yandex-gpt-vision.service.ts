@@ -16,22 +16,30 @@ interface OpenAICompatResponse {
   }>;
 }
 
-const VISION_PROMPT = `Это фото для объявления на маркетплейсе медицинского оборудования.
+const VISION_PROMPT = `Это фото для объявления на маркетплейсе.
 
-Проверь:
-1. Есть ли NSFW/откровенный контент, насилие, шокирующие материалы?
-2. Это реальное фото товара, а не скриншот другого сайта/приложения с чужими контактами?
+Проверь наличие ЛЮБОГО из следующих нарушений:
+1. Оружие, боеприпасы, взрывчатка, ножи как основной товар
+2. NSFW / откровенный контент / части тела
+3. Насилие, кровь, шокирующие материалы
+4. Скриншот стороннего сайта/приложения с контактами (телефон, email, ник)
+5. Наркотики, алкоголь, табак
+
+Если хотя бы одно нарушение есть — DENIED.
+Если фото нечёткое, подозрительное или невозможно определить товар — MANUAL.
+Если фото обычного товара (в т.ч. немедицинского бытового) без нарушений — APPROVED.
 
 Ответь СТРОГО в JSON без markdown-обёртки:
 {
   "decision": "APPROVED" | "MANUAL" | "DENIED",
-  "reason": "Объяснение на русском (пустая строка если APPROVED)"
+  "reason": "Объяснение на русском что именно нарушено (пустая строка если APPROVED)"
 }
 
-APPROVED — фото подходит
+DENIED — явное нарушение из списка выше
 MANUAL — сомнительно, нужна ручная проверка
-DENIED — явное нарушение (NSFW, насилие, скриншот с контактами)`;
+APPROVED — фото подходит`;
 
+const DOWNLOAD_TIMEOUT_MS = 30_000;
 const REQUEST_TIMEOUT_MS = 60_000;
 const VISION_ENDPOINT = 'https://ai.api.cloud.yandex.net/v1/chat/completions';
 
@@ -41,6 +49,24 @@ export class YandexGptVisionService {
 
   constructor(private readonly configService: ConfigService) {}
 
+  private async downloadImageAsBase64(
+    imageUrl: string,
+  ): Promise<{ base64: string; mimeType: string }> {
+    this.logger.log(`[Vision] Downloading image: ${imageUrl}`);
+    const resp = await axios.get<ArrayBuffer>(imageUrl, {
+      responseType: 'arraybuffer',
+      timeout: DOWNLOAD_TIMEOUT_MS,
+      headers: { 'User-Agent': 'MedVito-ModerationWorker/1.0' },
+    });
+    const base64 = Buffer.from(resp.data).toString('base64');
+    const mimeType =
+      (resp.headers['content-type'] as string | undefined) ?? 'image/jpeg';
+    this.logger.log(
+      `[Vision] Downloaded OK: ${base64.length} chars base64, mime=${mimeType}`,
+    );
+    return { base64, mimeType };
+  }
+
   async moderateImage(imageUrl: string): Promise<VisionModerationResult> {
     const folderId = this.configService.getOrThrow<string>('YANDEX_FOLDER_ID');
     const apiKey = this.configService.getOrThrow<string>('YANDEX_API_KEY');
@@ -48,13 +74,12 @@ export class YandexGptVisionService {
 
     this.logger.log(`[Vision] START imageUrl=${imageUrl}`);
     this.logger.log(`[Vision] endpoint=${VISION_ENDPOINT} model=${model}`);
-    this.logger.log(
-      `[Vision] folderId=${folderId} apiKey=${apiKey.substring(0, 6)}...`,
-    );
 
     let rawResponseData: unknown = null;
 
     try {
+      const { base64, mimeType } = await this.downloadImageAsBase64(imageUrl);
+
       const requestBody = {
         model,
         max_tokens: 150,
@@ -63,7 +88,11 @@ export class YandexGptVisionService {
           {
             role: 'user',
             content: [
-              { type: 'image_url', image_url: { url: imageUrl } },
+              {
+                type: 'image_url',
+                // Yandex requires base64 data URI — direct URLs are not supported
+                image_url: { url: `data:${mimeType};base64,${base64}` },
+              },
               { type: 'text', text: VISION_PROMPT },
             ],
           },

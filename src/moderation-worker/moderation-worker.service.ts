@@ -131,17 +131,36 @@ export class ModerationWorkerService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
-      // ── Step 2: Vision moderation (first image only) ─────────────────────
+      // ── Step 2: Vision moderation (all images) ───────────────────────────
       let visionDecision: 'APPROVED' | 'MANUAL' | 'DENIED' = 'APPROVED';
       let visionReason = '';
+      let visionTechnicalFailure = false;
 
-      if (product.images.length > 0) {
-        const visionResult = await this.gptVision.moderateImage(
-          product.images[0],
+      for (const imageUrl of product.images) {
+        const visionResult = await this.gptVision.moderateImage(imageUrl);
+        this.logger.log(
+          `[#${id}] Vision [${imageUrl}] → ${visionResult.decision}`,
         );
-        visionDecision = visionResult.decision;
-        visionReason = visionResult.reason;
-        this.logger.log(`[#${id}] Vision → ${visionDecision}`);
+
+        // Technical failure from the vision service
+        if (
+          visionResult.decision === 'MANUAL' &&
+          visionResult.reason === VISION_TECHNICAL_ERROR_REASON
+        ) {
+          visionTechnicalFailure = true;
+          continue; // check remaining images
+        }
+
+        // Escalate to the worst outcome seen across all images
+        if (visionResult.decision === 'DENIED') {
+          visionDecision = 'DENIED';
+          visionReason = visionResult.reason;
+          break;
+        }
+        if (visionResult.decision === 'MANUAL') {
+          visionDecision = 'MANUAL';
+          visionReason = visionResult.reason;
+        }
       }
 
       if (visionDecision === 'DENIED') {
@@ -150,38 +169,36 @@ export class ModerationWorkerService implements OnModuleInit, OnModuleDestroy {
       }
 
       // ── Step 3: Final decision ────────────────────────────────────────────
-      if (textResult.category === 'MANUAL' || visionDecision === 'MANUAL') {
-        const reasons: string[] = [];
-        if (textResult.category === 'MANUAL' && textResult.reason) {
-          reasons.push(`Текст: ${textResult.reason}`);
-        }
-        const isVisionTechnicalFailure =
-          visionDecision === 'MANUAL' &&
-          visionReason.includes(VISION_TECHNICAL_ERROR_REASON);
+      const reasons: string[] = [];
 
-        // Ignore transient technical failures of image analysis.
-        if (
-          visionDecision === 'MANUAL' &&
-          visionReason &&
-          !isVisionTechnicalFailure
-        ) {
-          reasons.push(`Фото: ${visionReason}`);
-        }
-        if (reasons.length === 0) {
-          // If AI marked MANUAL but could not explain why, treat it as APPROVED.
-          await this.applyDecision(id, 'APPROVED', AI_APPROVED_REASON);
-          this.logger.log(`[#${id}] → APPROVED (${AI_APPROVED_REASON})`);
-          return;
-        }
+      if (textResult.category === 'MANUAL' && textResult.reason) {
+        reasons.push(`Текст: ${textResult.reason}`);
+      }
+      if (visionDecision === 'MANUAL' && visionReason) {
+        reasons.push(`Фото: ${visionReason}`);
+      }
+      // Vision failed technically — cannot confirm photos are safe, require human
+      if (visionTechnicalFailure && visionDecision !== 'MANUAL') {
+        reasons.push(VISION_TECHNICAL_ERROR_REASON);
+      }
 
+      if (reasons.length > 0) {
         const manualReason = reasons.join(' / ');
         await this.applyDecision(id, 'AI_REVIEWED', manualReason);
         this.logger.log(`[#${id}] → MANUAL (${manualReason})`);
         return;
       }
 
-      await this.applyDecision(id, 'APPROVED', AI_APPROVED_REASON);
-      this.logger.log(`[#${id}] → APPROVED (${AI_APPROVED_REASON})`);
+      if (textResult.category === 'APPROVED' && visionDecision === 'APPROVED') {
+
+        await this.applyDecision(id, 'APPROVED', AI_APPROVED_REASON);
+        this.logger.log(`[#${id}] → APPROVED (${AI_APPROVED_REASON})`);
+        return;
+      }
+
+      // Fallback — should not normally reach here
+      await this.applyDecision(id, 'AI_REVIEWED', 'Требуется ручная проверка');
+      this.logger.log(`[#${id}] → MANUAL (fallback)`);
     } catch (err) {
       // Log and continue — don't let one failure stop the whole batch
       this.logger.error(`[#${id}] Unexpected error: ${(err as Error).message}`);
