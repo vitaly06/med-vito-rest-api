@@ -21,6 +21,7 @@ import { StatisticsModule } from './statistics/statistics.module';
 import { SubcategoryTypeModule } from './subcategory-type/subcategory-type.module';
 import { SubcategoryModule } from './subcategory/subcategory.module';
 import { SupportModule } from './support/support.module';
+import { ModerationModule } from './moderation/moderation.module';
 import { TypeFieldModule } from './type-field/type-field.module';
 import { UserModule } from './user/user.module';
 
@@ -58,6 +59,7 @@ import { UserModule } from './user/user.module';
     BannerModule,
     PaymentModule,
     LogModule,
+    ModerationModule,
   ],
 })
 export class AppModule {}

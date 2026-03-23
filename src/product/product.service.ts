@@ -1502,7 +1502,10 @@ export class ProductService {
         videoUrl: true,
       },
       where: {
-        moderateState: 'MODERATE',
+        OR: [
+          { moderateState: 'MODERATE' },
+          { moderateState: 'AI_REVIEWED' },
+        ],
       },
       orderBy: { createdAt: 'desc' },
     });

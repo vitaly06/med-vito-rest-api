@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import {
@@ -10,8 +10,12 @@ import {
 } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
 
+// Timeout for individual S3 upload/download operations
+const S3_OPERATION_TIMEOUT_MS = 30_000;
+
 @Injectable()
 export class S3Service {
+  private readonly logger = new Logger(S3Service.name);
   private s3Client: S3Client;
   private bucketName: string;
 
@@ -69,26 +73,35 @@ export class S3Service {
     file: Express.Multer.File,
     folder: string = 'uploads',
   ): Promise<string> {
+    const fileExtension = file.originalname.split('.').pop();
+    const fileName = `${folder}/${uuidv4()}.${fileExtension}`;
+
+    this.logger.log(`[S3] Uploading ${fileName} (${file.size} bytes) to bucket ${this.bucketName}`);
+
+    const command = new PutObjectCommand({
+      Bucket: this.bucketName,
+      Key: fileName,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+    });
+
+    const controller = new AbortController();
+    const timer = setTimeout(
+      () => controller.abort(new Error(`S3 upload timed out after ${S3_OPERATION_TIMEOUT_MS / 1000}s`)),
+      S3_OPERATION_TIMEOUT_MS,
+    );
+
     try {
-      const fileExtension = file.originalname.split('.').pop();
-      const fileName = `${folder}/${uuidv4()}.${fileExtension}`;
-
-      const command = new PutObjectCommand({
-        Bucket: this.bucketName,
-        Key: fileName,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-        // ACL убран - используем "Сделать все материалы публичными" из панели Beget
-      });
-
-      await this.s3Client.send(command);
-
-      // Path-style URL для совместимости с Beget
-      return `https://s3.ru1.storage.beget.cloud/${this.bucketName}/${fileName}`;
+      await this.s3Client.send(command, { abortSignal: controller.signal });
+      const url = `https://s3.ru1.storage.beget.cloud/${this.bucketName}/${fileName}`;
+      this.logger.log(`[S3] Upload OK → ${url}`);
+      return url;
     } catch (error) {
-      throw new BadRequestException(
-        `Ошибка загрузки файла в S3: ${error.message}`,
-      );
+      const msg = (error as Error).message ?? String(error);
+      this.logger.error(`[S3] Upload FAILED for ${fileName}: ${msg}`);
+      throw new BadRequestException(`Ошибка загрузки файла в S3: ${msg}`);
+    } finally {
+      clearTimeout(timer);
     }
   }
 
