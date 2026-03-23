@@ -45,6 +45,7 @@ type Config struct {
 
 func Load() Config {
 	p := os.Getenv("PORT")
+
 	if p == "" {
 		p = "3000"
 	}
@@ -84,10 +85,10 @@ func Load() Config {
 		NotisendAPIKey:  os.Getenv("NOTISEND_API_KEY"),
 		NotisendProject: firstNonEmpty(os.Getenv("NOTISEND_PROJECT"), "torgui_sam"),
 
-		SMTPHost:     os.Getenv("SMTP_HOST"),
-		SMTPPort:     smtpPort,
-		SMTPUser:     os.Getenv("SMTP_USER"),
-		SMTPPassword: os.Getenv("SMTP_PASSWORD"),
+		SMTPHost:        os.Getenv("SMTP_HOST"),
+		SMTPPort:        smtpPort,
+		SMTPUser:        os.Getenv("SMTP_USER"),
+		SMTPPassword:    os.Getenv("SMTP_PASSWORD"),
 		SMTPFrom:        os.Getenv("SMTP_FROM"),
 		SMTPSecure:      smtpSecure,
 		SMTPTLSInsecure: smtpTLSInsecure,

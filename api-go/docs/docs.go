@@ -1033,7 +1033,7 @@ const docTemplate = `{
         },
         "/payment/notification": {
             "post": {
-                "description": "Без сессии. Подпись Token проверяется по полям тела (как Nest). Тело — как приходит от банка; пример ниже.",
+                "description": "Без сессии. Подпись Token проверяется по полям тела. Тело — как приходит от банка; пример ниже.",
                 "consumes": [
                     "application/json"
                 ],

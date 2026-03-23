@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 
 	_ "med-vito/api-go/docs" // swagger doc.json
@@ -30,6 +31,10 @@ import (
 )
 
 func main() {
+	// Загружаем .env из корня репо (для локального запуска через air/go run).
+	// В Docker переменные передаются через environment — ошибку игнорируем.
+	_ = godotenv.Load("../.env")
+
 	cfg := config.Load()
 	if cfg.DatabaseURL == "" {
 		log.Fatal("нужен DATABASE_URL в окружении (PostgreSQL, как в Prisma schema)")
