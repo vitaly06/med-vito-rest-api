@@ -14,6 +14,7 @@ import (
 type AppDeps struct {
 	Config     config.Config
 	Log        *service.LogService
+	Knowledge  *service.KnowledgeBaseService
 	Category   *service.CategoryService
 	Auth       *service.AuthService
 	User       *service.UserService
@@ -43,6 +44,7 @@ func NewApp(corsOrigins string, deps AppDeps) *fiber.App {
 
 	app.Get("/health", HealthHandler)
 	RegisterLogRoutes(app, deps.Log)
+	RegisterKnowledgeBaseRoutes(app, deps.Knowledge, deps.Auth)
 	RegisterAuthRoutes(app, deps.Config, deps.Auth)
 	RegisterCategoryRoutes(app, deps.Category, deps.Auth)
 	RegisterSubcategoryRoutes(app, deps.Category, deps.Auth)

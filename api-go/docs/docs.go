@@ -883,6 +883,242 @@ const docTemplate = `{
                 }
             }
         },
+        "/knowledge-base/": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "knowledge-base"
+                ],
+                "summary": "Список статей базы знаний",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/main.swaggerKnowledgeBaseArticle"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "knowledge-base-admin"
+                ],
+                "summary": "Создать статью базы знаний",
+                "parameters": [
+                    {
+                        "description": "Тело",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.swaggerKnowledgeBaseArticleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/main.swaggerKnowledgeBaseCreateResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/knowledge-base/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "knowledge-base"
+                ],
+                "summary": "Статья базы знаний по id",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID статьи",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.swaggerKnowledgeBaseArticle"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "knowledge-base-admin"
+                ],
+                "summary": "Обновить статью базы знаний",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID статьи",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Тело",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.swaggerKnowledgeBaseArticleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.swaggerKnowledgeBaseUpdateResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "knowledge-base-admin"
+                ],
+                "summary": "Удалить статью базы знаний",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID статьи",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.swaggerKnowledgeBaseDeleteResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/log/find-all": {
             "get": {
                 "produces": [
@@ -2197,6 +2433,77 @@ const docTemplate = `{
             "properties": {
                 "email": {
                     "type": "string"
+                }
+            }
+        },
+        "main.swaggerKnowledgeBaseArticle": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "example": "Текст статьи..."
+                },
+                "createdAt": {
+                    "type": "string",
+                    "example": "2026-03-31T10:00:00Z"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Как оформить заказ"
+                },
+                "updatedAt": {
+                    "type": "string",
+                    "example": "2026-03-31T10:00:00Z"
+                }
+            }
+        },
+        "main.swaggerKnowledgeBaseArticleRequest": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "example": "Текст статьи..."
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Как оформить заказ"
+                }
+            }
+        },
+        "main.swaggerKnowledgeBaseCreateResponse": {
+            "type": "object",
+            "properties": {
+                "article": {
+                    "$ref": "#/definitions/main.swaggerKnowledgeBaseArticle"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Статья успешно создана"
+                }
+            }
+        },
+        "main.swaggerKnowledgeBaseDeleteResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "Статья успешно удалена"
+                }
+            }
+        },
+        "main.swaggerKnowledgeBaseUpdateResponse": {
+            "type": "object",
+            "properties": {
+                "article": {
+                    "$ref": "#/definitions/main.swaggerKnowledgeBaseArticle"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Статья успешно обновлена"
                 }
             }
         },

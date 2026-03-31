@@ -861,3 +861,92 @@ func init() {
 		swaggerValidateAddress{},
 	}
 }
+
+// --- knowledge-base ---
+
+// KnowledgeBaseList
+// @Summary Список статей базы знаний
+// @Tags knowledge-base
+// @Produce json
+// @Success 200 {array} swaggerKnowledgeBaseArticle
+// @Router /knowledge-base/ [get]
+func _swaggerKnowledgeBaseList() {}
+
+// KnowledgeBaseGetByID
+// @Summary Статья базы знаний по id
+// @Tags knowledge-base
+// @Produce json
+// @Param id path int true "ID статьи"
+// @Success 200 {object} swaggerKnowledgeBaseArticle
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Router /knowledge-base/{id} [get]
+func _swaggerKnowledgeBaseGetByID() {}
+
+// KnowledgeBaseCreate
+// @Summary Создать статью базы знаний
+// @Tags knowledge-base-admin
+// @Accept json
+// @Produce json
+// @Param body body swaggerKnowledgeBaseArticleRequest true "Тело"
+// @Success 201 {object} swaggerKnowledgeBaseCreateResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Router /knowledge-base/ [post]
+func _swaggerKnowledgeBaseCreate() {}
+
+// KnowledgeBaseUpdate
+// @Summary Обновить статью базы знаний
+// @Tags knowledge-base-admin
+// @Accept json
+// @Produce json
+// @Param id path int true "ID статьи"
+// @Param body body swaggerKnowledgeBaseArticleRequest true "Тело"
+// @Success 200 {object} swaggerKnowledgeBaseUpdateResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Router /knowledge-base/{id} [put]
+func _swaggerKnowledgeBaseUpdate() {}
+
+// KnowledgeBaseDelete
+// @Summary Удалить статью базы знаний
+// @Tags knowledge-base-admin
+// @Produce json
+// @Param id path int true "ID статьи"
+// @Success 200 {object} swaggerKnowledgeBaseDeleteResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Router /knowledge-base/{id} [delete]
+func _swaggerKnowledgeBaseDelete() {}
+
+type swaggerKnowledgeBaseArticle struct {
+	ID        int32  `json:"id" example:"1"`
+	Title     string `json:"title" example:"Как оформить заказ"`
+	Content   string `json:"content" example:"Текст статьи..."`
+	CreatedAt string `json:"createdAt" example:"2026-03-31T10:00:00Z"`
+	UpdatedAt string `json:"updatedAt" example:"2026-03-31T10:00:00Z"`
+}
+
+type swaggerKnowledgeBaseArticleRequest struct {
+	Title   string `json:"title" example:"Как оформить заказ"`
+	Content string `json:"content" example:"Текст статьи..."`
+}
+
+type swaggerKnowledgeBaseCreateResponse struct {
+	Message string                      `json:"message" example:"Статья успешно создана"`
+	Article swaggerKnowledgeBaseArticle `json:"article"`
+}
+
+type swaggerKnowledgeBaseUpdateResponse struct {
+	Message string                      `json:"message" example:"Статья успешно обновлена"`
+	Article swaggerKnowledgeBaseArticle `json:"article"`
+}
+
+type swaggerKnowledgeBaseDeleteResponse struct {
+	Message string `json:"message" example:"Статья успешно удалена"`
+}

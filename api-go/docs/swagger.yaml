@@ -74,6 +74,55 @@ definitions:
       email:
         type: string
     type: object
+  main.swaggerKnowledgeBaseArticle:
+    properties:
+      content:
+        example: Текст статьи...
+        type: string
+      createdAt:
+        example: "2026-03-31T10:00:00Z"
+        type: string
+      id:
+        example: 1
+        type: integer
+      title:
+        example: Как оформить заказ
+        type: string
+      updatedAt:
+        example: "2026-03-31T10:00:00Z"
+        type: string
+    type: object
+  main.swaggerKnowledgeBaseArticleRequest:
+    properties:
+      content:
+        example: Текст статьи...
+        type: string
+      title:
+        example: Как оформить заказ
+        type: string
+    type: object
+  main.swaggerKnowledgeBaseCreateResponse:
+    properties:
+      article:
+        $ref: '#/definitions/main.swaggerKnowledgeBaseArticle'
+      message:
+        example: Статья успешно создана
+        type: string
+    type: object
+  main.swaggerKnowledgeBaseDeleteResponse:
+    properties:
+      message:
+        example: Статья успешно удалена
+        type: string
+    type: object
+  main.swaggerKnowledgeBaseUpdateResponse:
+    properties:
+      article:
+        $ref: '#/definitions/main.swaggerKnowledgeBaseArticle'
+      message:
+        example: Статья успешно обновлена
+        type: string
+    type: object
   main.swaggerPaymentCheckStateResponse:
     properties:
       amount:
@@ -802,6 +851,165 @@ paths:
       summary: Проверка живости сервиса
       tags:
       - system
+  /knowledge-base/:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.swaggerKnowledgeBaseArticle'
+            type: array
+      summary: Список статей базы знаний
+      tags:
+      - knowledge-base
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Тело
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.swaggerKnowledgeBaseArticleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/main.swaggerKnowledgeBaseCreateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Создать статью базы знаний
+      tags:
+      - knowledge-base-admin
+  /knowledge-base/{id}:
+    delete:
+      parameters:
+      - description: ID статьи
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.swaggerKnowledgeBaseDeleteResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Удалить статью базы знаний
+      tags:
+      - knowledge-base-admin
+    get:
+      parameters:
+      - description: ID статьи
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.swaggerKnowledgeBaseArticle'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Статья базы знаний по id
+      tags:
+      - knowledge-base
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID статьи
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Тело
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.swaggerKnowledgeBaseArticleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.swaggerKnowledgeBaseUpdateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Обновить статью базы знаний
+      tags:
+      - knowledge-base-admin
   /log/find-all:
     get:
       produces:

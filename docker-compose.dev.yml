@@ -1,31 +1,49 @@
-# Локальная БД + Redis. api-go запускай на машине: DATABASE_URL/REDIS_* из .env.dev (хост localhost, порты ниже).
-# Подстановка ${...} в YAML берётся из shell / корневого .env; переменные только из .env.dev в контейнере — в healthcheck через $$VAR.
 services:
-  db:
-    image: postgres:17-alpine
+  postgres:
+    image: postgres:16-alpine
     restart: always
-    env_file:
-      - .env.dev
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-medvito}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-medvito}
+      POSTGRES_DB: ${POSTGRES_DB:-medvito}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./dumps/dump.sql:/docker-entrypoint-initdb.d/01-dump.sql
     networks:
       - backend_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 10
 
+  db-init:
+    image: postgres:16-alpine
+    restart: "no"
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT_INTERNAL: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-medvito}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-medvito}
+      POSTGRES_DB: ${POSTGRES_DB:-medvito}
+    volumes:
+      - ./dumps:/dumps:ro
+      - ./docker/postgres/init-db.sh:/init-db.sh:ro
+    entrypoint: ["/bin/sh", "/init-db.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend_network
+
   redis:
     image: redis:7-alpine
     restart: always
-    env_file:
-      - .env.dev
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     ports:
-      - "6379:6379"
+      - "${REDIS_PUBLISH_PORT:-6379}:6379"
     command: >
       sh -c 'if [ -n "$$REDIS_PASSWORD" ]; then exec redis-server --requirepass "$$REDIS_PASSWORD"; else exec redis-server; fi'
     volumes:
@@ -37,6 +55,52 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  api:
+    build:
+      context: ./api-go
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      PORT: "3000"
+      NODE_ENV: ${NODE_ENV:-development}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-medvito}:${POSTGRES_PASSWORD:-medvito}@postgres:5432/${POSTGRES_DB:-medvito}?sslmode=disable
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      BASE_URL: ${BASE_URL:-http://localhost:3000}
+      MTS_TOKEN: ${MTS_TOKEN:-}
+      NOTISEND_API_KEY: ${NOTISEND_API_KEY:-}
+      NOTISEND_PROJECT: ${NOTISEND_PROJECT:-torgui_sam}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_TLS_INSECURE: ${SMTP_TLS_INSECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      DADATA_API_KEY: ${DADATA_API_KEY:-}
+      TINKOFF_TERMINAL_KEY: ${TINKOFF_TERMINAL_KEY:-}
+      TINKOFF_SECRET_KEY: ${TINKOFF_SECRET_KEY:-}
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-}
+      S3_REGION: ${S3_REGION:-}
+      S3_PUBLIC_BASE: ${S3_PUBLIC_BASE:-}
+      ENABLE_SWAGGER: ${ENABLE_SWAGGER:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - backend_network
 
 volumes:
   postgres_data:

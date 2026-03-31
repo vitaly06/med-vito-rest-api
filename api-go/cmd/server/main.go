@@ -21,7 +21,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 
-	_ "med-vito/api-go/docs" // swagger doc.json
+	_ "med-vito/api-go/docs"
 
 	"med-vito/api-go/internal/config"
 	"med-vito/api-go/internal/httpserver"
@@ -31,8 +31,7 @@ import (
 )
 
 func main() {
-	// Загружаем .env из корня репо (для локального запуска через air/go run).
-	// В Docker переменные передаются через environment — ошибку игнорируем.
+
 	_ = godotenv.Load("../.env")
 
 	cfg := config.Load()
@@ -62,6 +61,8 @@ func main() {
 
 	logRepo := repository.NewLogPG(pool)
 	logSvc := service.NewLogService(logRepo)
+	kbRepo := repository.NewKnowledgeBasePG(pool)
+	kbSvc := service.NewKnowledgeBaseService(kbRepo)
 	catRepo := repository.NewCategoryPG(pool)
 	catSvc := service.NewCategoryService(catRepo)
 	userRepo := repository.NewUserPG(pool)
@@ -92,7 +93,6 @@ func main() {
 	banRepo := repository.NewBannerPG(pool)
 	banSvc := service.NewBannerService(banRepo, s3c)
 
-	// CORS_ORIGIN: несколько origin через запятую; пусто — без CORS middleware
 	raw := os.Getenv("CORS_ORIGIN")
 	var origins string
 	if raw != "" {
@@ -106,6 +106,7 @@ func main() {
 	app := httpserver.NewApp(origins, httpserver.AppDeps{
 		Config:     cfg,
 		Log:        logSvc,
+		Knowledge:  kbSvc,
 		Category:   catSvc,
 		Auth:       authSvc,
 		User:       userSvc,
