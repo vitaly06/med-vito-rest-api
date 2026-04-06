@@ -15,7 +15,10 @@ import (
 	"context"
 	"log"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
@@ -31,7 +34,6 @@ import (
 )
 
 func main() {
-
 	_ = godotenv.Load("../.env")
 
 	cfg := config.Load()
@@ -39,7 +41,9 @@ func main() {
 		log.Fatal("нужен DATABASE_URL в окружении (PostgreSQL, как в Prisma schema)")
 	}
 
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("postgres: %v", err)
@@ -77,6 +81,8 @@ func main() {
 	userSvc := service.NewUserService(cfg, userRepo, rdb, s3c)
 	prodRepo := repository.NewProductPG(pool)
 	prodSvc := service.NewProductService(prodRepo, s3c, userSvc)
+	moderationSvc := service.NewModerationService(cfg, prodRepo)
+	moderationAdminSvc := service.NewModerationAdminService(prodRepo)
 	revRepo := repository.NewReviewPG(pool)
 	revSvc := service.NewReviewService(revRepo)
 	chatRepo := repository.NewChatPG(pool)
@@ -111,6 +117,7 @@ func main() {
 		Auth:       authSvc,
 		User:       userSvc,
 		Product:    prodSvc,
+		Moderation: moderationAdminSvc,
 		Review:     revSvc,
 		Chat:       chatSvc,
 		Payment:    paySvc,
@@ -120,9 +127,18 @@ func main() {
 		Address:    addrSvc,
 		Banner:     banSvc,
 	})
+	moderationSvc.Start(ctx)
 
 	addr := ":" + cfg.Port
 	log.Printf("Fiber %s — Socket.IO /socket.io namespaces /chat, /support; … /docs", addr)
+	go func() {
+		<-ctx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := app.ShutdownWithContext(shutdownCtx); err != nil {
+			log.Printf("fiber shutdown: %v", err)
+		}
+	}()
 	if err := app.Listen(addr); err != nil {
 		log.Fatal(err)
 	}

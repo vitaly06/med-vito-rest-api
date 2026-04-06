@@ -1,13 +1,13 @@
 package main
 
-// Описание маршрутов только для генерации OpenAPI (swag). Реальные хендлеры в internal/httpserver.
-// Админ-ручки категорий: сначала POST /auth/sign-in под пользователем с ролью admin — cookie session_id уйдёт в Try it out (credentials).
+// РћРїРёСЃР°РЅРёРµ РјР°СЂС€СЂСѓС‚РѕРІ С‚РѕР»СЊРєРѕ РґР»СЏ РіРµРЅРµСЂР°С†РёРё OpenAPI (swag). Р РµР°Р»СЊРЅС‹Рµ С…РµРЅРґР»РµСЂС‹ РІ internal/httpserver.
+// РђРґРјРёРЅ-СЂСѓС‡РєРё РєР°С‚РµРіРѕСЂРёР№: СЃРЅР°С‡Р°Р»Р° POST /auth/sign-in РїРѕРґ РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј СЃ СЂРѕР»СЊСЋ admin вЂ” cookie session_id СѓР№РґС‘С‚ РІ Try it out (credentials).
 
 // --- system ---
 
 // HealthCheck
-// @Summary Проверка живости сервиса
-// @Description Возвращает status ok
+// @Summary РџСЂРѕРІРµСЂРєР° Р¶РёРІРѕСЃС‚Рё СЃРµСЂРІРёСЃР°
+// @Description Р’РѕР·РІСЂР°С‰Р°РµС‚ status ok
 // @Tags system
 // @Produce json
 // @Success 200 {object} map[string]string
@@ -17,17 +17,17 @@ func _swaggerHealth() {}
 // --- log ---
 
 // LogFindAll
-// @Summary Список записей Log
+// @Summary РЎРїРёСЃРѕРє Р·Р°РїРёСЃРµР№ Log
 // @Tags log
 // @Produce json
 // @Success 200 {array} object
 // @Router /log/find-all [get]
 func _swaggerLogFindAll() {}
 
-// --- category (публично) ---
+// --- category (РїСѓР±Р»РёС‡РЅРѕ) ---
 
 // CategoryFindAll
-// @Summary Дерево всех категорий
+// @Summary Р”РµСЂРµРІРѕ РІСЃРµС… РєР°С‚РµРіРѕСЂРёР№
 // @Tags category
 // @Produce json
 // @Success 200 {array} object
@@ -35,17 +35,17 @@ func _swaggerLogFindAll() {}
 func _swaggerCategoryFindAll() {}
 
 // CategoryFindByID
-// @Summary Категория по id (полное дерево)
+// @Summary РљР°С‚РµРіРѕСЂРёСЏ РїРѕ id (РїРѕР»РЅРѕРµ РґРµСЂРµРІРѕ)
 // @Tags category
 // @Produce json
-// @Param id path int true "ID категории"
+// @Param id path int true "ID РєР°С‚РµРіРѕСЂРёРё"
 // @Success 200 {object} object
 // @Failure 404 {object} map[string]interface{}
 // @Router /category/find-by-id/{id} [get]
 func _swaggerCategoryFindByID() {}
 
 // CategoryFindBySlug
-// @Summary Категория по slug
+// @Summary РљР°С‚РµРіРѕСЂРёСЏ РїРѕ slug
 // @Tags category
 // @Produce json
 // @Param slug path string true "Slug"
@@ -55,37 +55,37 @@ func _swaggerCategoryFindByID() {}
 func _swaggerCategoryFindBySlug() {}
 
 // CategoryFindBySlugPath
-// @Summary Разрешение цепочки slug (категория / подкатегория / тип)
-// @Description В Swagger «Try it out» введи сегменты через %2F, например: elektronika%2Ftelefony
+// @Summary Р Р°Р·СЂРµС€РµРЅРёРµ С†РµРїРѕС‡РєРё slug (РєР°С‚РµРіРѕСЂРёСЏ / РїРѕРґРєР°С‚РµРіРѕСЂРёСЏ / С‚РёРї)
+// @Description Р’ Swagger В«Try it outВ» РІРІРµРґРё СЃРµРіРјРµРЅС‚С‹ С‡РµСЂРµР· %2F, РЅР°РїСЂРёРјРµСЂ: elektronika%2Ftelefony
 // @Tags category
 // @Produce json
-// @Param slugPath path string true "Цепочка (или один сегмент)"
+// @Param slugPath path string true "Р¦РµРїРѕС‡РєР° (РёР»Рё РѕРґРёРЅ СЃРµРіРјРµРЅС‚)"
 // @Success 200 {object} object
 // @Failure 400 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Router /category/path/{slugPath} [get]
 func _swaggerCategoryPath() {}
 
-// --- category (админ; при ADMIN_API_KEY — заголовок X-Admin-Key) ---
+// --- category (Р°РґРјРёРЅ; РїСЂРё ADMIN_API_KEY вЂ” Р·Р°РіРѕР»РѕРІРѕРє X-Admin-Key) ---
 
 // CategoryCreate
-// @Summary Создать категорию
+// @Summary РЎРѕР·РґР°С‚СЊ РєР°С‚РµРіРѕСЂРёСЋ
 // @Tags category-admin
 // @Accept json
 // @Produce json
-// @Param body body swaggerCreateCategory true "Тело"
+// @Param body body swaggerCreateCategory true "РўРµР»Рѕ"
 // @Success 201 {object} object
 // @Failure 400 {object} map[string]interface{}
 // @Router /category/create-category [post]
 func _swaggerCategoryCreate() {}
 
 // CategoryUpdate
-// @Summary Обновить категорию
+// @Summary РћР±РЅРѕРІРёС‚СЊ РєР°С‚РµРіРѕСЂРёСЋ
 // @Tags category-admin
 // @Accept json
 // @Produce json
 // @Param id path int true "ID"
-// @Param body body swaggerUpdateCategory true "Тело"
+// @Param body body swaggerUpdateCategory true "РўРµР»Рѕ"
 // @Success 200 {object} object
 // @Failure 400 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
@@ -93,7 +93,7 @@ func _swaggerCategoryCreate() {}
 func _swaggerCategoryUpdate() {}
 
 // CategoryDelete
-// @Summary Удалить категорию
+// @Summary РЈРґР°Р»РёС‚СЊ РєР°С‚РµРіРѕСЂРёСЋ
 // @Tags category-admin
 // @Produce json
 // @Param id path int true "ID"
@@ -102,51 +102,51 @@ func _swaggerCategoryUpdate() {}
 // @Router /category/delete-category/{id} [delete]
 func _swaggerCategoryDelete() {}
 
-// Тела запросов для Swagger UI
+// РўРµР»Р° Р·Р°РїСЂРѕСЃРѕРІ РґР»СЏ Swagger UI
 type swaggerCreateCategory struct {
-	Name string  `json:"name" example:"Автомобили"`
+	Name string  `json:"name" example:"РђРІС‚РѕРјРѕР±РёР»Рё"`
 	Slug *string `json:"slug,omitempty" example:"avtomobili"`
 }
 
 type swaggerUpdateCategory struct {
-	Name string  `json:"name" example:"Автомобили"`
+	Name string  `json:"name" example:"РђРІС‚РѕРјРѕР±РёР»Рё"`
 	Slug *string `json:"slug,omitempty"`
 }
 
 // --- auth ---
 
 // AuthSignUp
-// @Summary Регистрация — отправка кода (query where=telegram|sms)
+// @Summary Р РµРіРёСЃС‚СЂР°С†РёСЏ вЂ” РѕС‚РїСЂР°РІРєР° РєРѕРґР° (query where=telegram|sms)
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param where query string true "telegram или sms" Enums(telegram,sms)
-// @Param body body swaggerSignUp true "Данные"
+// @Param where query string true "telegram РёР»Рё sms" Enums(telegram,sms)
+// @Param body body swaggerSignUp true "Р”Р°РЅРЅС‹Рµ"
 // @Success 200 {object} map[string]string
 // @Router /auth/sign-up [post]
 func _swaggerAuthSignUp() {}
 
 // AuthVerifyMobile
-// @Summary Подтверждение телефона по коду
+// @Summary РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ С‚РµР»РµС„РѕРЅР° РїРѕ РєРѕРґСѓ
 // @Tags auth
 // @Produce json
-// @Param code query string true "Код из SMS/TG"
+// @Param code query string true "РљРѕРґ РёР· SMS/TG"
 // @Success 200 {object} map[string]string
 // @Router /auth/verify-mobile-code [post]
 func _swaggerAuthVerifyMobile() {}
 
 // AuthSignIn
-// @Summary Вход (ставит cookie session_id)
+// @Summary Р’С…РѕРґ (СЃС‚Р°РІРёС‚ cookie session_id)
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param body body swaggerSignIn true "Логин"
+// @Param body body swaggerSignIn true "Р›РѕРіРёРЅ"
 // @Success 200 {object} object
 // @Router /auth/sign-in [post]
 func _swaggerAuthSignIn() {}
 
 // AuthMe
-// @Summary Текущий пользователь
+// @Summary РўРµРєСѓС‰РёР№ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ
 // @Tags auth
 // @Produce json
 // @Success 200 {object} object
@@ -154,7 +154,7 @@ func _swaggerAuthSignIn() {}
 func _swaggerAuthMe() {}
 
 // AuthIsAdmin
-// @Summary Проверка роли admin
+// @Summary РџСЂРѕРІРµСЂРєР° СЂРѕР»Рё admin
 // @Tags auth
 // @Produce json
 // @Success 200 {object} map[string]bool
@@ -162,7 +162,7 @@ func _swaggerAuthMe() {}
 func _swaggerAuthIsAdmin() {}
 
 // AuthLogout
-// @Summary Выход
+// @Summary Р’С‹С…РѕРґ
 // @Tags auth
 // @Produce json
 // @Success 200 {object} map[string]string
@@ -170,7 +170,7 @@ func _swaggerAuthIsAdmin() {}
 func _swaggerAuthLogout() {}
 
 // AuthForgot
-// @Summary Запрос кода сброса на почту
+// @Summary Р—Р°РїСЂРѕСЃ РєРѕРґР° СЃР±СЂРѕСЃР° РЅР° РїРѕС‡С‚Сѓ
 // @Tags auth
 // @Accept json
 // @Produce json
@@ -180,20 +180,20 @@ func _swaggerAuthLogout() {}
 func _swaggerAuthForgot() {}
 
 // AuthVerifyForgot
-// @Summary Проверка кода сброса
+// @Summary РџСЂРѕРІРµСЂРєР° РєРѕРґР° СЃР±СЂРѕСЃР°
 // @Tags auth
 // @Produce json
-// @Param code query string true "Код из письма"
+// @Param code query string true "РљРѕРґ РёР· РїРёСЃСЊРјР°"
 // @Success 200 {object} map[string]int
 // @Router /auth/verify-code [post]
 func _swaggerAuthVerifyForgot() {}
 
 // AuthChangePassword
-// @Summary Новый пароль после verify-code
+// @Summary РќРѕРІС‹Р№ РїР°СЂРѕР»СЊ РїРѕСЃР»Рµ verify-code
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param body body swaggerChangePassword true "Тело"
+// @Param body body swaggerChangePassword true "РўРµР»Рѕ"
 // @Success 200 {object} map[string]string
 // @Router /auth/change-password [post]
 func _swaggerAuthChangePassword() {}
@@ -222,7 +222,7 @@ type swaggerForgotEmail struct {
 // --- user ---
 
 // UserFindAll
-// @Summary Список пользователей (админ: cookie session_id + роль admin)
+// @Summary РЎРїРёСЃРѕРє РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№ (Р°РґРјРёРЅ: cookie session_id + СЂРѕР»СЊ admin)
 // @Tags user-admin
 // @Produce json
 // @Success 200 {array} object
@@ -232,7 +232,7 @@ type swaggerForgotEmail struct {
 func _swaggerUserFindAll() {}
 
 // UserInfo
-// @Summary Карточка пользователя (рейтинг, лимит объявлений)
+// @Summary РљР°СЂС‚РѕС‡РєР° РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ (СЂРµР№С‚РёРЅРі, Р»РёРјРёС‚ РѕР±СЉСЏРІР»РµРЅРёР№)
 // @Tags user
 // @Produce json
 // @Param id path int true "User id"
@@ -242,7 +242,7 @@ func _swaggerUserFindAll() {}
 func _swaggerUserInfo() {}
 
 // UserRemainingFreeAds
-// @Summary Остаток бесплатных объявлений (сессия)
+// @Summary РћСЃС‚Р°С‚РѕРє Р±РµСЃРїР»Р°С‚РЅС‹С… РѕР±СЉСЏРІР»РµРЅРёР№ (СЃРµСЃСЃРёСЏ)
 // @Tags user
 // @Produce json
 // @Success 200 {object} object
@@ -250,30 +250,30 @@ func _swaggerUserInfo() {}
 func _swaggerUserRemainingFreeAds() {}
 
 // UserShowNumber
-// @Summary Показать номер продавца (сессия)
+// @Summary РџРѕРєР°Р·Р°С‚СЊ РЅРѕРјРµСЂ РїСЂРѕРґР°РІС†Р° (СЃРµСЃСЃРёСЏ)
 // @Tags user
 // @Produce json
-// @Param userId path int true "Продавец"
+// @Param userId path int true "РџСЂРѕРґР°РІРµС†"
 // @Success 200 {object} map[string]string
 // @Router /user/show-number/{userId} [get]
 func _swaggerUserShowNumber() {}
 
 // UserUpdateSettings
-// @Summary Обновление настроек (multipart, сессия)
+// @Summary РћР±РЅРѕРІР»РµРЅРёРµ РЅР°СЃС‚СЂРѕРµРє (multipart, СЃРµСЃСЃРёСЏ)
 // @Tags user
 // @Accept mpfd
 // @Produce json
-// @Param fullName formData string false "ФИО"
-// @Param phoneNumber formData string false "Телефон"
+// @Param fullName formData string false "Р¤РРћ"
+// @Param phoneNumber formData string false "РўРµР»РµС„РѕРЅ"
 // @Param isAnswersCall formData string false "true/false"
 // @Param profileType formData string false "INDIVIDUAL|OOO|IP"
-// @Param photo formData file false "Аватар"
+// @Param photo formData file false "РђРІР°С‚Р°СЂ"
 // @Success 200 {object} object
 // @Router /user/update-settings [patch]
 func _swaggerUserUpdateSettings() {}
 
 // UserVerifyEmail
-// @Summary Отправить код подтверждения на почту (сессия)
+// @Summary РћС‚РїСЂР°РІРёС‚СЊ РєРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ РЅР° РїРѕС‡С‚Сѓ (СЃРµСЃСЃРёСЏ)
 // @Tags user
 // @Produce json
 // @Success 200 {object} map[string]string
@@ -281,26 +281,26 @@ func _swaggerUserUpdateSettings() {}
 func _swaggerUserVerifyEmail() {}
 
 // UserVerifyEmailCode
-// @Summary Подтвердить почту по коду из письма
+// @Summary РџРѕРґС‚РІРµСЂРґРёС‚СЊ РїРѕС‡С‚Сѓ РїРѕ РєРѕРґСѓ РёР· РїРёСЃСЊРјР°
 // @Tags user
 // @Produce json
-// @Param code query string true "Код"
+// @Param code query string true "РљРѕРґ"
 // @Success 200 {object} map[string]string
 // @Router /user/verify-code [post]
 func _swaggerUserVerifyEmailCode() {}
 
 // UserSetBalance
-// @Summary Установить bonusBalance (админ, сессия)
+// @Summary РЈСЃС‚Р°РЅРѕРІРёС‚СЊ bonusBalance (Р°РґРјРёРЅ, СЃРµСЃСЃРёСЏ)
 // @Tags user-admin
 // @Produce json
 // @Param userId path int true "User id"
-// @Param balance query string true "Число"
+// @Param balance query string true "Р§РёСЃР»Рѕ"
 // @Success 200 {object} map[string]string
 // @Router /user/set-balance/{userId} [put]
 func _swaggerUserSetBalance() {}
 
 // UserToggleBanned
-// @Summary Бан / разбан (админ, сессия)
+// @Summary Р‘Р°РЅ / СЂР°Р·Р±Р°РЅ (Р°РґРјРёРЅ, СЃРµСЃСЃРёСЏ)
 // @Tags user-admin
 // @Produce json
 // @Param id path int true "User id"
@@ -309,18 +309,18 @@ func _swaggerUserSetBalance() {}
 func _swaggerUserToggleBanned() {}
 
 // UserAdminPatch
-// @Summary Обновить пользователя (админ, сессия)
+// @Summary РћР±РЅРѕРІРёС‚СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ (Р°РґРјРёРЅ, СЃРµСЃСЃРёСЏ)
 // @Tags user-admin
 // @Accept json
 // @Produce json
 // @Param id path int true "User id"
-// @Param body body swaggerAdminUpdateUser true "Поля"
+// @Param body body swaggerAdminUpdateUser true "РџРѕР»СЏ"
 // @Success 200 {object} map[string]string
 // @Router /user/{id} [patch]
 func _swaggerUserAdminPatch() {}
 
 // UserAdminDelete
-// @Summary Удалить пользователя (админ, сессия)
+// @Summary РЈРґР°Р»РёС‚СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ (Р°РґРјРёРЅ, СЃРµСЃСЃРёСЏ)
 // @Tags user-admin
 // @Produce json
 // @Param id path int true "User id"
@@ -339,7 +339,7 @@ type swaggerAdminUpdateUser struct {
 // --- product ---
 
 // ProductCreate
-// @Summary Создать товар (multipart, до 8 images, сессия)
+// @Summary РЎРѕР·РґР°С‚СЊ С‚РѕРІР°СЂ (multipart, РґРѕ 8 images, СЃРµСЃСЃРёСЏ)
 // @Tags product
 // @Accept mpfd
 // @Produce json
@@ -348,14 +348,14 @@ type swaggerAdminUpdateUser struct {
 func _swaggerProductCreate() {}
 
 // ProductAll
-// @Summary Список товаров / поиск (query; optional сессия для избранного)
+// @Summary РЎРїРёСЃРѕРє С‚РѕРІР°СЂРѕРІ / РїРѕРёСЃРє (query; optional СЃРµСЃСЃРёСЏ РґР»СЏ РёР·Р±СЂР°РЅРЅРѕРіРѕ)
 // @Tags product
 // @Produce json
 // @Router /product/all-products [get]
 func _swaggerProductAll() {}
 
 // ProductCard
-// @Summary Карточка товара
+// @Summary РљР°СЂС‚РѕС‡РєР° С‚РѕРІР°СЂР°
 // @Tags product
 // @Produce json
 // @Param id path int true "Product id"
@@ -363,7 +363,7 @@ func _swaggerProductAll() {}
 func _swaggerProductCard() {}
 
 // ProductDelete
-// @Summary Удалить свой товар
+// @Summary РЈРґР°Р»РёС‚СЊ СЃРІРѕР№ С‚РѕРІР°СЂ
 // @Tags product
 // @Produce json
 // @Param id path int true "Product id"
@@ -371,7 +371,7 @@ func _swaggerProductCard() {}
 func _swaggerProductDelete() {}
 
 // ProductPatch
-// @Summary Обновить товар (multipart)
+// @Summary РћР±РЅРѕРІРёС‚СЊ С‚РѕРІР°СЂ (multipart)
 // @Tags product
 // @Accept mpfd
 // @Produce json
@@ -380,29 +380,29 @@ func _swaggerProductDelete() {}
 func _swaggerProductPatch() {}
 
 // ProductModerate
-// @Summary Модерация (admin)
+// @Summary РњРѕРґРµСЂР°С†РёСЏ (admin)
 // @Tags product-admin
 // @Produce json
 // @Param id path int true "Product id"
 // @Param status query string true "APPROVED|DENIDED"
-// @Param reason query string false "Причина при DENIDED"
+// @Param reason query string false "РџСЂРёС‡РёРЅР° РїСЂРё DENIDED"
 // @Router /product/moderate-product/{id} [put]
 func _swaggerProductModerate() {}
 
 // --- review ---
 
 // ReviewSend
-// @Summary Оставить отзыв продавцу (сессия)
+// @Summary РћСЃС‚Р°РІРёС‚СЊ РѕС‚Р·С‹РІ РїСЂРѕРґР°РІС†Сѓ (СЃРµСЃСЃРёСЏ)
 // @Tags review
 // @Accept json
 // @Produce json
-// @Param body body swaggerSendReview true "Тело"
+// @Param body body swaggerSendReview true "РўРµР»Рѕ"
 // @Success 200 {object} map[string]string
 // @Router /review/send-review [post]
 func _swaggerReviewSend() {}
 
 // ReviewUserReviews
-// @Summary Одобренные отзывы о пользователе
+// @Summary РћРґРѕР±СЂРµРЅРЅС‹Рµ РѕС‚Р·С‹РІС‹ Рѕ РїРѕР»СЊР·РѕРІР°С‚РµР»Рµ
 // @Tags review
 // @Produce json
 // @Param id path int true "User id"
@@ -410,7 +410,7 @@ func _swaggerReviewSend() {}
 func _swaggerReviewUserReviews() {}
 
 // ReviewModerate
-// @Summary Модерация отзыва (admin)
+// @Summary РњРѕРґРµСЂР°С†РёСЏ РѕС‚Р·С‹РІР° (admin)
 // @Tags review-admin
 // @Produce json
 // @Param id path int true "Review id"
@@ -419,7 +419,7 @@ func _swaggerReviewUserReviews() {}
 func _swaggerReviewModerate() {}
 
 // ReviewModerateList
-// @Summary Очередь отзывов на модерацию (admin)
+// @Summary РћС‡РµСЂРµРґСЊ РѕС‚Р·С‹РІРѕРІ РЅР° РјРѕРґРµСЂР°С†РёСЋ (admin)
 // @Tags review-admin
 // @Produce json
 // @Router /review/all-reviews-to-moderate [get]
@@ -431,10 +431,10 @@ type swaggerSendReview struct {
 	ReviewedUserID int32   `json:"reviewedUserId"`
 }
 
-// --- chat (сессия cookie session_id) ---
+// --- chat (СЃРµСЃСЃРёСЏ cookie session_id) ---
 
 // ChatStart
-// @Summary Начать чат по товару
+// @Summary РќР°С‡Р°С‚СЊ С‡Р°С‚ РїРѕ С‚РѕРІР°СЂСѓ
 // @Tags chat
 // @Accept json
 // @Produce json
@@ -446,7 +446,7 @@ type swaggerSendReview struct {
 func _swaggerChatStart() {}
 
 // ChatList
-// @Summary Список чатов пользователя
+// @Summary РЎРїРёСЃРѕРє С‡Р°С‚РѕРІ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
 // @Tags chat
 // @Produce json
 // @Success 200 {array} object
@@ -454,18 +454,18 @@ func _swaggerChatStart() {}
 func _swaggerChatList() {}
 
 // ChatMessages
-// @Summary Сообщения чата (пагинация)
+// @Summary РЎРѕРѕР±С‰РµРЅРёСЏ С‡Р°С‚Р° (РїР°РіРёРЅР°С†РёСЏ)
 // @Tags chat
 // @Produce json
 // @Param id path int true "Chat id"
-// @Param page query int false "Страница" default(1)
-// @Param limit query int false "Лимит" default(50)
+// @Param page query int false "РЎС‚СЂР°РЅРёС†Р°" default(1)
+// @Param limit query int false "Р›РёРјРёС‚" default(50)
 // @Success 200 {object} object
 // @Router /chat/{id}/messages [get]
 func _swaggerChatMessages() {}
 
 // ChatInfo
-// @Summary Информация о чате
+// @Summary РРЅС„РѕСЂРјР°С†РёСЏ Рѕ С‡Р°С‚Рµ
 // @Tags chat
 // @Produce json
 // @Param id path int true "Chat id"
@@ -477,15 +477,15 @@ type swaggerStartChat struct {
 	ProductID int32 `json:"productId" example:"1"`
 }
 
-// --- payment (Т-Банк / Tinkoff; сессия — cookie session_id) ---
+// --- payment (Рў-Р‘Р°РЅРє / Tinkoff; СЃРµСЃСЃРёСЏ вЂ” cookie session_id) ---
 
 // PaymentCreate
-// @Summary Создание платежа для пополнения баланса
-// @Description Init в Т-Банк. Нужны TINKOFF_TERMINAL_KEY и TINKOFF_SECRET_KEY. Авторизация: cookie session_id после POST /auth/sign-in.
+// @Summary РЎРѕР·РґР°РЅРёРµ РїР»Р°С‚РµР¶Р° РґР»СЏ РїРѕРїРѕР»РЅРµРЅРёСЏ Р±Р°Р»Р°РЅСЃР°
+// @Description Init РІ Рў-Р‘Р°РЅРє. РќСѓР¶РЅС‹ TINKOFF_TERMINAL_KEY Рё TINKOFF_SECRET_KEY. РђРІС‚РѕСЂРёР·Р°С†РёСЏ: cookie session_id РїРѕСЃР»Рµ POST /auth/sign-in.
 // @Tags payment
 // @Accept json
 // @Produce json
-// @Param body body swaggerCreatePayment true "Сумма в рублях (мин. 1)"
+// @Param body body swaggerCreatePayment true "РЎСѓРјРјР° РІ СЂСѓР±Р»СЏС… (РјРёРЅ. 1)"
 // @Success 201 {object} swaggerPaymentCreateResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
@@ -493,20 +493,20 @@ type swaggerStartChat struct {
 func _swaggerPaymentCreate() {}
 
 // PaymentNotification
-// @Summary Webhook уведомлений Т-Банка о статусе платежа
-// @Description Без сессии. Подпись Token проверяется по полям тела. Тело — как приходит от банка; пример ниже.
+// @Summary Webhook СѓРІРµРґРѕРјР»РµРЅРёР№ Рў-Р‘Р°РЅРєР° Рѕ СЃС‚Р°С‚СѓСЃРµ РїР»Р°С‚РµР¶Р°
+// @Description Р‘РµР· СЃРµСЃСЃРёРё. РџРѕРґРїРёСЃСЊ Token РїСЂРѕРІРµСЂСЏРµС‚СЃСЏ РїРѕ РїРѕР»СЏРј С‚РµР»Р°. РўРµР»Рѕ вЂ” РєР°Рє РїСЂРёС…РѕРґРёС‚ РѕС‚ Р±Р°РЅРєР°; РїСЂРёРјРµСЂ РЅРёР¶Рµ.
 // @Tags payment
 // @Accept json
 // @Produce json
-// @Param body body swaggerTinkoffNotification true "Уведомление"
+// @Param body body swaggerTinkoffNotification true "РЈРІРµРґРѕРјР»РµРЅРёРµ"
 // @Success 200 {object} swaggerPaymentNotifyResponse
 // @Failure 400 {object} map[string]interface{}
 // @Router /payment/notification [post]
 func _swaggerPaymentNotification() {}
 
 // PaymentHistory
-// @Summary История платежей пользователя
-// @Description До 50 записей, новые сверху. Сессия: cookie session_id.
+// @Summary РСЃС‚РѕСЂРёСЏ РїР»Р°С‚РµР¶РµР№ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
+// @Description Р”Рѕ 50 Р·Р°РїРёСЃРµР№, РЅРѕРІС‹Рµ СЃРІРµСЂС…Сѓ. РЎРµСЃСЃРёСЏ: cookie session_id.
 // @Tags payment
 // @Produce json
 // @Success 200 {array} swaggerPaymentHistoryItem
@@ -515,8 +515,8 @@ func _swaggerPaymentNotification() {}
 func _swaggerPaymentHistory() {}
 
 // PaymentCheckStatus
-// @Summary Проверка статуса платежа в Т-Банке (GetState)
-// @Description Сессия: cookie session_id. В теле — paymentId из ответа Init или уведомления.
+// @Summary РџСЂРѕРІРµСЂРєР° СЃС‚Р°С‚СѓСЃР° РїР»Р°С‚РµР¶Р° РІ Рў-Р‘Р°РЅРєРµ (GetState)
+// @Description РЎРµСЃСЃРёСЏ: cookie session_id. Р’ С‚РµР»Рµ вЂ” paymentId РёР· РѕС‚РІРµС‚Р° Init РёР»Рё СѓРІРµРґРѕРјР»РµРЅРёСЏ.
 // @Tags payment
 // @Accept json
 // @Produce json
@@ -529,7 +529,7 @@ func _swaggerPaymentCheckStatus() {}
 
 type swaggerCreatePayment struct {
 	Amount      float64 `json:"amount" example:"1000"`
-	Description *string `json:"description,omitempty" example:"Пополнение баланса"`
+	Description *string `json:"description,omitempty" example:"РџРѕРїРѕР»РЅРµРЅРёРµ Р±Р°Р»Р°РЅСЃР°"`
 }
 
 type swaggerCheckPayment struct {
@@ -545,7 +545,7 @@ type swaggerPaymentCreateResponse struct {
 
 type swaggerPaymentNotifyResponse struct {
 	Success bool   `json:"success" example:"true"`
-	Message string `json:"message,omitempty" example:"Баланс успешно пополнен"`
+	Message string `json:"message,omitempty" example:"Р‘Р°Р»Р°РЅСЃ СѓСЃРїРµС€РЅРѕ РїРѕРїРѕР»РЅРµРЅ"`
 }
 
 type swaggerPaymentHistoryItem struct {
@@ -566,7 +566,7 @@ type swaggerPaymentCheckStateResponse struct {
 	OrderID string  `json:"orderId"`
 }
 
-// swaggerTinkoffNotification — поля как в Nest PaymentNotificationDto (реальный webhook может добавлять поля).
+// swaggerTinkoffNotification вЂ” РїРѕР»СЏ РєР°Рє РІ Nest PaymentNotificationDto (СЂРµР°Р»СЊРЅС‹Р№ webhook РјРѕР¶РµС‚ РґРѕР±Р°РІР»СЏС‚СЊ РїРѕР»СЏ).
 type swaggerTinkoffNotification struct {
 	TerminalKey string `json:"TerminalKey" example:"1766153689307DEMO"`
 	OrderID     string `json:"OrderId" example:"123-1735123456789"`
@@ -574,7 +574,7 @@ type swaggerTinkoffNotification struct {
 	Status      string `json:"Status" example:"CONFIRMED"`
 	PaymentID   string `json:"PaymentId" example:"2673412345"`
 	Amount      int64  `json:"Amount" example:"100000"`
-	Token       string `json:"Token" example:"подпись_от_банка"`
+	Token       string `json:"Token" example:"РїРѕРґРїРёСЃСЊ_РѕС‚_Р±Р°РЅРєР°"`
 	ErrorCode   string `json:"ErrorCode,omitempty" example:"0"`
 	Pan         string `json:"Pan,omitempty" example:"430000******0777"`
 }
@@ -582,7 +582,7 @@ type swaggerTinkoffNotification struct {
 // --- promotion ---
 
 // PromotionAll
-// @Summary Все типы продвижения (тарифы)
+// @Summary Р’СЃРµ С‚РёРїС‹ РїСЂРѕРґРІРёР¶РµРЅРёСЏ (С‚Р°СЂРёС„С‹)
 // @Tags promotion
 // @Produce json
 // @Success 200 {array} object
@@ -590,11 +590,11 @@ type swaggerTinkoffNotification struct {
 func _swaggerPromotionAll() {}
 
 // PromotionAdd
-// @Summary Подключить продвижение к товару (сессия)
+// @Summary РџРѕРґРєР»СЋС‡РёС‚СЊ РїСЂРѕРґРІРёР¶РµРЅРёРµ Рє С‚РѕРІР°СЂСѓ (СЃРµСЃСЃРёСЏ)
 // @Tags promotion
 // @Accept json
 // @Produce json
-// @Param body body swaggerAddPromotion true "Тело"
+// @Param body body swaggerAddPromotion true "РўРµР»Рѕ"
 // @Success 201 {object} object
 // @Failure 400 {object} map[string]interface{}
 // @Failure 403 {object} map[string]interface{}
@@ -611,60 +611,60 @@ type swaggerAddPromotion struct {
 // --- statistics ---
 
 // StatisticsAnalytic
-// @Summary Статистика пользователя (просмотры, телефон, избранное)
+// @Summary РЎС‚Р°С‚РёСЃС‚РёРєР° РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ (РїСЂРѕСЃРјРѕС‚СЂС‹, С‚РµР»РµС„РѕРЅ, РёР·Р±СЂР°РЅРЅРѕРµ)
 // @Tags statistics
 // @Produce json
 // @Param period query string false "day week month quarter half-year year"
-// @Param categoryId query int false "Фильтр по категории (через SubCategory)"
-// @Param region query string false "Подстрока в address (ILIKE)"
-// @Param productId query int false "Конкретный товар"
+// @Param categoryId query int false "Р¤РёР»СЊС‚СЂ РїРѕ РєР°С‚РµРіРѕСЂРёРё (С‡РµСЂРµР· SubCategory)"
+// @Param region query string false "РџРѕРґСЃС‚СЂРѕРєР° РІ address (ILIKE)"
+// @Param productId query int false "РљРѕРЅРєСЂРµС‚РЅС‹Р№ С‚РѕРІР°СЂ"
 // @Success 200 {object} object
 // @Router /statistics/analytic [get]
 func _swaggerStatisticsAnalytic() {}
 
 // StatisticsProducts
-// @Summary Аналитика по каждому товару продавца
+// @Summary РђРЅР°Р»РёС‚РёРєР° РїРѕ РєР°Р¶РґРѕРјСѓ С‚РѕРІР°СЂСѓ РїСЂРѕРґР°РІС†Р°
 // @Tags statistics
 // @Produce json
 // @Success 200 {array} object
 // @Router /statistics/products-analytic [get]
 func _swaggerStatisticsProducts() {}
 
-// --- support (сессия) ---
+// --- support (СЃРµСЃСЃРёСЏ) ---
 
 // SupportCreateTicket
-// @Summary Создать тикет поддержки
+// @Summary РЎРѕР·РґР°С‚СЊ С‚РёРєРµС‚ РїРѕРґРґРµСЂР¶РєРё
 // @Tags support
 // @Accept json
 // @Produce json
-// @Param body body swaggerCreateSupportTicket true "Тело"
+// @Param body body swaggerCreateSupportTicket true "РўРµР»Рѕ"
 // @Success 201 {object} object
 // @Router /support/tickets [post]
 func _swaggerSupportCreateTicket() {}
 
 // SupportMyTickets
-// @Summary Мои тикеты (пагинация, фильтры query)
+// @Summary РњРѕРё С‚РёРєРµС‚С‹ (РїР°РіРёРЅР°С†РёСЏ, С„РёР»СЊС‚СЂС‹ query)
 // @Tags support
 // @Produce json
 // @Router /support/tickets/my [get]
 func _swaggerSupportMyTickets() {}
 
 // SupportAllTickets
-// @Summary Все тикеты (модератор/admin)
+// @Summary Р’СЃРµ С‚РёРєРµС‚С‹ (РјРѕРґРµСЂР°С‚РѕСЂ/admin)
 // @Tags support
 // @Produce json
 // @Router /support/tickets/all [get]
 func _swaggerSupportAllTickets() {}
 
 // SupportStats
-// @Summary Статистика тикетов (только admin)
+// @Summary РЎС‚Р°С‚РёСЃС‚РёРєР° С‚РёРєРµС‚РѕРІ (С‚РѕР»СЊРєРѕ admin)
 // @Tags support
 // @Produce json
 // @Router /support/stats [get]
 func _swaggerSupportStats() {}
 
 // SupportGetTicket
-// @Summary Тикет с сообщениями
+// @Summary РўРёРєРµС‚ СЃ СЃРѕРѕР±С‰РµРЅРёСЏРјРё
 // @Tags support
 // @Produce json
 // @Param id path int true "Ticket id"
@@ -672,25 +672,25 @@ func _swaggerSupportStats() {}
 func _swaggerSupportGetTicket() {}
 
 // SupportSendMessage
-// @Summary Сообщение в тикет
+// @Summary РЎРѕРѕР±С‰РµРЅРёРµ РІ С‚РёРєРµС‚
 // @Tags support
 // @Accept json
 // @Param id path int true "Ticket id"
-// @Param body body swaggerSupportMessage true "Текст"
+// @Param body body swaggerSupportMessage true "РўРµРєСЃС‚"
 // @Router /support/tickets/{id}/messages [post]
 func _swaggerSupportSendMessage() {}
 
 // SupportUpdateTicket
-// @Summary Обновить тикет (модератор/admin)
+// @Summary РћР±РЅРѕРІРёС‚СЊ С‚РёРєРµС‚ (РјРѕРґРµСЂР°С‚РѕСЂ/admin)
 // @Tags support
 // @Accept json
 // @Param id path int true "Ticket id"
-// @Param body body swaggerUpdateSupportTicket true "Поля"
+// @Param body body swaggerUpdateSupportTicket true "РџРѕР»СЏ"
 // @Router /support/tickets/{id} [put]
 func _swaggerSupportUpdateTicket() {}
 
 // SupportAssignTicket
-// @Summary Назначить тикет на себя
+// @Summary РќР°Р·РЅР°С‡РёС‚СЊ С‚РёРєРµС‚ РЅР° СЃРµР±СЏ
 // @Tags support
 // @Param id path int true "Ticket id"
 // @Router /support/tickets/{id}/assign [put]
@@ -712,24 +712,24 @@ type swaggerUpdateSupportTicket struct {
 	Priority *string `json:"priority,omitempty" example:"HIGH"`
 }
 
-// --- address (DaData, без сессии) ---
+// --- address (DaData, Р±РµР· СЃРµСЃСЃРёРё) ---
 
 // AddressSuggestions
-// @Summary Подсказки адреса (DaData)
+// @Summary РџРѕРґСЃРєР°Р·РєРё Р°РґСЂРµСЃР° (DaData)
 // @Tags address
 // @Produce json
-// @Param query query string true "Строка поиска"
-// @Param limit query int false "Лимит" default(5)
+// @Param query query string true "РЎС‚СЂРѕРєР° РїРѕРёСЃРєР°"
+// @Param limit query int false "Р›РёРјРёС‚" default(5)
 // @Success 200 {array} object
 // @Router /address/suggestions [get]
 func _swaggerAddressSuggestions() {}
 
 // AddressValidate
-// @Summary Проверка адреса по первой подсказке DaData
+// @Summary РџСЂРѕРІРµСЂРєР° Р°РґСЂРµСЃР° РїРѕ РїРµСЂРІРѕР№ РїРѕРґСЃРєР°Р·РєРµ DaData
 // @Tags address
 // @Accept json
 // @Produce json
-// @Param body body swaggerValidateAddress true "Адрес"
+// @Param body body swaggerValidateAddress true "РђРґСЂРµСЃ"
 // @Success 200 {object} object
 // @Failure 400 {object} map[string]interface{}
 // @Router /address/validate [post]
@@ -743,7 +743,7 @@ type swaggerValidateAddress struct {
 // --- banner ---
 
 // BannerCreate
-// @Summary Создать баннер (multipart: image, name, place, navigateToUrl; сессия)
+// @Summary РЎРѕР·РґР°С‚СЊ Р±Р°РЅРЅРµСЂ (multipart: image, name, place, navigateToUrl; СЃРµСЃСЃРёСЏ)
 // @Tags banner
 // @Accept mpfd
 // @Produce json
@@ -752,21 +752,21 @@ type swaggerValidateAddress struct {
 func _swaggerBannerCreate() {}
 
 // BannerRandom
-// @Summary Случайные одобренные баннеры
+// @Summary РЎР»СѓС‡Р°Р№РЅС‹Рµ РѕРґРѕР±СЂРµРЅРЅС‹Рµ Р±Р°РЅРЅРµСЂС‹
 // @Tags banner
 // @Produce json
 // @Router /banner/random [get]
 func _swaggerBannerRandom() {}
 
 // BannerList
-// @Summary Список одобренных баннеров (query place опционально)
+// @Summary РЎРїРёСЃРѕРє РѕРґРѕР±СЂРµРЅРЅС‹С… Р±Р°РЅРЅРµСЂРѕРІ (query place РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ)
 // @Tags banner
 // @Produce json
 // @Router /banner [get]
 func _swaggerBannerList() {}
 
 // BannerModerate
-// @Summary Модерация баннера (admin, query status)
+// @Summary РњРѕРґРµСЂР°С†РёСЏ Р±Р°РЅРЅРµСЂР° (admin, query status)
 // @Tags banner
 // @Produce json
 // @Param id path int true "Banner id"
@@ -775,16 +775,16 @@ func _swaggerBannerList() {}
 func _swaggerBannerModerate() {}
 
 // BannerAllModerate
-// @Summary Очередь баннеров на модерацию (admin)
+// @Summary РћС‡РµСЂРµРґСЊ Р±Р°РЅРЅРµСЂРѕРІ РЅР° РјРѕРґРµСЂР°С†РёСЋ (admin)
 // @Tags banner
 // @Produce json
 // @Router /banner/all-banners-to-moderate [get]
 func _swaggerBannerAllModerate() {}
 
-// --- subcategory / subcategory-type / type-field (админ — сессия + роль admin) ---
+// --- subcategory / subcategory-type / type-field (Р°РґРјРёРЅ вЂ” СЃРµСЃСЃРёСЏ + СЂРѕР»СЊ admin) ---
 
 // SubcategoryFindAll
-// @Summary Список подкатегорий
+// @Summary РЎРїРёСЃРѕРє РїРѕРґРєР°С‚РµРіРѕСЂРёР№
 // @Tags subcategory
 // @Produce json
 // @Success 200 {array} object
@@ -792,7 +792,7 @@ func _swaggerBannerAllModerate() {}
 func _swaggerSubcategoryFindAll() {}
 
 // SubcategoryFindByID
-// @Summary Подкатегория по id
+// @Summary РџРѕРґРєР°С‚РµРіРѕСЂРёСЏ РїРѕ id
 // @Tags subcategory
 // @Produce json
 // @Param id path int true "ID"
@@ -800,14 +800,14 @@ func _swaggerSubcategoryFindAll() {}
 func _swaggerSubcategoryFindByID() {}
 
 // SubcategoryTypeFindAll
-// @Summary Все типы подкатегорий
+// @Summary Р’СЃРµ С‚РёРїС‹ РїРѕРґРєР°С‚РµРіРѕСЂРёР№
 // @Tags subcategory-type
 // @Produce json
 // @Router /subcategory-type/find-all [get]
 func _swaggerSubcategoryTypeFindAll() {}
 
 // SubcategoryTypeFindByID
-// @Summary Тип подкатегории по id
+// @Summary РўРёРї РїРѕРґРєР°С‚РµРіРѕСЂРёРё РїРѕ id
 // @Tags subcategory-type
 // @Produce json
 // @Param id path int true "ID"
@@ -815,21 +815,21 @@ func _swaggerSubcategoryTypeFindAll() {}
 func _swaggerSubcategoryTypeFindByID() {}
 
 // TypeFieldFindAll
-// @Summary Все характеристики (поля типа)
+// @Summary Р’СЃРµ С…Р°СЂР°РєС‚РµСЂРёСЃС‚РёРєРё (РїРѕР»СЏ С‚РёРїР°)
 // @Tags type-field
 // @Produce json
 // @Router /type-field/find-all [get]
 func _swaggerTypeFieldFindAll() {}
 
 // TypeFieldFindByID
-// @Summary Характеристика по id
+// @Summary РҐР°СЂР°РєС‚РµСЂРёСЃС‚РёРєР° РїРѕ id
 // @Tags type-field
 // @Produce json
 // @Param id path int true "ID"
 // @Router /type-field/find-by-id/{id} [get]
 func _swaggerTypeFieldFindByID() {}
 
-// registerSwaggerDocSymbols — ссылки на заглушки и типы только для swag; без этого gopls/staticcheck видят «unused».
+// registerSwaggerDocSymbols вЂ” СЃСЃС‹Р»РєРё РЅР° Р·Р°РіР»СѓС€РєРё Рё С‚РёРїС‹ С‚РѕР»СЊРєРѕ РґР»СЏ swag; Р±РµР· СЌС‚РѕРіРѕ gopls/staticcheck РІРёРґСЏС‚ В«unusedВ».
 func init() {
 	_ = []any{
 		_swaggerAddressSuggestions, _swaggerAddressValidate,
@@ -865,7 +865,7 @@ func init() {
 // --- knowledge-base ---
 
 // KnowledgeBaseList
-// @Summary Список статей базы знаний
+// @Summary РЎРїРёСЃРѕРє СЃС‚Р°С‚РµР№ Р±Р°Р·С‹ Р·РЅР°РЅРёР№
 // @Tags knowledge-base
 // @Produce json
 // @Success 200 {array} swaggerKnowledgeBaseArticle
@@ -873,10 +873,10 @@ func init() {
 func _swaggerKnowledgeBaseList() {}
 
 // KnowledgeBaseGetByID
-// @Summary Статья базы знаний по id
+// @Summary РЎС‚Р°С‚СЊСЏ Р±Р°Р·С‹ Р·РЅР°РЅРёР№ РїРѕ id
 // @Tags knowledge-base
 // @Produce json
-// @Param id path int true "ID статьи"
+// @Param id path int true "ID СЃС‚Р°С‚СЊРё"
 // @Success 200 {object} swaggerKnowledgeBaseArticle
 // @Failure 400 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
@@ -884,11 +884,11 @@ func _swaggerKnowledgeBaseList() {}
 func _swaggerKnowledgeBaseGetByID() {}
 
 // KnowledgeBaseCreate
-// @Summary Создать статью базы знаний
+// @Summary РЎРѕР·РґР°С‚СЊ СЃС‚Р°С‚СЊСЋ Р±Р°Р·С‹ Р·РЅР°РЅРёР№
 // @Tags knowledge-base-admin
 // @Accept json
 // @Produce json
-// @Param body body swaggerKnowledgeBaseArticleRequest true "Тело"
+// @Param body body swaggerKnowledgeBaseArticleRequest true "РўРµР»Рѕ"
 // @Success 201 {object} swaggerKnowledgeBaseCreateResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
@@ -897,12 +897,12 @@ func _swaggerKnowledgeBaseGetByID() {}
 func _swaggerKnowledgeBaseCreate() {}
 
 // KnowledgeBaseUpdate
-// @Summary Обновить статью базы знаний
+// @Summary РћР±РЅРѕРІРёС‚СЊ СЃС‚Р°С‚СЊСЋ Р±Р°Р·С‹ Р·РЅР°РЅРёР№
 // @Tags knowledge-base-admin
 // @Accept json
 // @Produce json
-// @Param id path int true "ID статьи"
-// @Param body body swaggerKnowledgeBaseArticleRequest true "Тело"
+// @Param id path int true "ID СЃС‚Р°С‚СЊРё"
+// @Param body body swaggerKnowledgeBaseArticleRequest true "РўРµР»Рѕ"
 // @Success 200 {object} swaggerKnowledgeBaseUpdateResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
@@ -912,10 +912,10 @@ func _swaggerKnowledgeBaseCreate() {}
 func _swaggerKnowledgeBaseUpdate() {}
 
 // KnowledgeBaseDelete
-// @Summary Удалить статью базы знаний
+// @Summary РЈРґР°Р»РёС‚СЊ СЃС‚Р°С‚СЊСЋ Р±Р°Р·С‹ Р·РЅР°РЅРёР№
 // @Tags knowledge-base-admin
 // @Produce json
-// @Param id path int true "ID статьи"
+// @Param id path int true "ID СЃС‚Р°С‚СЊРё"
 // @Success 200 {object} swaggerKnowledgeBaseDeleteResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
@@ -926,27 +926,126 @@ func _swaggerKnowledgeBaseDelete() {}
 
 type swaggerKnowledgeBaseArticle struct {
 	ID        int32  `json:"id" example:"1"`
-	Title     string `json:"title" example:"Как оформить заказ"`
-	Content   string `json:"content" example:"Текст статьи..."`
+	Title     string `json:"title" example:"РљР°Рє РѕС„РѕСЂРјРёС‚СЊ Р·Р°РєР°Р·"`
+	Content   string `json:"content" example:"РўРµРєСЃС‚ СЃС‚Р°С‚СЊРё..."`
 	CreatedAt string `json:"createdAt" example:"2026-03-31T10:00:00Z"`
 	UpdatedAt string `json:"updatedAt" example:"2026-03-31T10:00:00Z"`
 }
 
 type swaggerKnowledgeBaseArticleRequest struct {
-	Title   string `json:"title" example:"Как оформить заказ"`
-	Content string `json:"content" example:"Текст статьи..."`
+	Title   string `json:"title" example:"РљР°Рє РѕС„РѕСЂРјРёС‚СЊ Р·Р°РєР°Р·"`
+	Content string `json:"content" example:"РўРµРєСЃС‚ СЃС‚Р°С‚СЊРё..."`
 }
 
 type swaggerKnowledgeBaseCreateResponse struct {
-	Message string                      `json:"message" example:"Статья успешно создана"`
+	Message string                      `json:"message" example:"РЎС‚Р°С‚СЊСЏ СѓСЃРїРµС€РЅРѕ СЃРѕР·РґР°РЅР°"`
 	Article swaggerKnowledgeBaseArticle `json:"article"`
 }
 
 type swaggerKnowledgeBaseUpdateResponse struct {
-	Message string                      `json:"message" example:"Статья успешно обновлена"`
+	Message string                      `json:"message" example:"РЎС‚Р°С‚СЊСЏ СѓСЃРїРµС€РЅРѕ РѕР±РЅРѕРІР»РµРЅР°"`
 	Article swaggerKnowledgeBaseArticle `json:"article"`
 }
 
 type swaggerKnowledgeBaseDeleteResponse struct {
-	Message string `json:"message" example:"Статья успешно удалена"`
+	Message string `json:"message" example:"РЎС‚Р°С‚СЊСЏ СѓСЃРїРµС€РЅРѕ СѓРґР°Р»РµРЅР°"`
+}
+
+// ModerationList
+// @Summary Список товаров AI-модерации
+// @Tags moderation-admin
+// @Produce json
+// @Param filter query string false "ALL|DENIED|MANUAL|APPROVED_AI"
+// @Param page query int false "Номер страницы"
+// @Success 200 {object} swaggerModerationListResponse
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Router /admin/moderation/products [get]
+func _swaggerModerationList() {}
+
+// ModerationGetProduct
+// @Summary Детали товара из AI-модерации
+// @Tags moderation-admin
+// @Produce json
+// @Param id path int true "ID товара"
+// @Success 200 {object} swaggerModerationProductDetail
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Router /admin/moderation/products/{id} [get]
+func _swaggerModerationGetProduct() {}
+
+type swaggerModerationListResponse struct {
+	Items []swaggerModerationListItem `json:"items"`
+	Total int                         `json:"total" example:"12"`
+	Page  int                         `json:"page" example:"1"`
+	Pages int                         `json:"pages" example:"1"`
+}
+
+type swaggerModerationListItem struct {
+	ID                        int32                    `json:"id" example:"1000001"`
+	Name                      string                   `json:"name" example:"Тонометр"`
+	Price                     int32                    `json:"price" example:"3500"`
+	Images                    []string                 `json:"images"`
+	ModerateState             string                   `json:"moderateState" example:"AI_REVIEWED"`
+	ModerationRejectionReason *string                  `json:"moderationRejectionReason,omitempty" example:"Текст: есть контакты"`
+	CreatedAt                 string                   `json:"createdAt" example:"2026-04-06T10:00:00Z"`
+	UpdatedAt                 string                   `json:"updatedAt" example:"2026-04-06T10:00:00Z"`
+	Category                  swaggerModerationRefItem `json:"category"`
+	SubCategory               swaggerModerationRefItem `json:"subCategory"`
+	User                      swaggerModerationUser    `json:"user"`
+}
+
+type swaggerModerationProductDetail struct {
+	ID                        int32                         `json:"id" example:"1000001"`
+	Name                      string                        `json:"name" example:"Тонометр"`
+	Price                     int32                         `json:"price" example:"3500"`
+	Description               string                        `json:"description" example:"Описание товара"`
+	Images                    []string                      `json:"images"`
+	VideoURL                  *string                       `json:"videoUrl,omitempty" example:"https://example.com/video.mp4"`
+	ModerateState             string                        `json:"moderateState" example:"AI_REVIEWED"`
+	ModerationRejectionReason *string                       `json:"moderationRejectionReason,omitempty" example:"Фото: требуется ручная проверка"`
+	CreatedAt                 string                        `json:"createdAt" example:"2026-04-06T10:00:00Z"`
+	UpdatedAt                 string                        `json:"updatedAt" example:"2026-04-06T10:00:00Z"`
+	Category                  swaggerModerationRefItem      `json:"category"`
+	SubCategory               swaggerModerationRefItem      `json:"subCategory"`
+	Type                      *swaggerModerationTypeRefItem `json:"type,omitempty"`
+	User                      swaggerModerationUserDetail   `json:"user"`
+	FieldValues               []swaggerModerationFieldValue `json:"fieldValues"`
+}
+
+type swaggerModerationRefItem struct {
+	ID   int32  `json:"id" example:"1"`
+	Name string `json:"name" example:"Медтехника"`
+}
+
+type swaggerModerationTypeRefItem struct {
+	ID   int32   `json:"id" example:"1"`
+	Name *string `json:"name" example:"Тонометры"`
+}
+
+type swaggerModerationUser struct {
+	ID          int32  `json:"id" example:"1"`
+	FullName    string `json:"fullName" example:"Иван Иванов"`
+	Email       string `json:"email" example:"ivan@example.com"`
+	PhoneNumber string `json:"phoneNumber" example:"+79990000000"`
+}
+
+type swaggerModerationUserDetail struct {
+	ID          int32  `json:"id" example:"1"`
+	FullName    string `json:"fullName" example:"Иван Иванов"`
+	Email       string `json:"email" example:"ivan@example.com"`
+	PhoneNumber string `json:"phoneNumber" example:"+79990000000"`
+	ProfileType string `json:"profileType" example:"INDIVIDUAL"`
+}
+
+type swaggerModerationFieldValue struct {
+	Value string                    `json:"value" example:"Omron"`
+	Field swaggerModerationFieldRef `json:"field"`
+}
+
+type swaggerModerationFieldRef struct {
+	ID   int32  `json:"id" example:"1"`
+	Name string `json:"name" example:"Производитель"`
 }

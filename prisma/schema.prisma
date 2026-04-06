@@ -21,6 +21,7 @@ enum ProductState {
 
 enum ProductModerate {
   MODERATE
+  AI_REVIEWED
   APPROVED
   DENIDED
 }

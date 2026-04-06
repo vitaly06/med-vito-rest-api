@@ -121,7 +121,7 @@ func scanProductListRows(rows pgx.Rows) ([]ProductListRow, error) {
 // ListProductsModerate — на модерации.
 func (r *ProductPG) ListProductsModerate(ctx context.Context) ([]ProductListRow, error) {
 	q := fmt.Sprintf(`SELECT %s %s
-		WHERE p."moderateState" = 'MODERATE'::"ProductModerate"
+		WHERE p."moderateState" IN ('MODERATE'::"ProductModerate", 'AI_REVIEWED'::"ProductModerate")
 		ORDER BY p."createdAt" DESC`, productListSelect, productListFrom)
 	rows, err := r.pool.Query(ctx, q)
 	if err != nil {
@@ -197,18 +197,18 @@ func (r *ProductPG) RandomSubcategoriesWithProducts(ctx context.Context) ([]Prod
 
 // ProductSearchParams — фильтры для поиска.
 type ProductSearchParams struct {
-	Search           *string
-	CategoryID       *int32
-	SubCategoryID    *int32
-	TypeID           *int32
-	MinPrice         *int32
-	MaxPrice         *int32
-	State            *string
-	Region           *string
-	ProfileType      *string
-	FieldValues      map[string]string // fieldId -> contains
-	SortBy           string
-	Page, Limit      int
+	Search        *string
+	CategoryID    *int32
+	SubCategoryID *int32
+	TypeID        *int32
+	MinPrice      *int32
+	MaxPrice      *int32
+	State         *string
+	Region        *string
+	ProfileType   *string
+	FieldValues   map[string]string // fieldId -> contains
+	SortBy        string
+	Page, Limit   int
 }
 
 func (r *ProductPG) SearchProducts(ctx context.Context, p ProductSearchParams) ([]ProductListRow, error) {
@@ -328,25 +328,25 @@ func parseInt32(s string) (int32, bool) {
 
 // ProductCardDB — сырые поля карточки товара.
 type ProductCardDB struct {
-	ID            int32
-	Name          string
-	Description   *string
-	Price         int32
-	IsHide        bool
-	Images        []string
-	Address       string
-	UserID        int32
-	VideoURL      *string
-	CategoryID    int32
-	CategoryName  string
-	CategorySlug  string
-	SubCatID      int32
-	SubCatName    string
-	SubCatSlug    string
-	TypeID        *int32
-	TypeName      *string
-	TypeSlug      *string
-	FieldPairs    []struct{ FieldName, Value string }
+	ID           int32
+	Name         string
+	Description  *string
+	Price        int32
+	IsHide       bool
+	Images       []string
+	Address      string
+	UserID       int32
+	VideoURL     *string
+	CategoryID   int32
+	CategoryName string
+	CategorySlug string
+	SubCatID     int32
+	SubCatName   string
+	SubCatSlug   string
+	TypeID       *int32
+	TypeName     *string
+	TypeSlug     *string
+	FieldPairs   []struct{ FieldName, Value string }
 }
 
 func (r *ProductPG) GetProductCard(ctx context.Context, productID int32) (*ProductCardDB, error) {
@@ -411,7 +411,7 @@ func (r *ProductPG) LoadProductWithRelations(ctx context.Context, productID int3
 	}
 	out := map[string]any{
 		"id": card.ID, "name": card.Name, "description": card.Description, "price": card.Price,
-		"state": nil, // заполним отдельно если нужно
+		"state":  nil, // заполним отдельно если нужно
 		"images": card.Images, "address": card.Address, "videoUrl": card.VideoURL,
 		"category":    map[string]any{"id": card.CategoryID, "name": card.CategoryName},
 		"subCategory": map[string]any{"id": card.SubCatID, "name": card.SubCatName},
@@ -427,16 +427,16 @@ func (r *ProductPG) LoadProductWithRelations(ctx context.Context, productID int3
 
 // PromotedProductRow — админский список продвижений.
 type PromotedProductRow struct {
-	ProductID     int32
-	Name          string
-	Price         int32
-	Images        []string
-	Category      map[string]any
-	SubCategory   map[string]any
-	Type          map[string]any
-	User          map[string]any
-	CreatedAt     time.Time
-	Promotions    []map[string]any
+	ProductID   int32
+	Name        string
+	Price       int32
+	Images      []string
+	Category    map[string]any
+	SubCategory map[string]any
+	Type        map[string]any
+	User        map[string]any
+	CreatedAt   time.Time
+	Promotions  []map[string]any
 }
 
 func (r *ProductPG) ListPromotedProducts(ctx context.Context) ([]PromotedProductRow, error) {

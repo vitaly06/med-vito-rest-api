@@ -19,6 +19,7 @@ type AppDeps struct {
 	Auth       *service.AuthService
 	User       *service.UserService
 	Product    *service.ProductService
+	Moderation *service.ModerationAdminService
 	Review     *service.ReviewService
 	Chat       *service.ChatService
 	Payment    *service.PaymentService
@@ -52,6 +53,7 @@ func NewApp(corsOrigins string, deps AppDeps) *fiber.App {
 	RegisterTypeFieldRoutes(app, deps.Category, deps.Auth)
 	RegisterUserRoutes(app, deps.User, deps.Auth)
 	RegisterProductRoutes(app, deps.Product, deps.Auth)
+	RegisterModerationRoutes(app, deps.Moderation, deps.Auth)
 	RegisterReviewRoutes(app, deps.Review, deps.Auth)
 	RegisterChatRoutes(app, deps.Chat, deps.Auth)
 	RegisterPaymentRoutes(app, deps.Payment, deps.Auth)

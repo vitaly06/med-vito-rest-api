@@ -13,6 +13,12 @@ type Config struct {
 	BaseURL     string
 	Production  bool
 
+	AIModerationEnabled      bool
+	AIModerationPollInterval int
+	AIModerationBatchSize    int
+	YandexFolderID           string
+	YandexAPIKey             string
+
 	RedisAddr     string
 	RedisPassword string
 
@@ -49,6 +55,20 @@ func Load() Config {
 	if p == "" {
 		p = "3000"
 	}
+	aiEnabled := strings.ToLower(strings.TrimSpace(os.Getenv("AI_MODERATION_ENABLED")))
+	aiModerationEnabled := aiEnabled == "true" || aiEnabled == "1" || aiEnabled == "yes"
+	aiPollInterval := 30
+	if v := strings.TrimSpace(os.Getenv("AI_MODERATION_POLL_INTERVAL_SECONDS")); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			aiPollInterval = n
+		}
+	}
+	aiBatchSize := 5
+	if v := strings.TrimSpace(os.Getenv("AI_MODERATION_BATCH_SIZE")); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			aiBatchSize = n
+		}
+	}
 	base := os.Getenv("BASE_URL")
 	if base == "" {
 		base = "http://localhost:3000"
@@ -77,6 +97,12 @@ func Load() Config {
 		DatabaseURL: os.Getenv("DATABASE_URL"),
 		BaseURL:     strings.TrimRight(base, "/"),
 		Production:  strings.ToLower(os.Getenv("NODE_ENV")) == "production",
+
+		AIModerationEnabled:      aiModerationEnabled,
+		AIModerationPollInterval: aiPollInterval,
+		AIModerationBatchSize:    aiBatchSize,
+		YandexFolderID:           strings.TrimSpace(os.Getenv("YANDEX_FOLDER_ID")),
+		YandexAPIKey:             strings.TrimSpace(os.Getenv("YANDEX_API_KEY")),
 
 		RedisAddr:     redisHost + ":" + redisPort,
 		RedisPassword: os.Getenv("REDIS_PASSWORD"),
