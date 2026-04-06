@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-medvito}
@@ -17,7 +17,7 @@ services:
       retries: 10
 
   db-init:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     restart: "no"
     environment:
       POSTGRES_HOST: postgres
@@ -94,4 +94,5 @@ services:
 
 volumes:
   postgres_data:
+
 
