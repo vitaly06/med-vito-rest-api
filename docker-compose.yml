@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:16-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-medvito}
@@ -17,7 +17,7 @@ services:
       retries: 10
 
   db-init:
-    image: postgres:17-alpine
+    image: postgres:16-alpine
     restart: "no"
     environment:
       POSTGRES_HOST: postgres
@@ -43,7 +43,11 @@ services:
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     healthcheck:
-      test: ["CMD-SHELL", "if [ -n \"$$REDIS_PASSWORD\" ]; then redis-cli -a \"$$REDIS_PASSWORD\" ping; else redis-cli ping; fi"]
+      test:
+        [
+          "CMD-SHELL",
+          'if [ -n "$$REDIS_PASSWORD" ]; then redis-cli -a "$$REDIS_PASSWORD" ping; else redis-cli ping; fi',
+        ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -99,5 +103,3 @@ services:
 
 volumes:
   postgres_data:
-
-
