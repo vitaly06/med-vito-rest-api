@@ -2,7 +2,6 @@
 -- PostgreSQL database dump
 --
 
-\restrict 7o63yRsydxiUerdAEU0KiNLOiTUmmpJkCDolf3N6Il2xtWZe6mmuwcEj27Z1WIo
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -10,7 +9,6 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -1650,5 +1648,4 @@ SELECT pg_catalog.setval('public."TypeField_id_seq"', 209, true);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 7o63yRsydxiUerdAEU0KiNLOiTUmmpJkCDolf3N6Il2xtWZe6mmuwcEj27Z1WIo
 
