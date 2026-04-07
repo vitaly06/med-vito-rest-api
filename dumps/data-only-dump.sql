@@ -2,6 +2,7 @@
 -- PostgreSQL database dump
 --
 
+\restrict 7o63yRsydxiUerdAEU0KiNLOiTUmmpJkCDolf3N6Il2xtWZe6mmuwcEj27Z1WIo
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -9,6 +10,7 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -17,12 +19,13 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
--- Temporarily disable triggers to avoid FK constraint issues during data load
-SET session_replication_role = 'replica';
+--
+-- Data for Name: Role; Type: TABLE DATA; Schema: public; Owner: -
+--
 
---
--- Data for Name: Role; Type: TABLE DATA; Schema: public; Owner: postgres
---
+SET SESSION AUTHORIZATION DEFAULT;
+
+ALTER TABLE public."Role" DISABLE TRIGGER ALL;
 
 COPY public."Role" (id, name) FROM stdin;
 1	default
@@ -31,38 +34,49 @@ COPY public."Role" (id, name) FROM stdin;
 \.
 
 
+ALTER TABLE public."Role" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: -
 --
 
+ALTER TABLE public."User" DISABLE TRIGGER ALL;
+
 COPY public."User" (id, "fullName", email, "phoneNumber", password, "profileType", "createdAt", "updatedAt", rating, "isResetVerified", "roleId", "isAnswersCall", photo, "isEmailVerified", balance, "bonusBalance", "isBanned", "freeAdsLimit", "lastAdLimitReset", "usedFreeAds") FROM stdin;
-7106521	Попов Матвей Иванович	vitaly.sadikov1@yandex.ru	+79510341679	$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C	INDIVIDUAL	2025-11-06 19:33:46.625	2026-01-22 06:14:35.664	\N	f	3	f	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/users/eac42b51-e66a-4d76-bad2-c6db0efd947b.jpg	t	0	1800	f	12	2026-01-11 17:11:38.151	0
-6669460	Афонасьев Афиларет Михайлович	pr.actual@mail.ru	+79082734009	$2b$10$R0pbgCnq1AVwe9phmKu1GOT0emg48XzDbtYRBEn/xEyCFd8aNYX7y	INDIVIDUAL	2025-12-01 08:28:35.989	2025-12-08 12:30:51.217	\N	f	1	t	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/users/71116356-ea56-4dd5-ac1a-86c5a6e2e11b.jpg	f	0	0	f	12	2025-12-24 18:33:10.973	0
 3432589	Исаев Максим Андреевич	sima.isaev2305@mail.ru	+79501859919	$2b$10$VI6Gb9KuiHWEnbndcyi1WemTTQgKWwVhpcOfnEEj7W18T8Gw.TPou	INDIVIDUAL	2025-11-28 09:06:55.938	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
-3235109	Арзамасцев Даниил	arzamastsevdaniil@gmail.com	+79068346355	$2b$10$NvJVMH9Kn16C7hSuCtRAf./yj8/jgaeUg2ZI0IAkxt2Tc/Cf5DR8G	INDIVIDUAL	2025-12-01 05:48:10.726	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
-9371169	Захаров АР ВЛ	Zahar83s@mail.ru	+79878600551	$2b$10$TfLU49EmrMYrTPd46fQv6.QNkD3tEE2WnHVmy8qIdYzHVOX4PLe4q	INDIVIDUAL	2025-11-28 09:07:21.428	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
-4761896	Гатин Ян Талгатович	ggg2107@gmail.com	+79228386030	$2b$10$aUbIJdrSn4qPvErIPV8E6uo162lESkmE7orVVIrS/2v8/k8qUQjvm	INDIVIDUAL	2025-11-28 09:08:47.126	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
-8633592	Махар Святой Рог	vmahauri029@gmail.com	+79123557497	$2b$10$UbWFDK5KoI92FFzmWZw.s.jslpRNGreNJFQi30q4ZWI9lB02sqegS	INDIVIDUAL	2025-11-28 09:07:05.955	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
 6251884	Попов Матвей Иванович	trrina04@mail.ru	+79878993845	$2b$10$cfHgsH42YXRqYPpoZbbhAuFK4bg.81DSzN4JNMGmkLffNma7mLmB.	INDIVIDUAL	2025-12-03 19:26:12.827	2025-12-08 12:30:51.217	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
-8964288	Макаров Николай	bapenick445@gmail.com	+79225387481	$2b$10$DHSa1l.0cj7MK.b7ATupL.f7yXnjfGBUEr7Wezf1wul9x2z2eOIkO	INDIVIDUAL	2025-11-28 09:07:33.445	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
-6053931	Голосняк Юлия Викторовна	juliagolosnyak@mail.ru	+79328538922	$2b$10$9VP3OmZRjdumTgAJWCBGGe5ozGVZG0Z/okvuWwUdx1wxmJG7brTES	INDIVIDUAL	2025-11-28 09:07:19.394	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
-8261539	Подрядов Екатерина Сергеевна	podradovakata91@gmail.com	+79083234725	$2b$10$sdWaXECQtpyEqc61gS4MrOlsoz4nsjYb1gGC1xD2VVFgr/pUqwB3m	INDIVIDUAL	2025-11-28 09:07:29.962	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
 5966833	Каверина Мария	kunafina_ruslana7@mail.ru	+79228362555	$2b$10$AY/2V0DgPQ1.ZorhEmTMfOb4o8hq1EkOR9qkHx4/RgG7Cq6OFAOo2	INDIVIDUAL	2025-11-28 09:07:42.429	2025-12-08 12:30:51.217	\N	f	1	t	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
 2287442	Абвгдеивич Егор Константинович	barabulkabarabulka@gmail.com	+72280303111	$2b$10$PPEwZxCaLahLuE4XtqI2k.UxgqrcfBgCoXBHT1EUoq86kYraokwz2	INDIVIDUAL	2025-11-28 09:08:14.573	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
-6038643	дар	bdi-2006@mail.ru	+79123400130	$2b$10$TROWXU059pwS6Q98JIfGDOL1kzA0oohdraWoB3ZxpEgGqEU//.qQ6	INDIVIDUAL	2025-11-28 09:06:52.861	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
-7391202	kostyukov	geronimoprofitop@gmail.com	+79228744883	$2b$10$ulXOXoQl7aAYjf7uJ2opGOApWYjLTVFSWBrWyYAjJp80HAeDl97OS	INDIVIDUAL	2025-11-28 09:07:57.477	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
-1208299	Кокеев Фирилл Батькович	test@test.com	+79953501391	$2b$10$0GEA/Uvq4NrHTLuOetQTXuoviQG19DrdEX4NIFUwD.54aF7ePJveO	INDIVIDUAL	2025-11-28 09:07:44.576	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
-2321239	Прокофьева Валерия Денисовна	lin.ferr@mail.ru	+79225406669	$2b$10$7mnxrJ2LJ0S5RoBoo8gVteXYR.o2kM/nnm07SpxHT37YZqEghfVAC	INDIVIDUAL	2025-11-28 09:08:42.207	2025-12-19 12:04:30.85	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
-2681599	Корякина Ирина	ikoryakina47@gmail.com	+79228579009	$2b$10$48dtDNK6DIH0yBgup4eqeeG8k5NPkHuhqBNvQ2yCJqayB3sNthYOS	INDIVIDUAL	2025-12-01 08:08:29.883	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
 7132269	йцукенгшщзх	qwertyui123@gmail.com	+75678903456	$2b$10$hhmWdTv8RdWeJ1ofHOjaTuKBgOo2JUky9za7NTJ.uCcfrH3W2CK/S	INDIVIDUAL	2025-12-01 14:29:11.538	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
-4146092	Фокеев Кирилл	test1@test.com	+71234567890	$2b$10$FELoBjJj0J8IeMy2YhKlIeniLkjz86fijJS2HOFJ3XvJ3fnIulg2i	INDIVIDUAL	2025-12-02 10:48:41.186	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
-9851099	Черешков Данила Алексеевич	chereshkov.da2006@gmail.com	+79123431910	$2b$10$hvt0jXBTO6PcqEzKYDKYUO7hivY2kCsC/7Bzwix242L8YDeP6UgnW	INDIVIDUAL	2025-12-02 10:47:25.87	2025-12-08 12:30:43.354	\N	f	1	f	\N	f	0	0	f	12	2025-12-24 18:33:10.973	0
+6669460	Афонасьев Афиларет Михайлович	pr.actual@mail.ru	+79082734009	$2b$10$R0pbgCnq1AVwe9phmKu1GOT0emg48XzDbtYRBEn/xEyCFd8aNYX7y	INDIVIDUAL	2025-12-01 08:28:35.989	2026-04-01 03:26:19.345	\N	f	1	t	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/users/71116356-ea56-4dd5-ac1a-86c5a6e2e11b.jpg	f	0	0	f	12	2026-04-01 03:26:19.344	0
+9371169	Захаров АР ВЛ	Zahar83s@mail.ru	+79878600551	$2b$10$TfLU49EmrMYrTPd46fQv6.QNkD3tEE2WnHVmy8qIdYzHVOX4PLe4q	INDIVIDUAL	2025-11-28 09:07:21.428	2026-04-01 22:34:46.395	\N	f	1	f	\N	f	0	0	f	12	2026-04-01 22:34:46.394	0
+7391202	kostyukov	geronimoprofitop@gmail.com	+79228744883	$2b$10$ulXOXoQl7aAYjf7uJ2opGOApWYjLTVFSWBrWyYAjJp80HAeDl97OS	INDIVIDUAL	2025-11-28 09:07:57.477	2026-04-01 11:01:16.237	\N	f	1	f	\N	f	0	0	f	12	2026-04-01 11:01:16.236	0
+4146092	Фокеев Кирилл	test1@test.com	+71234567890	$2b$10$FELoBjJj0J8IeMy2YhKlIeniLkjz86fijJS2HOFJ3XvJ3fnIulg2i	INDIVIDUAL	2025-12-02 10:48:41.186	2026-04-01 11:35:38.547	\N	f	1	f	\N	f	0	0	f	12	2026-04-01 11:35:38.546	0
+9851099	Черешков Данила Алексеевич	chereshkov.da2006@gmail.com	+79123431910	$2b$10$hvt0jXBTO6PcqEzKYDKYUO7hivY2kCsC/7Bzwix242L8YDeP6UgnW	INDIVIDUAL	2025-12-02 10:47:25.87	2026-04-01 12:13:32.953	\N	f	1	f	\N	f	0	0	f	12	2026-04-01 12:13:32.952	0
+8261539	Подрядов Екатерина Сергеевна	podradovakata91@gmail.com	+79083234725	$2b$10$sdWaXECQtpyEqc61gS4MrOlsoz4nsjYb1gGC1xD2VVFgr/pUqwB3m	INDIVIDUAL	2025-11-28 09:07:29.962	2026-02-05 06:41:01.979	\N	f	1	f	\N	f	0	0	f	12	2026-02-05 06:41:01.978	0
+3847783	Джо Джо Армани	dayn2006@yandex.ru	+79501893881	$2b$10$isWtItRf3LeAFdagS.Y00esrNLRYnxZXCtlWL37/KqOq/H.VKS/i2	INDIVIDUAL	2026-02-17 06:34:19.084	2026-03-10 07:04:25.287	\N	f	1	f	\N	f	0	0	f	6	2026-03-10 07:04:25.286	0
+7106521	Попов Матвей Иванович	vitaly.sadikov1@yandex.ru	+79510341679	$2b$10$05FMyE494pfJScN9OF98COs6yLacnIIE2gueMbTS8s1/PNzaYrA6C	INDIVIDUAL	2025-11-06 19:33:46.625	2026-04-05 00:32:14.537	\N	f	3	f	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/users/eac42b51-e66a-4d76-bad2-c6db0efd947b.jpg	t	0	1700	f	12	2026-04-05 00:32:14.536	0
+6038643	дар	bdi-2006@mail.ru	+79123400130	$2b$10$TROWXU059pwS6Q98JIfGDOL1kzA0oohdraWoB3ZxpEgGqEU//.qQ6	INDIVIDUAL	2025-11-28 09:06:52.861	2026-04-01 13:16:02.745	\N	f	1	f	\N	f	0	0	f	12	2026-04-01 13:16:02.744	0
+7249738	Садиков Виталий Дмитриевич	vitaly.sadikov11@yandex.ru	+79510341677	$2b$10$5nGVNXoLztyWLeK8lWO2KuJ7VjfjwE4C6hiPDRzdDDzrrFWHCklUC	INDIVIDUAL	2026-02-11 06:33:27.821	2026-02-11 06:33:27.821	\N	f	1	f	\N	f	0	0	f	6	2026-02-11 06:33:27.821	0
+3235109	Арзамасцев Даниил	arzamastsevdaniil@gmail.com	+79068346355	$2b$10$NvJVMH9Kn16C7hSuCtRAf./yj8/jgaeUg2ZI0IAkxt2Tc/Cf5DR8G	INDIVIDUAL	2025-12-01 05:48:10.726	2026-04-06 08:17:01.625	\N	f	1	f	\N	f	0	0	f	12	2026-04-01 23:04:01.203	1
+6053931	Голосняк Юлия Викторовна	juliagolosnyak@mail.ru	+79328538922	$2b$10$9VP3OmZRjdumTgAJWCBGGe5ozGVZG0Z/okvuWwUdx1wxmJG7brTES	INDIVIDUAL	2025-11-28 09:07:19.394	2026-04-01 02:41:40.488	\N	f	1	f	\N	f	0	0	f	12	2026-04-01 02:41:40.488	0
+4162442	Егор Скоморохов	egorskomorohov020606@gmail.com	+79123482231	$2b$10$ao0O9CiDhtjN8dJV3oRFK.lk3ohTU7zKkDh87PBXip8QPNd4sGf3O	INDIVIDUAL	2026-02-05 09:00:37.645	2026-04-01 07:52:03.259	\N	f	1	f	\N	f	0	14900	f	6	2026-04-01 07:52:03.258	0
+1208299	Кокеев Фирилл Батькович	test@test.com	+79953501391	$2b$10$0GEA/Uvq4NrHTLuOetQTXuoviQG19DrdEX4NIFUwD.54aF7ePJveO	INDIVIDUAL	2025-11-28 09:07:44.576	2026-04-01 08:52:44.415	\N	f	1	f	\N	f	0	0	f	12	2026-04-01 08:52:44.414	0
+4761896	Гатин Ян Талгатович	ggg2107@gmail.com	+79228386030	$2b$10$aUbIJdrSn4qPvErIPV8E6uo162lESkmE7orVVIrS/2v8/k8qUQjvm	INDIVIDUAL	2025-11-28 09:08:47.126	2026-04-01 10:13:40.045	\N	f	1	f	\N	f	0	0	f	12	2026-04-01 10:13:40.044	0
+2681599	Корякина Ирина	ikoryakina47@gmail.com	+79228579009	$2b$10$48dtDNK6DIH0yBgup4eqeeG8k5NPkHuhqBNvQ2yCJqayB3sNthYOS	INDIVIDUAL	2025-12-01 08:08:29.883	2026-04-01 23:32:45.062	\N	f	1	f	\N	f	0	0	f	12	2026-04-01 23:32:45.061	0
+2321239	Прокофьева Валерия Денисовна	lin.ferr@mail.ru	+79225406669	$2b$10$7mnxrJ2LJ0S5RoBoo8gVteXYR.o2kM/nnm07SpxHT37YZqEghfVAC	INDIVIDUAL	2025-11-28 09:08:42.207	2026-04-02 03:32:16.866	\N	f	1	f	\N	f	0	0	f	12	2026-04-02 03:32:16.865	0
+8964288	Макаров Николай	bapenick445@gmail.com	+79225387481	$2b$10$DHSa1l.0cj7MK.b7ATupL.f7yXnjfGBUEr7Wezf1wul9x2z2eOIkO	INDIVIDUAL	2025-11-28 09:07:33.445	2026-04-03 16:26:06.66	\N	f	1	f	\N	f	0	0	f	12	2026-04-03 16:26:06.659	0
+8633592	Махар Святой Рог	vmahauri029@gmail.com	+79123557497	$2b$10$UbWFDK5KoI92FFzmWZw.s.jslpRNGreNJFQi30q4ZWI9lB02sqegS	INDIVIDUAL	2025-11-28 09:07:05.955	2026-04-01 16:45:23.685	\N	f	1	f	\N	f	0	0	f	12	2026-04-01 16:45:23.683	0
 \.
 
 
+ALTER TABLE public."User" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: Banner; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: Banner; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+ALTER TABLE public."Banner" DISABLE TRIGGER ALL;
 
 COPY public."Banner" (id, "photoUrl", "createdAt", "updatedAt", place, "navigateToUrl", name, "userId", "moderateState") FROM stdin;
 1	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/banners/3aaca434-943c-423f-b2b7-2a0e27354f30.png	2026-01-11 19:18:55.768	2026-01-11 19:18:55.768	PRODUCT_FEED	https://yandex.ru	Yandex Browser	7106521	MODERATE
@@ -71,29 +85,302 @@ COPY public."Banner" (id, "photoUrl", "createdAt", "updatedAt", place, "navigate
 4	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/banners/db7395f3-dd21-49fc-9278-393642b85f19.png	2026-01-11 19:19:52.414	2026-01-11 19:19:52.414	CHATS	https://github.com	Github	7106521	MODERATE
 5	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/banners/3bf5d717-f2c4-4869-ab63-229bb98cb640.png	2026-01-22 07:06:55.183	2026-01-22 07:06:55.183	PRODUCT_FEED	https://google.com	test	7106521	MODERATE
 6	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/banners/d178fb16-ff5b-4932-9617-d3a47e92f025.png	2026-01-29 05:48:22.516	2026-01-29 05:48:22.516	PRODUCT_FEED	https://google.com	test	7106521	MODERATE
+8	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/banners/3354e80f-bf95-4597-811e-00215e17d9a2.jpg	2026-02-05 04:19:49.328	2026-02-05 04:19:49.328	PRODUCT_FEED	https://sdmedik.ru/product/certificate/ea49e996-e223-4b9a-a42a-19762e2abf1a	23553	7106521	APPROVED
+9	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/banners/16c03095-60c1-4de4-a557-e11321f44bc2.jpg	2026-02-05 04:22:36.353	2026-02-05 04:22:36.353	PROFILE	https://sdmedik.ru/product/certificate/d973434c-868b-45fb-aaec-57283c5e4bf9	кровать	7106521	APPROVED
+10	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/banners/2d83e139-263d-4097-ae41-aa37e0c63ba1.png	2026-02-05 04:24:16.197	2026-02-05 04:24:16.197	PRODUCT_FEED	https://sdmedik.ru/product/certificate/f80e70a6-d353-463b-8907-14302745d5fc	Пеленки	7106521	APPROVED
+7	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/banners/a311478f-433b-46be-aea3-efa3f8776ed6.jpg	2026-02-05 02:46:56.525	2026-02-05 04:25:09.448	PRODUCT_FEED	https://torguisam.ru/	Google Browser	7106521	APPROVED
+11	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/banners/dfb9f676-d60f-45da-a827-8e397c3e0c9b.jpg	2026-02-05 04:31:15.948	2026-02-05 04:31:15.948	PRODUCT_FEED	https://torguisam.ru/	продавай-покупай	7106521	APPROVED
+12	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/banners/c47f171c-48ce-4e5a-b9de-dba94b7e4f47.jpeg	2026-02-05 04:31:38.442	2026-02-05 04:31:38.442	PROFILE	https://torguisam.ru/	тот самый сочный	7106521	APPROVED
+14	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/banners/5ff723de-8901-43a2-a6a5-ef3bb77dd078.png	2026-02-05 06:01:39.643	2026-02-05 06:01:39.643	FAVORITES	https://ya.ru/?npr=1&utm_referrer=https%3A%2F%2Fwww.google.com%2F	яндекс браузер	7106521	APPROVED
+15	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/banners/7f68d68d-7730-4a60-a642-311cd50b75d7.png	2026-02-05 06:02:27.089	2026-02-05 06:02:27.089	FAVORITES	https://yandex.ru/project/direct/performance/google/new_main_direct?utm_source=google_search&utm_medium=cpc&utm_campaign=GA_SEA_YDirect_main_brand_cpc_desktop_09_06&utm_content=1004363&utm_term=%D1%8F%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%20%D0%B4%D0%B8%D1%80%D0%B5%D0%BA%D1%82&gad_source=1&gad_campaignid=21369601835&gbraid=0AAAAA9xBYLgRlOcVIAb7A1U2zrlAJUMkt&gclid=Cj0KCQiA-YvMBhDtARIsAHZuUzIsps_yrH5Sq15CPyusXFKA7ZBC0O-18ZbQ9uiZGlNOSHIAQ9CtHncaAmy6EALw_wcB	яндекс директ	7106521	APPROVED
+16	https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/banners/dc73ad8a-3f2d-42bb-8b88-ac79048f81f1.png	2026-02-05 07:59:53.731	2026-02-05 07:59:53.731	CHATS	https://ya.ru/?npr=1&utm_referrer=https%3A%2F%2Fwww.google.com%2F	йцукен	7106521	APPROVED
 \.
 
 
+ALTER TABLE public."Banner" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: BannerView; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: BannerView; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+ALTER TABLE public."BannerView" DISABLE TRIGGER ALL;
 
 COPY public."BannerView" (id, "bannerId", "userId", "ipAddress", "viewedAt") FROM stdin;
+2	7	7106521	::ffff:172.20.0.1	2026-02-05 02:47:01.732
+3	7	7106521	::ffff:172.20.0.1	2026-02-05 02:47:01.733
+4	8	6669460	::ffff:172.20.0.1	2026-02-05 04:21:51.781
+5	8	6669460	::ffff:172.20.0.1	2026-02-05 04:21:51.783
+6	8	6669460	::ffff:172.20.0.1	2026-02-05 04:21:51.785
+7	10	6669460	::ffff:172.20.0.1	2026-02-05 04:25:12.544
+8	9	6669460	::ffff:172.20.0.1	2026-02-05 04:25:12.545
+9	9	6669460	::ffff:172.20.0.1	2026-02-05 04:25:12.545
+10	9	6669460	::ffff:172.20.0.1	2026-02-05 04:25:12.547
+11	9	6669460	::ffff:172.20.0.1	2026-02-05 04:25:12.547
+12	10	6669460	::ffff:172.20.0.1	2026-02-05 04:25:12.549
+13	10	6669460	::ffff:172.20.0.1	2026-02-05 04:25:12.552
+14	12	6669460	::ffff:172.20.0.1	2026-02-05 04:36:29.289
+15	11	6669460	::ffff:172.20.0.1	2026-02-05 04:36:29.289
+16	11	6669460	::ffff:172.20.0.1	2026-02-05 04:36:29.29
+17	12	6669460	::ffff:172.20.0.1	2026-02-05 04:36:29.291
+18	11	6669460	::ffff:172.20.0.1	2026-02-05 04:36:29.293
+19	15	7106521	::ffff:172.20.0.1	2026-02-05 06:02:39.281
+20	14	7106521	::ffff:172.20.0.1	2026-02-05 06:02:46.921
+21	16	7106521	::ffff:172.20.0.1	2026-02-05 08:00:10.274
+22	10	6669460	::ffff:172.20.0.1	2026-02-06 05:02:00.508
+23	11	6669460	::ffff:172.20.0.1	2026-02-06 05:02:00.513
+24	8	6669460	::ffff:172.20.0.1	2026-02-06 05:02:00.52
+25	7	6669460	::ffff:172.20.0.1	2026-02-06 05:02:00.531
+26	7	6669460	::ffff:172.20.0.1	2026-02-06 05:02:00.531
+27	15	6669460	::ffff:172.20.0.1	2026-02-06 12:32:21.916
+28	7	6669460	::ffff:172.20.0.1	2026-02-07 05:21:17.174
+29	8	6669460	::ffff:172.20.0.1	2026-02-07 05:21:17.178
+30	10	6669460	::ffff:172.20.0.1	2026-02-07 05:21:17.181
+31	11	6669460	::ffff:172.20.0.1	2026-02-07 05:21:17.186
+32	7	6669460	::ffff:172.20.0.1	2026-02-08 10:30:20.347
+33	11	6669460	::ffff:172.20.0.1	2026-02-08 10:30:20.351
+34	8	6669460	::ffff:172.20.0.1	2026-02-08 10:30:20.362
+35	10	6669460	::ffff:172.20.0.1	2026-02-08 10:30:20.377
+36	10	\N	::ffff:172.20.0.1	2026-02-09 17:17:52.169
+37	7	\N	::ffff:172.20.0.1	2026-02-09 17:17:52.173
+38	11	\N	::ffff:172.20.0.1	2026-02-09 17:17:52.174
+39	8	\N	::ffff:172.20.0.1	2026-02-09 17:17:52.174
+40	11	\N	::ffff:172.20.0.1	2026-02-09 17:17:52.176
+41	7	\N	::ffff:172.20.0.1	2026-02-10 21:45:01.56
+42	10	\N	::ffff:172.20.0.1	2026-02-10 21:45:01.563
+43	11	\N	::ffff:172.20.0.1	2026-02-10 21:45:01.568
+44	8	\N	::ffff:172.20.0.1	2026-02-10 21:45:01.572
+45	15	7249738	::ffff:172.20.0.1	2026-02-11 06:33:39.046
+46	11	\N	::ffff:172.20.0.1	2026-02-12 05:29:29.01
+47	8	\N	::ffff:172.20.0.1	2026-02-12 05:29:29.015
+48	10	\N	::ffff:172.20.0.1	2026-02-12 05:29:29.022
+49	10	\N	::ffff:172.20.0.1	2026-02-12 05:29:29.026
+50	7	\N	::ffff:172.20.0.1	2026-02-12 05:29:29.029
+51	8	\N	::ffff:172.20.0.1	2026-02-13 10:52:10.027
+52	10	\N	::ffff:172.20.0.1	2026-02-13 10:52:10.028
+53	11	\N	::ffff:172.20.0.1	2026-02-13 10:52:10.059
+54	7	\N	::ffff:172.20.0.1	2026-02-13 10:52:10.069
+55	11	\N	::ffff:172.20.0.1	2026-02-14 16:57:21.468
+56	7	\N	::ffff:172.20.0.1	2026-02-14 16:57:21.47
+57	8	\N	::ffff:172.20.0.1	2026-02-14 16:57:21.473
+58	10	\N	::ffff:172.20.0.1	2026-02-14 16:57:21.477
+59	10	\N	::ffff:172.20.0.1	2026-02-15 17:58:45.998
+60	8	\N	::ffff:172.20.0.1	2026-02-15 17:58:46
+61	11	\N	::ffff:172.20.0.1	2026-02-15 17:58:46.001
+62	11	\N	::ffff:172.20.0.1	2026-02-15 17:58:46.004
+63	7	\N	::ffff:172.20.0.1	2026-02-15 17:58:46.005
+64	11	\N	::ffff:172.20.0.1	2026-02-17 05:44:55.466
+65	10	\N	::ffff:172.20.0.1	2026-02-17 05:44:55.482
+66	8	\N	::ffff:172.20.0.1	2026-02-17 05:44:55.486
+67	7	\N	::ffff:172.20.0.1	2026-02-17 05:44:55.487
+68	9	7249738	::ffff:172.20.0.1	2026-02-17 06:32:42.164
+69	7	\N	::ffff:172.20.0.1	2026-02-18 05:58:26.624
+70	10	\N	::ffff:172.20.0.1	2026-02-18 05:58:26.635
+71	11	\N	::ffff:172.20.0.1	2026-02-18 05:58:26.637
+72	8	\N	::ffff:172.20.0.1	2026-02-18 05:58:26.645
+73	11	3847783	::ffff:172.20.0.1	2026-02-19 11:25:46.094
+74	8	3847783	::ffff:172.20.0.1	2026-02-19 11:25:46.094
+75	10	3847783	::ffff:172.20.0.1	2026-02-19 11:25:46.096
+76	7	3847783	::ffff:172.20.0.1	2026-02-19 11:25:46.105
+77	7	\N	::ffff:172.20.0.1	2026-02-20 12:19:29.578
+78	8	\N	::ffff:172.20.0.1	2026-02-20 12:19:29.581
+79	10	\N	::ffff:172.20.0.1	2026-02-20 12:19:29.582
+80	11	\N	::ffff:172.20.0.1	2026-02-20 12:19:29.583
+81	11	\N	::ffff:172.20.0.1	2026-02-21 15:54:04.434
+82	10	\N	::ffff:172.20.0.1	2026-02-21 15:54:04.44
+83	8	\N	::ffff:172.20.0.1	2026-02-21 15:54:04.441
+84	7	\N	::ffff:172.20.0.1	2026-02-21 15:54:04.444
+85	8	\N	::ffff:172.20.0.1	2026-02-23 05:35:33.429
+86	11	\N	::ffff:172.20.0.1	2026-02-23 05:35:33.431
+87	10	\N	::ffff:172.20.0.1	2026-02-23 05:35:33.433
+88	7	\N	::ffff:172.20.0.1	2026-02-23 05:35:33.442
+89	7	\N	::ffff:172.20.0.1	2026-02-23 05:35:33.448
+90	11	\N	::ffff:172.20.0.1	2026-02-24 06:02:03.812
+91	10	\N	::ffff:172.20.0.1	2026-02-24 06:02:03.82
+92	8	\N	::ffff:172.20.0.1	2026-02-24 06:02:03.83
+93	7	\N	::ffff:172.20.0.1	2026-02-24 06:02:03.849
+94	11	\N	::ffff:172.20.0.1	2026-02-25 08:40:21.992
+95	7	\N	::ffff:172.20.0.1	2026-02-25 08:40:21.996
+96	11	\N	::ffff:172.20.0.1	2026-02-25 08:40:21.997
+97	8	\N	::ffff:172.20.0.1	2026-02-25 08:40:21.998
+98	10	\N	::ffff:172.20.0.1	2026-02-25 08:40:22.01
+99	10	\N	::ffff:172.20.0.1	2026-02-26 09:49:38.039
+100	8	\N	::ffff:172.20.0.1	2026-02-26 09:49:38.039
+101	11	\N	::ffff:172.20.0.1	2026-02-26 09:49:38.042
+102	11	\N	::ffff:172.20.0.1	2026-02-26 09:49:38.043
+103	7	\N	::ffff:172.20.0.1	2026-02-26 09:49:38.061
+104	7	\N	::ffff:172.20.0.1	2026-02-26 09:49:38.071
+105	11	\N	::ffff:172.20.0.1	2026-02-27 18:16:55.855
+106	10	\N	::ffff:172.20.0.1	2026-02-27 18:16:55.86
+107	8	\N	::ffff:172.20.0.1	2026-02-27 18:16:55.862
+108	7	\N	::ffff:172.20.0.1	2026-02-27 18:16:55.871
+109	11	\N	::ffff:172.20.0.1	2026-03-01 05:02:11.239
+110	10	\N	::ffff:172.20.0.1	2026-03-01 05:02:11.241
+111	7	\N	::ffff:172.20.0.1	2026-03-01 05:02:11.252
+112	8	\N	::ffff:172.20.0.1	2026-03-01 05:02:11.255
+113	10	7106521	::ffff:172.20.0.1	2026-03-02 05:53:54.603
+114	8	7106521	::ffff:172.20.0.1	2026-03-02 05:53:54.605
+115	11	7106521	::ffff:172.20.0.1	2026-03-02 05:53:54.61
+116	11	7106521	::ffff:172.20.0.1	2026-03-02 05:53:54.611
+117	7	7106521	::ffff:172.20.0.1	2026-03-02 05:53:54.615
+118	10	7106521	::ffff:172.20.0.1	2026-03-03 06:02:39.914
+119	8	7106521	::ffff:172.20.0.1	2026-03-03 06:02:39.918
+120	11	7106521	::ffff:172.20.0.1	2026-03-03 06:02:39.929
+121	7	7106521	::ffff:172.20.0.1	2026-03-03 06:02:39.93
+122	11	7106521	::ffff:172.20.0.1	2026-03-03 06:02:39.931
+123	10	\N	::ffff:172.20.0.1	2026-03-04 06:45:17.601
+124	7	\N	::ffff:172.20.0.1	2026-03-04 06:45:17.604
+125	8	\N	::ffff:172.20.0.1	2026-03-04 06:45:17.604
+126	11	\N	::ffff:172.20.0.1	2026-03-04 06:45:17.605
+127	10	\N	::ffff:172.20.0.1	2026-03-04 06:45:17.606
+128	11	\N	::ffff:172.20.0.1	2026-03-04 06:45:17.61
+129	11	\N	::ffff:172.20.0.1	2026-03-05 06:57:14.947
+130	8	\N	::ffff:172.20.0.1	2026-03-05 06:57:14.95
+131	10	\N	::ffff:172.20.0.1	2026-03-05 06:57:14.952
+132	7	\N	::ffff:172.20.0.1	2026-03-05 06:57:14.961
+133	11	\N	::ffff:172.20.0.1	2026-03-06 08:41:47.719
+134	7	\N	::ffff:172.20.0.1	2026-03-06 08:41:47.733
+135	10	\N	::ffff:172.20.0.1	2026-03-06 08:41:47.736
+136	8	\N	::ffff:172.20.0.1	2026-03-06 08:41:47.741
+137	10	\N	::ffff:172.20.0.1	2026-03-07 13:19:18.063
+138	11	\N	::ffff:172.20.0.1	2026-03-07 13:19:18.065
+139	10	\N	::ffff:172.20.0.1	2026-03-07 13:19:18.068
+140	8	\N	::ffff:172.20.0.1	2026-03-07 13:19:18.07
+141	7	\N	::ffff:172.20.0.1	2026-03-07 13:19:18.072
+142	11	6669460	::ffff:172.20.0.1	2026-03-08 17:38:46.826
+143	10	6669460	::ffff:172.20.0.1	2026-03-08 17:38:46.829
+144	8	6669460	::ffff:172.20.0.1	2026-03-08 17:38:46.833
+145	7	6669460	::ffff:172.20.0.1	2026-03-08 17:38:46.834
+146	11	\N	::ffff:172.20.0.1	2026-03-09 18:23:03.177
+147	10	\N	::ffff:172.20.0.1	2026-03-09 18:23:03.178
+148	7	\N	::ffff:172.20.0.1	2026-03-09 18:23:03.179
+149	8	\N	::ffff:172.20.0.1	2026-03-09 18:23:03.18
+150	15	3847783	::ffff:172.20.0.1	2026-03-10 08:21:00.845
+151	8	6669460	::ffff:172.20.0.1	2026-03-11 05:57:45.466
+152	10	6669460	::ffff:172.20.0.1	2026-03-11 05:57:45.466
+153	11	6669460	::ffff:172.20.0.1	2026-03-11 05:57:45.47
+154	7	6669460	::ffff:172.20.0.1	2026-03-11 05:57:45.489
+155	10	6669460	::ffff:172.20.0.1	2026-03-12 09:29:10.98
+156	7	6669460	::ffff:172.20.0.1	2026-03-12 09:29:10.981
+157	8	6669460	::ffff:172.20.0.1	2026-03-12 09:29:10.981
+158	11	6669460	::ffff:172.20.0.1	2026-03-12 09:29:10.987
+159	10	6669460	::ffff:172.20.0.1	2026-03-13 14:10:04.487
+160	11	6669460	::ffff:172.20.0.1	2026-03-13 14:10:04.488
+161	7	6669460	::ffff:172.20.0.1	2026-03-13 14:10:04.508
+162	8	6669460	::ffff:172.20.0.1	2026-03-13 14:10:04.509
+163	8	6669460	::ffff:172.20.0.1	2026-03-14 17:22:21.682
+164	11	6669460	::ffff:172.20.0.1	2026-03-14 17:22:21.683
+165	10	6669460	::ffff:172.20.0.1	2026-03-14 17:22:21.684
+166	7	6669460	::ffff:172.20.0.1	2026-03-14 17:22:21.697
+167	11	7106521	::ffff:172.20.0.1	2026-03-15 19:06:49.613
+168	10	7106521	::ffff:172.20.0.1	2026-03-15 19:06:49.627
+169	8	7106521	::ffff:172.20.0.1	2026-03-15 19:06:49.634
+170	7	7106521	::ffff:172.20.0.1	2026-03-15 19:06:49.642
+171	11	6669460	::ffff:172.20.0.1	2026-03-17 04:14:23.408
+172	10	6669460	::ffff:172.20.0.1	2026-03-17 04:14:23.42
+173	8	6669460	::ffff:172.20.0.1	2026-03-17 04:14:23.462
+174	7	6669460	::ffff:172.20.0.1	2026-03-17 04:14:23.573
+175	11	6669460	::ffff:172.20.0.1	2026-03-18 04:23:04.096
+176	10	6669460	::ffff:172.20.0.1	2026-03-18 04:23:04.097
+177	8	6669460	::ffff:172.20.0.1	2026-03-18 04:23:04.108
+178	7	6669460	::ffff:172.20.0.1	2026-03-18 04:23:04.127
+179	14	6669460	::ffff:172.20.0.1	2026-03-18 04:29:39.975
+180	11	\N	::ffff:172.20.0.1	2026-03-19 04:48:54.36
+181	10	\N	::ffff:172.20.0.1	2026-03-19 04:48:54.36
+182	7	\N	::ffff:172.20.0.1	2026-03-19 04:48:54.397
+183	8	\N	::ffff:172.20.0.1	2026-03-19 04:48:54.399
+184	10	6669460	::ffff:172.20.0.1	2026-03-20 05:35:40.585
+185	11	6669460	::ffff:172.20.0.1	2026-03-20 05:35:40.587
+186	8	6669460	::ffff:172.20.0.1	2026-03-20 05:35:40.596
+187	7	6669460	::ffff:172.20.0.1	2026-03-20 05:35:40.61
+188	11	6669460	::ffff:172.20.0.1	2026-03-22 05:40:01.435
+189	10	6669460	::ffff:172.20.0.1	2026-03-22 05:40:01.45
+190	8	6669460	::ffff:172.20.0.1	2026-03-22 05:40:01.487
+191	7	6669460	::ffff:172.20.0.1	2026-03-22 05:40:01.549
+192	11	7106521	::ffff:172.20.0.1	2026-03-23 05:47:35.056
+193	7	7106521	::ffff:172.20.0.1	2026-03-23 05:47:35.068
+194	10	7106521	::ffff:172.20.0.1	2026-03-23 05:47:35.073
+195	8	7106521	::ffff:172.20.0.1	2026-03-23 05:47:35.083
+196	8	7106521	::ffff:172.20.0.1	2026-03-23 05:47:35.09
+197	11	7106521	::ffff:172.20.0.1	2026-03-24 05:47:57.012
+198	10	7106521	::ffff:172.20.0.1	2026-03-24 05:47:57.018
+199	8	7106521	::ffff:172.20.0.1	2026-03-24 05:47:57.021
+200	7	7106521	::ffff:172.20.0.1	2026-03-24 05:47:57.027
+201	11	6669460	::ffff:172.20.0.1	2026-03-25 06:14:44.689
+202	10	6669460	::ffff:172.20.0.1	2026-03-25 06:14:44.703
+203	8	6669460	::ffff:172.20.0.1	2026-03-25 06:14:44.703
+204	7	6669460	::ffff:172.20.0.1	2026-03-25 06:14:44.713
+205	15	7106521	::ffff:172.20.0.1	2026-03-25 08:43:34.506
+206	9	7106521	::ffff:172.20.0.1	2026-03-25 08:48:44.064
+207	12	7106521	::ffff:172.20.0.1	2026-03-25 16:09:35.493
+208	8	\N	::ffff:172.20.0.1	2026-03-26 07:35:23.17
+209	7	\N	::ffff:172.20.0.1	2026-03-26 07:35:23.679
+210	11	\N	::ffff:172.20.0.1	2026-03-26 07:35:24.764
+211	10	\N	::ffff:172.20.0.1	2026-03-26 07:35:25.332
+212	11	6669460	::ffff:172.20.0.1	2026-03-27 10:23:54.301
+213	10	6669460	::ffff:172.20.0.1	2026-03-27 10:23:54.307
+214	8	6669460	::ffff:172.20.0.1	2026-03-27 10:23:54.314
+215	7	6669460	::ffff:172.20.0.1	2026-03-27 10:23:54.319
+216	11	\N	::ffff:172.20.0.1	2026-03-29 03:49:31.281
+217	8	\N	::ffff:172.20.0.1	2026-03-29 03:49:31.286
+218	10	\N	::ffff:172.20.0.1	2026-03-29 03:49:31.292
+219	10	\N	::ffff:172.20.0.1	2026-03-29 03:49:31.291
+220	7	\N	::ffff:172.20.0.1	2026-03-29 03:49:31.3
+221	7	\N	::ffff:172.20.0.1	2026-03-29 03:49:31.312
+222	8	\N	::ffff:172.20.0.1	2026-03-30 15:09:12.223
+223	11	\N	::ffff:172.20.0.1	2026-03-30 15:09:12.23
+224	10	\N	::ffff:172.20.0.1	2026-03-30 15:09:12.235
+225	10	\N	::ffff:172.20.0.1	2026-03-30 15:09:12.238
+226	7	\N	::ffff:172.20.0.1	2026-03-30 15:09:12.254
+227	7	\N	::ffff:172.20.0.1	2026-03-30 15:09:12.256
+228	10	7106521	::ffff:172.20.0.1	2026-03-31 16:35:51.606
+229	11	7106521	::ffff:172.20.0.1	2026-03-31 16:35:51.609
+230	8	7106521	::ffff:172.20.0.1	2026-03-31 16:35:51.616
+231	7	7106521	::ffff:172.20.0.1	2026-03-31 16:35:51.621
+232	10	\N	::ffff:172.20.0.1	2026-04-01 17:32:16.596
+233	11	\N	::ffff:172.20.0.1	2026-04-01 17:32:16.598
+234	8	\N	::ffff:172.20.0.1	2026-04-01 17:32:16.6
+235	7	\N	::ffff:172.20.0.1	2026-04-01 17:32:16.605
+236	11	\N	::ffff:172.20.0.1	2026-04-03 06:37:07.04
+237	8	\N	::ffff:172.20.0.1	2026-04-03 06:37:07.041
+238	7	\N	::ffff:172.20.0.1	2026-04-03 06:37:07.045
+239	10	\N	::ffff:172.20.0.1	2026-04-03 06:37:07.045
+240	10	\N	::ffff:172.20.0.1	2026-04-03 06:37:07.048
+241	15	\N	::ffff:172.20.0.1	2026-04-04 07:21:33.514
+242	8	\N	::ffff:172.20.0.1	2026-04-04 21:53:16.134
+243	10	\N	::ffff:172.20.0.1	2026-04-04 21:53:16.138
+244	11	\N	::ffff:172.20.0.1	2026-04-04 21:53:16.139
+245	7	\N	::ffff:172.20.0.1	2026-04-04 21:53:16.156
+246	10	\N	::ffff:172.20.0.1	2026-04-05 22:27:36.008
+247	8	\N	::ffff:172.20.0.1	2026-04-05 22:27:36.007
+248	11	\N	::ffff:172.20.0.1	2026-04-05 22:27:36.014
+249	7	\N	::ffff:172.20.0.1	2026-04-05 22:27:36.015
+250	10	3235109	::ffff:172.20.0.1	2026-04-06 22:38:38.608
+251	11	3235109	::ffff:172.20.0.1	2026-04-06 22:38:38.609
+252	7	3235109	::ffff:172.20.0.1	2026-04-06 22:38:38.609
+253	8	3235109	::ffff:172.20.0.1	2026-04-06 22:38:38.613
 \.
 
 
+ALTER TABLE public."BannerView" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: Category; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: Category; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+ALTER TABLE public."Category" DISABLE TRIGGER ALL;
 
 COPY public."Category" (id, name, "createdAt", slug, "updatedAt") FROM stdin;
 1	Личные вещи	2025-12-15 19:18:08.497	lichnye-veschi	2025-12-15 17:21:30.479
 \.
 
 
+ALTER TABLE public."Category" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: SubCategory; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: SubCategory; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+ALTER TABLE public."SubCategory" DISABLE TRIGGER ALL;
 
 COPY public."SubCategory" (id, name, "categoryId", "createdAt", slug, "updatedAt") FROM stdin;
 1	Одежда	1	2025-12-15 19:18:08.513	odezhda	2025-12-15 17:21:30.498
@@ -111,9 +398,13 @@ COPY public."SubCategory" (id, name, "categoryId", "createdAt", slug, "updatedAt
 \.
 
 
+ALTER TABLE public."SubCategory" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: SubcategotyType; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: SubcategotyType; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+ALTER TABLE public."SubcategotyType" DISABLE TRIGGER ALL;
 
 COPY public."SubcategotyType" (id, name, "subcategoryId", "createdAt", slug, "updatedAt") FROM stdin;
 1	Мужская	1	2025-12-15 19:18:08.514	muzhskaya	2025-12-15 17:21:30.561
@@ -191,9 +482,13 @@ COPY public."SubcategotyType" (id, name, "subcategoryId", "createdAt", slug, "up
 \.
 
 
+ALTER TABLE public."SubcategotyType" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: Product; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: Product; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+ALTER TABLE public."Product" DISABLE TRIGGER ALL;
 
 COPY public."Product" (id, name, price, state, description, address, images, "categoryId", "subCategoryId", "userId", "createdAt", "updatedAt", "typeId", "videoUrl", "isHide", "moderateState", "moderationRejectionReason") FROM stdin;
 5231119	Бусы б/у	1000	USED	Красные, из жемчуга	г Екатеринбург, ул Чкалова	{https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/products/cfb8be90-e717-49b0-a1ef-c0f0ed43b623.png}	1	3	7391202	2025-11-28 09:11:49.34	2025-12-16 09:53:24.161	16	\N	f	APPROVED	\N
@@ -214,7 +509,6 @@ COPY public."Product" (id, name, price, state, description, address, images, "ca
 6734788	Кроватка	3000	USED	Кроватка для новорожденных	199, Комсомольская улица, Новостройка, Центральный район, Оренбург, городской округ Оренбург, Оренбургская область, Приволжский федеральный округ, 460000, Россия	{https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/products/42b2d16e-20eb-456c-8b73-3237d225a549.png}	1	2	6038643	2025-12-02 11:10:27.655	2025-12-16 09:53:24.395	10	\N	f	APPROVED	\N
 1512888	Померанский шпиц, щенок	1	USED	Продаетcя очapовательная мини дeвочкa помepанcкoгo шпицa.28.09.2025 гoдa poждeния.\r\nДoкументы: Вет пacпoрт прививки oбpаботки по возрасту.\r\nОчeнь лаcкoвaя игpивая контактная .\r\nПpиучeна к пелeнки.\r\nKушaeт суxой коpм\r\nОтличнo ладит c дeтьми и другими живoтными .\r\nИщeм добрыe зaботливыe руки.\r\nРoдитeли:\r\nМама - померaнский шпиц, белый окрас (3,5 кг)\r\nПапа - померанский шпиц, пати колор (3 кг)\r\nБудет не больше 2,5 кг.	77/2, улица Терешковой, Новостройка, Центральный район, Оренбург, городской округ Оренбург, Оренбургская область, Приволжский федеральный округ, 460000, Россия	{https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/products/26aadd6d-3f95-4315-9a51-c59257705c32.png}	1	9	9851099	2025-12-02 11:21:39.796	2025-12-16 09:53:24.422	54	\N	f	APPROVED	\N
 5142108	Котёнок в добрые руки	1	USED	котёнок около 4 месяцев, стерелизован, мальчикрыжий, очень активный, игривый, с другими животными и детьми ладит. очень ласковый, постоянно мурчит	14, улица Терешковой, Новостройка, Центральный район, Оренбург, городской округ Оренбург, Оренбургская область, Приволжский федеральный округ, 460000, Россия	{https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/products/333a3c16-155f-4e82-9fbe-a878937a6f9f.png}	1	9	9851099	2025-12-02 11:24:58.868	2025-12-16 09:53:24.429	54	\N	f	APPROVED	\N
-5868178	папавпа	55454	NEW	павпвапаfdggdfgf212121	«Урал», Ленинский район, Пригородный, Пригородный сельсовет, Оренбургский район, Оренбургская область, Приволжский федеральный округ, 460041, Россия	{https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/products/396aecf1-b980-45ec-bd5a-ba238f1fdefb.jpg}	1	5	7106521	2025-12-03 19:36:04.58	2026-01-14 19:08:58.604	27	\N	f	MODERATE	\N
 4332941	Графин в виде рыбы	500	NEW	Замечательный графин в виде рыбы	г Оренбург, ул Киевская	{https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/products/67533ddf-2495-4aed-b405-a68922a398bf.jpg}	1	11	4146092	2025-12-02 10:50:32.345	2025-12-16 09:53:24.22	63	\N	f	APPROVED	\N
 4758351	Медицинское кресло	15798	NEW	Инвалидное кресло для комфортной и активной жизни.\r\n*  Мягкое сиденье и удобная спинка обеспечат комфорт даже при длительном использовании. Легко складывается для транспортировки.\r\n*  Регулируется под индивидуальные потребности. [Указать преимущества, например, наличие подголовника, антиопрокидыватели. \r\n\r\n✈✈✈✈✈ Можно отправить!\r\n\r\nЦена реальная. Звоните или пишите" 	г Оренбург, пр-кт Победы, д 10	{https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/products/5fe6a6e0-d9a6-418d-bca1-dda8509a758f.jpg,https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/products/659a2e57-a129-468f-9dea-c500bce1dcaa.jpg,https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/products/b4410b84-3d31-43b7-a9b0-0d10516b503b.jpg}	1	5	6669460	2025-12-01 09:07:28.717	2025-12-16 09:53:24.346	29	\N	f	APPROVED	\N
 2693271	Стакан	200	NEW	Просто стакан.	г Оренбург, ул Житомирская	{https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/products/4cfed187-e55c-4014-8c59-cd2450aca91e.jpg}	1	11	4146092	2025-12-02 10:55:45.209	2025-12-16 09:53:24.226	63	\N	f	APPROVED	\N
@@ -284,13 +578,21 @@ COPY public."Product" (id, name, price, state, description, address, images, "ca
 7566163	Духи 	3500	NEW	Духи Dior Sauvage	г Оренбург, ул Черниговская	{https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/products/fa8257b2-6b96-4b79-b10e-df3d7c723129.jpg}	1	3	4146092	2025-12-02 11:27:20.06	2025-12-16 09:53:24.438	20	\N	f	APPROVED	\N
 2568373	Концелярия	700	NEW	Канцелярия для школы набор линеек y2k эстетика бант кролик	128, Орская улица, Новостройка, Центральный район, Оренбург, городской округ Оренбург, Оренбургская область, Приволжский федеральный округ, 460000, Россия	{https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/products/5e603622-4d00-4003-a685-cca9d4c78cf7.png}	1	6	6038643	2025-12-02 11:29:06.905	2025-12-16 09:53:24.434	41	\N	f	APPROVED	\N
 3437684	Минский Бургер с курицей	330	NEW	По-белорусски вкусный! Бургер с сочной куриной котлетой в хрустящей панировке, румяным картофельным оладушком, свежим салатом, двумя ломтиками нежного сыра, хрустящим ароматным беконом, маринованными огурчиками, нежным соусом «Сметана-укроп», и всё это — на воздушной горячей булочке с хрустящей крошкой.	54, улица Кирова, Форштадт, Ленинский район, Оренбург, городской округ Оренбург, Оренбургская область, Приволжский федеральный округ, 460000, Россия	{https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/products/3458ebaf-7b3f-4f39-b1f4-5a53322d9e64.png}	1	8	9851099	2025-12-02 11:12:20.477	2025-12-16 09:53:24.21	51	\N	f	APPROVED	\N
-6218446	Соковыжималка caso CP 300 Pro	4500	USED	CASO – нeмeцкaя торговая маркa бытовoй техники, принадлежащaя кoмпaнии Braukmann GmbH. Cоковыжималкa CASО СP 330 Prо предназначена для цитруcовыx cpeднего и крупногo pазмеpoв. Koрпуc прибоpа и cито для жмыxa выполнeны из нeржавeющeй cтaли. Автoмaтичeский старт плавнo зaпускает двигатель мощностью 160 Вт, функция «капля – стоп» обеспечивает чистоту рабочего места. В идеальном состоянии.\r\n\r\n	23/2, Пролетарская улица, Аренда, Ленинский район, Оренбург, городской округ Оренбург, Оренбургская область, Приволжский федеральный округ, 460000, Россия	{https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/products/f2216887-329e-4d48-a605-e9b8bad18686.png}	1	10	9851099	2025-12-02 11:36:09.481	2025-12-16 09:53:24.309	61	\N	f	MODERATE	\N
+9567885	тестовое объявление	10000	NEW	описание товара \r\n\r\n\r\nqwerty\r\n\r\n        😂😂😂😂	175, улица Шевченко, Новостройка, Центральный район, Оренбург, городской округ Оренбург, Оренбургская область, Приволжский федеральный округ, 460000, Россия	{https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/products/420db99a-fd5b-4382-a771-08f12320444d.jpg}	1	1	4162442	2026-02-05 09:09:29.383	2026-02-05 09:10:27.959	\N	https://vkvideo.ru/video-223449783_456239019	f	APPROVED	\N
+7179985	qwertyui	111111	NEW	йцукен	Еленинское сельское поселение, Карталинский район, Челябинская область, Уральский федеральный округ, Россия	{https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/products/888f4031-5c64-4ea9-8510-8ef6b67764ce.png}	1	12	4162442	2026-02-05 09:19:40.435	2026-02-05 09:19:46.781	\N	\N	f	APPROVED	\N
+2597041	Вот такая фигня	89000	NEW	Шрепотреп, но очень нужный, для УУзких задач	203, 1-я Береговая улица, микрорайон № 5, Новостройка, Ишимбай, городское поселение Ишимбай, Ишимбайский район, Башкортостан, Приволжский федеральный округ, 453203, Россия	{https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/products/ed425719-4529-4eb1-a279-4799cff8fa2a.jpg}	1	11	6669460	2026-03-05 10:45:08.895	2026-03-05 10:45:08.895	\N	\N	f	MODERATE	\N
+6218446	Соковыжималка caso CP 300 Pro	4500	USED	CASO – нeмeцкaя торговая маркa бытовoй техники, принадлежащaя кoмпaнии Braukmann GmbH. Cоковыжималкa CASО СP 330 Prо предназначена для цитруcовыx cpeднего и крупногo pазмеpoв. Koрпуc прибоpа и cито для жмыxa выполнeны из нeржавeющeй cтaли. Автoмaтичeский старт плавнo зaпускает двигатель мощностью 160 Вт, функция «капля – стоп» обеспечивает чистоту рабочего места. В идеальном состоянии.\r\n\r\n	23/2, Пролетарская улица, Аренда, Ленинский район, Оренбург, городской округ Оренбург, Оренбургская область, Приволжский федеральный округ, 460000, Россия	{https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/products/f2216887-329e-4d48-a605-e9b8bad18686.png}	1	10	9851099	2025-12-02 11:36:09.481	2026-03-17 05:53:57.959	61	\N	f	APPROVED	\N
+6157119	Test	123	NEW	asdffs	35, улица Чкалова, Форштадт, Ленинский район, Оренбург, городской округ Оренбург, Оренбургская область, Приволжский федеральный округ, 460000, Россия	{https://s3.ru1.storage.beget.cloud/c15b4d655f70-medvito-data/products/5e24972f-7a86-40d4-a8c5-fb587adb6ea8.png}	1	1	3235109	2026-04-06 08:17:01.95	2026-04-06 08:17:01.95	\N	\N	f	MODERATE	\N
 \.
 
 
+ALTER TABLE public."Product" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: Chat; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: Chat; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+ALTER TABLE public."Chat" DISABLE TRIGGER ALL;
 
 COPY public."Chat" (id, "productId", "buyerId", "sellerId", "unreadCountBuyer", "unreadCountSeller", "lastMessageId", "lastMessageAt", "createdAt", "updatedAt", "isModerationChat") FROM stdin;
 42	9863001	2681599	6053931	0	0	\N	2025-12-01 08:12:52.805	2025-12-01 08:12:52.805	2025-12-01 08:12:52.805	f
@@ -300,21 +602,28 @@ COPY public."Chat" (id, "productId", "buyerId", "sellerId", "unreadCountBuyer", 
 4	9256863	5966833	8964288	0	0	\N	2025-11-28 09:16:50.74	2025-11-28 09:16:50.74	2025-11-28 09:16:50.74	f
 5	5611056	6038643	1208299	0	0	\N	2025-11-28 09:17:36.46	2025-11-28 09:17:36.46	2025-11-28 09:17:36.46	f
 7	1250840	4761896	7391202	0	0	\N	2025-11-28 09:20:00.074	2025-11-28 09:20:00.074	2025-11-28 09:20:00.074	f
-141	1250840	7106521	7391202	0	0	\N	2025-12-01 12:30:18.663	2025-12-01 12:30:18.663	2025-12-01 12:30:18.663	f
 6	9368305	9371169	8633592	0	0	\N	2025-11-28 09:18:57.647	2025-11-28 09:18:57.647	2025-11-28 09:18:57.647	f
-9	7384341	7106521	2321239	0	0	\N	2025-11-28 09:43:43.309	2025-11-28 09:43:43.309	2025-11-28 09:43:43.309	f
 143	7384341	7132269	2321239	0	0	\N	2025-12-01 14:46:54.623	2025-12-01 14:46:54.623	2025-12-01 14:46:54.623	f
-144	2105765	7106521	3235109	0	1	1	2025-12-02 06:39:40.026	2025-12-02 06:32:54.893	2025-12-04 06:34:08.592	f
 142	2105765	7132269	3235109	0	0	\N	2025-12-01 14:29:48.006	2025-12-01 14:29:48.006	2025-12-01 14:29:48.006	f
 75	2105765	6669460	3235109	0	0	\N	2025-12-01 08:28:55.846	2025-12-01 08:28:55.846	2025-12-01 08:28:55.846	f
 108	1122280	7106521	2681599	0	0	\N	2025-12-01 08:36:19.933	2025-12-01 08:36:19.933	2025-12-01 08:36:19.933	f
 145	3437684	4146092	9851099	0	1	2	2025-12-02 11:33:33.784	2025-12-02 11:33:25.608	2025-12-02 11:47:19.434	f
+144	2105765	7106521	3235109	0	1	1	2025-12-02 06:39:40.026	2025-12-02 06:32:54.893	2026-03-02 06:02:15.65	f
+147	7179985	3235109	4162442	0	1	4	2026-03-03 06:04:14.354	2026-03-03 06:04:05.665	2026-03-03 06:13:45.873	f
+149	9042977	7106521	6038643	0	0	\N	2026-03-16 11:49:53.369	2026-03-16 11:49:53.369	2026-03-16 11:49:53.649	f
+9	7384341	7106521	2321239	0	0	\N	2025-11-28 09:43:43.309	2025-11-28 09:43:43.309	2026-03-18 07:47:54.052	f
+141	1250840	7106521	7391202	0	0	\N	2025-12-01 12:30:18.663	2025-12-01 12:30:18.663	2026-03-25 08:49:18.375	f
+150	4372887	6669460	6038643	0	2	7	2026-03-27 10:24:49.393	2026-03-27 10:24:32.907	2026-03-27 10:24:58.748	f
 \.
 
 
+ALTER TABLE public."Chat" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: FavoriteAction; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: FavoriteAction; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+ALTER TABLE public."FavoriteAction" DISABLE TRIGGER ALL;
 
 COPY public."FavoriteAction" (id, "userId", "productId", "addedAt") FROM stdin;
 5	5966833	3334788	2025-11-28 09:21:05.722
@@ -329,12 +638,18 @@ COPY public."FavoriteAction" (id, "userId", "productId", "addedAt") FROM stdin;
 76	7106521	2161612	2025-12-02 07:34:18.185
 75	7106521	4758351	2025-12-02 07:34:17.402
 78	3235109	8776759	2025-12-03 00:00:00.214
+80	4162442	7162519	2026-02-05 09:04:17.999
+81	4162442	9500725	2026-02-05 09:04:18.727
 \.
 
 
+ALTER TABLE public."FavoriteAction" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: Log; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: Log; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+ALTER TABLE public."Log" DISABLE TRIGGER ALL;
 
 COPY public."Log" (id, "userId", action) FROM stdin;
 1	1208299	Пополнение баланса: id: 1208299; email: kokeev.fil@mail.ru;\\nсумма пополнения: 300; баланс: 500; бонусный баланс: 200
@@ -342,19 +657,30 @@ COPY public."Log" (id, "userId", action) FROM stdin;
 \.
 
 
+ALTER TABLE public."Log" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: Message; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: Message; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+ALTER TABLE public."Message" DISABLE TRIGGER ALL;
 
 COPY public."Message" (id, content, "senderId", "chatId", "isRead", "readAt", "createdAt", "updatedAt", "relatedProductId") FROM stdin;
 1	тест	7106521	144	f	\N	2025-12-02 06:39:40.018	2025-12-02 06:39:40.018	\N
 2	Куда цену задрал? 200 край	4146092	145	f	\N	2025-12-02 11:33:33.781	2025-12-02 11:33:33.781	\N
+4	Hello world!	3235109	147	f	\N	2026-03-03 06:04:14.351	2026-03-03 06:04:14.351	\N
+6	как купить э??	6669460	150	f	\N	2026-03-27 10:24:38.713	2026-03-27 10:24:38.713	\N
+7	доставка будет?	6669460	150	f	\N	2026-03-27 10:24:49.388	2026-03-27 10:24:49.388	\N
 \.
 
 
+ALTER TABLE public."Message" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: Payment; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: Payment; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+ALTER TABLE public."Payment" DISABLE TRIGGER ALL;
 
 COPY public."Payment" (id, "orderId", "paymentId", "userId", amount, status, "paymentUrl", "createdAt", "updatedAt") FROM stdin;
 1	7106521-1766690209318	7629971919	7106521	1000	PENDING	https://pay.tbank.ru/ahpkMYdA	2025-12-25 19:16:49.644	2025-12-25 19:16:49.644
@@ -364,20 +690,30 @@ COPY public."Payment" (id, "orderId", "paymentId", "userId", amount, status, "pa
 5	7106521-1766690970273	7630035082	7106521	10	PENDING	https://pay.tbank.ru/w0hLiyV6	2025-12-25 19:29:30.546	2025-12-25 19:29:30.546
 6	7106521-1766737026277	7633516030	7106521	1000	PENDING	https://pay.tbank.ru/Y42XjEyF	2025-12-26 08:17:06.881	2025-12-26 08:17:06.881
 7	7106521-1766992423382	7655497017	7106521	1	PENDING	https://pay.tbank.ru/VhEBQwOm	2025-12-29 07:13:44.223	2025-12-29 07:13:44.223
+8	6669460-1772707639440	8092215350	6669460	1000	PENDING	https://pay.tbank.ru/QGNcFUrA	2026-03-05 10:47:19.702	2026-03-05 10:47:19.702
+9	6669460-1774607105774	8221696996	6669460	500	PENDING	https://pay.tbank.ru/DZdP0ILg	2026-03-27 10:25:05.93	2026-03-27 10:25:05.93
 \.
 
 
+ALTER TABLE public."Payment" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: PhoneNumberView; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: PhoneNumberView; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+ALTER TABLE public."PhoneNumberView" DISABLE TRIGGER ALL;
 
 COPY public."PhoneNumberView" (id, "viewedById", "viewedUserId", "viewedAt") FROM stdin;
 \.
 
 
+ALTER TABLE public."PhoneNumberView" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: TypeField; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: TypeField; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+ALTER TABLE public."TypeField" DISABLE TRIGGER ALL;
 
 COPY public."TypeField" (id, name, "isRequired", "typeId") FROM stdin;
 1	Размер	f	1
@@ -767,9 +1103,13 @@ COPY public."TypeField" (id, name, "isRequired", "typeId") FROM stdin;
 \.
 
 
+ALTER TABLE public."TypeField" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: ProductFieldValue; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: ProductFieldValue; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+ALTER TABLE public."ProductFieldValue" DISABLE TRIGGER ALL;
 
 COPY public."ProductFieldValue" (id, value, "fieldId", "productId") FROM stdin;
 34	50	1	9368305
@@ -892,12 +1232,6 @@ COPY public."ProductFieldValue" (id, value, "fieldId", "productId") FROM stdin;
 248	Духи	77	7566163
 249	Шампунь	78	6883587
 250	Палетка с тенями	80	9956819
-251	папва	117	5868178
-252	папва	118	5868178
-253	апавпва	119	5868178
-254	ир	120	5868178
-255	рпрпр	121	5868178
-256	пнпнп	122	5868178
 28	52	1	9915250
 29	Черный	2	9915250
 30	Шелк	3	9915250
@@ -916,12 +1250,41 @@ COPY public."ProductFieldValue" (id, value, "fieldId", "productId") FROM stdin;
 237	нет	144	6617171
 238	есть	145	6617171
 239	черный	146	6617171
+257	52	1	9567885
+258	серый	2	9567885
+259	хлопок	3	9567885
+260	гучи	4	9567885
+261	армани	5	9567885
+262	футболка	6	9567885
+263	й	340	7179985
+264	Й	341	7179985
+265	Й	342	7179985
+266	Й	343	7179985
+267	Й	344	7179985
+268	Керамика	324	2597041
+269	Почти круглая	325	2597041
+270	70 на 80	326	2597041
+271	полная	327	2597041
+272	Уставший	328	2597041
+273	яркий	329	2597041
+274	постмодернизм	330	2597041
+275	вещь	331	2597041
+276	test	19	6157119
+277	test	20	6157119
+278	test	21	6157119
+279	test	22	6157119
+280	test	23	6157119
+281	test	24	6157119
 \.
 
 
+ALTER TABLE public."ProductFieldValue" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: Promotion; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: Promotion; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+ALTER TABLE public."Promotion" DISABLE TRIGGER ALL;
 
 COPY public."Promotion" (id, name, "pricePerDay", "createdAt", "updatedAt") FROM stdin;
 2	Люкс	100	2025-12-08 12:37:51.475	2025-12-08 12:37:44.761
@@ -929,18 +1292,26 @@ COPY public."Promotion" (id, name, "pricePerDay", "createdAt", "updatedAt") FROM
 \.
 
 
+ALTER TABLE public."Promotion" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: ProductPromotion; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: ProductPromotion; Type: TABLE DATA; Schema: public; Owner: -
 --
 
+ALTER TABLE public."ProductPromotion" DISABLE TRIGGER ALL;
+
 COPY public."ProductPromotion" (id, "productId", "promotionId", "userId", days, "totalPrice", "startDate", "endDate", "isActive", "isPaid", "createdAt", "updatedAt") FROM stdin;
-1	5868178	2	7106521	7	700	2026-01-22 06:14:35.62	2026-01-29 06:14:35.62	t	t	2026-01-22 06:14:35.628	2026-01-22 06:14:35.672
+3	9567885	2	4162442	1	100	2026-02-05 09:23:43.967	2026-02-06 09:23:43.967	t	t	2026-02-05 09:23:43.968	2026-02-05 09:23:43.972
 \.
 
 
+ALTER TABLE public."ProductPromotion" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: ProductView; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: ProductView; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+ALTER TABLE public."ProductView" DISABLE TRIGGER ALL;
 
 COPY public."ProductView" (id, "viewedById", "productId", "viewedAt") FROM stdin;
 29	5966833	4081087	2025-11-28 09:19:16.228
@@ -980,11 +1351,9 @@ COPY public."ProductView" (id, "viewedById", "productId", "viewedAt") FROM stdin
 17	6038643	5609249	2025-11-28 09:17:15.39
 39	2321239	5609249	2025-11-28 09:20:43.139
 49	8633592	5609249	2025-11-28 09:21:16.127
-536	7106521	5609249	2025-12-01 09:24:23.12
 16	6038643	1250840	2025-11-28 09:17:09.157
 31	4761896	1250840	2025-11-28 09:19:39.18
 48	8633592	1250840	2025-11-28 09:21:12.953
-172	7106521	1250840	2025-12-03 16:57:03.686
 46	8964288	1250840	2025-11-28 09:21:09.011
 25	6038643	9262881	2025-11-28 09:18:35.85
 44	8633592	9262881	2025-11-28 09:21:04.291
@@ -1020,45 +1389,114 @@ COPY public."ProductView" (id, "viewedById", "productId", "viewedAt") FROM stdin
 653	7106521	6628130	2025-12-03 16:38:43.192
 659	7106521	2388612	2025-12-03 17:01:43.056
 651	7106521	9956819	2025-12-03 09:51:19.021
-658	7106521	6218446	2025-12-03 16:38:47.965
+668	7106521	5902819	2026-02-05 02:47:47.935
+669	7106521	3244052	2026-02-05 02:47:51.023
+670	7106521	8257036	2026-02-05 06:05:30.56
+728	3235109	6218446	2026-04-06 23:23:21.62
+674	4162442	7162519	2026-02-05 09:12:45.835
+676	4162442	2568373	2026-02-05 09:22:49.273
+672	6669460	6628130	2026-02-05 13:19:53.144
+681	7249738	8882052	2026-02-14 06:37:59.068
+682	7249738	7179985	2026-02-14 06:38:05.331
+684	7249738	2139014	2026-02-17 06:10:09.556
+686	7249738	2568373	2026-02-17 06:26:24.661
+687	7249738	5609249	2026-02-17 06:26:37.641
+689	7249738	5611056	2026-02-17 06:27:09.644
+691	7249738	8436378	2026-02-17 06:29:27.833
+688	7249738	3506516	2026-02-17 06:31:02.125
+693	7249738	2273041	2026-02-17 06:31:16.955
+694	7249738	4267180	2026-02-17 06:31:30.872
+695	7249738	2693271	2026-02-17 06:31:46.23
+685	7249738	2207276	2026-02-17 06:31:52.866
+697	7249738	7384341	2026-02-17 06:32:01.281
+698	7249738	1250840	2026-02-17 06:32:11.829
+699	7249738	1970246	2026-02-17 06:32:29.331
+700	7249738	4081087	2026-02-17 06:32:39.895
+701	3847783	9265239	2026-02-17 06:35:30.084
+705	3235109	7179985	2026-03-03 06:22:04.601
+708	7106521	3334788	2026-03-05 17:44:57.767
+709	3847783	9042977	2026-03-10 08:21:51.517
+702	3847783	2568373	2026-03-16 10:47:12.448
+711	3847783	2865910	2026-03-16 10:47:17.767
+713	3847783	8640334	2026-03-16 11:52:16.863
+715	7106521	2568373	2026-03-17 05:51:59.818
+677	7106521	9042977	2026-03-24 05:36:22.652
+536	7106521	5609249	2026-03-24 05:40:26.246
+718	7106521	5231119	2026-03-24 05:41:11.449
+719	7106521	2597041	2026-03-25 08:49:28.627
+720	7106521	7270506	2026-03-25 08:49:53.168
+721	7106521	8776759	2026-03-25 08:49:58.156
+172	7106521	1250840	2026-03-25 16:09:58.088
+723	6669460	4372887	2026-03-27 10:24:31.258
+704	7106521	7179985	2026-03-31 16:35:53.988
+658	7106521	6218446	2026-03-31 16:53:11.342
+727	3235109	9042977	2026-04-06 21:41:05.428
+729	3235109	7162519	2026-04-06 21:41:06.525
+730	3235109	1961051	2026-04-06 21:41:07.441
+731	3235109	1063797	2026-04-06 21:41:08.089
+732	3235109	3244052	2026-04-06 21:59:52.388
 \.
 
 
+ALTER TABLE public."ProductView" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: Review; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: Review; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+ALTER TABLE public."Review" DISABLE TRIGGER ALL;
 
 COPY public."Review" (id, "reviewedById", text, rating, "reviewedUserId", "createdAt", "moderateState") FROM stdin;
+2	6669460	ну норм	5	6038643	2026-02-05 06:32:02.07	APPROVED
+3	4162442	qwerty	5	9851099	2026-02-05 09:12:30.007	APPROVED
 \.
 
 
+ALTER TABLE public."Review" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: SupportTicket; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: SupportTicket; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+ALTER TABLE public."SupportTicket" DISABLE TRIGGER ALL;
 
 COPY public."SupportTicket" (id, theme, subject, status, priority, "userId", "moderatorId", "createdAt", "updatedAt") FROM stdin;
 \.
 
 
+ALTER TABLE public."SupportTicket" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: SupportMessage; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: SupportMessage; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+ALTER TABLE public."SupportMessage" DISABLE TRIGGER ALL;
 
 COPY public."SupportMessage" (id, "ticketId", "authorId", text, "sentAt") FROM stdin;
 \.
 
 
+ALTER TABLE public."SupportMessage" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: _UserFavorites; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: _UserFavorites; Type: TABLE DATA; Schema: public; Owner: -
 --
 
+ALTER TABLE public."_UserFavorites" DISABLE TRIGGER ALL;
+
 COPY public."_UserFavorites" ("A", "B") FROM stdin;
+7162519	4162442
+9500725	4162442
 \.
 
 
+ALTER TABLE public."_UserFavorites" ENABLE TRIGGER ALL;
+
 --
--- Data for Name: _prisma_migrations; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: _prisma_migrations; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+ALTER TABLE public._prisma_migrations DISABLE TRIGGER ALL;
 
 COPY public._prisma_migrations (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count) FROM stdin;
 734e28f4-7c7a-4cc7-a17c-83f7a5d4017d	7ff5b7017fce2e76bc78544000c57780ed8c77b4d7428fc010d39f5b75cb7b8a	2026-01-16 15:03:21.231382+02	20260114212748_init		\N	2026-01-16 15:03:21.231382+02	0
@@ -1066,151 +1504,151 @@ COPY public._prisma_migrations (id, checksum, finished_at, migration_name, logs,
 \.
 
 
---
--- Name: BannerView_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public."BannerView_id_seq"', 1, true);
-
+ALTER TABLE public._prisma_migrations ENABLE TRIGGER ALL;
 
 --
--- Name: Banner_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: BannerView_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public."Banner_id_seq"', 6, true);
+SELECT pg_catalog.setval('public."BannerView_id_seq"', 253, true);
 
 
 --
--- Name: Category_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: Banner_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public."Banner_id_seq"', 16, true);
+
+
+--
+-- Name: Category_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."Category_id_seq"', 1, true);
 
 
 --
--- Name: Chat_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: Chat_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public."Chat_id_seq"', 145, true);
-
-
---
--- Name: FavoriteAction_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public."FavoriteAction_id_seq"', 79, true);
+SELECT pg_catalog.setval('public."Chat_id_seq"', 150, true);
 
 
 --
--- Name: Log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: FavoriteAction_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public."FavoriteAction_id_seq"', 82, true);
+
+
+--
+-- Name: Log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."Log_id_seq"', 2, true);
 
 
 --
--- Name: Message_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: Message_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public."Message_id_seq"', 2, true);
-
-
---
--- Name: Payment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public."Payment_id_seq"', 7, true);
+SELECT pg_catalog.setval('public."Message_id_seq"', 7, true);
 
 
 --
--- Name: PhoneNumberView_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: Payment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public."Payment_id_seq"', 9, true);
+
+
+--
+-- Name: PhoneNumberView_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."PhoneNumberView_id_seq"', 1, true);
 
 
 --
--- Name: ProductFieldValue_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: ProductFieldValue_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public."ProductFieldValue_id_seq"', 256, true);
-
-
---
--- Name: ProductPromotion_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public."ProductPromotion_id_seq"', 1, true);
+SELECT pg_catalog.setval('public."ProductFieldValue_id_seq"', 281, true);
 
 
 --
--- Name: ProductView_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: ProductPromotion_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public."ProductView_id_seq"', 667, true);
+SELECT pg_catalog.setval('public."ProductPromotion_id_seq"', 3, true);
 
 
 --
--- Name: Promotion_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: ProductView_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public."ProductView_id_seq"', 733, true);
+
+
+--
+-- Name: Promotion_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."Promotion_id_seq"', 2, true);
 
 
 --
--- Name: Review_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: Review_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public."Review_id_seq"', 1, true);
+SELECT pg_catalog.setval('public."Review_id_seq"', 3, true);
 
 
 --
--- Name: Role_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: Role_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."Role_id_seq"', 3, true);
 
 
 --
--- Name: SubCategory_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SubCategory_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."SubCategory_id_seq"', 15, true);
 
 
 --
--- Name: SubcategotyType_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SubcategotyType_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."SubcategotyType_id_seq"', 75, true);
 
 
 --
--- Name: SupportMessage_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SupportMessage_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."SupportMessage_id_seq"', 1, true);
 
 
 --
--- Name: SupportTicket_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SupportTicket_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."SupportTicket_id_seq"', 1, true);
 
 
 --
--- Name: TypeField_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TypeField_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."TypeField_id_seq"', 209, true);
 
 
--- Re-enable triggers after data load
-SET session_replication_role = 'origin';
-
 --
 -- PostgreSQL database dump complete
 --
 
+\unrestrict 7o63yRsydxiUerdAEU0KiNLOiTUmmpJkCDolf3N6Il2xtWZe6mmuwcEj27Z1WIo
 

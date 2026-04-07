@@ -2,6 +2,7 @@
 -- PostgreSQL database dump
 --
 
+\restrict YwZLX2dVAiGQvIo7VWfdNj2gahz2XDm8HffyhatVVeOGHaVyIhyTXbm5n4ddrds
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -9,6 +10,7 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -18,7 +20,7 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: BannerModerate; Type: TYPE; Schema: public; Owner: postgres
+-- Name: BannerModerate; Type: TYPE; Schema: public; Owner: -
 --
 
 CREATE TYPE public."BannerModerate" AS ENUM (
@@ -28,10 +30,8 @@ CREATE TYPE public."BannerModerate" AS ENUM (
 );
 
 
-ALTER TYPE public."BannerModerate" OWNER TO postgres;
-
 --
--- Name: BannerPlace; Type: TYPE; Schema: public; Owner: postgres
+-- Name: BannerPlace; Type: TYPE; Schema: public; Owner: -
 --
 
 CREATE TYPE public."BannerPlace" AS ENUM (
@@ -42,10 +42,8 @@ CREATE TYPE public."BannerPlace" AS ENUM (
 );
 
 
-ALTER TYPE public."BannerPlace" OWNER TO postgres;
-
 --
--- Name: ProductModerate; Type: TYPE; Schema: public; Owner: postgres
+-- Name: ProductModerate; Type: TYPE; Schema: public; Owner: -
 --
 
 CREATE TYPE public."ProductModerate" AS ENUM (
@@ -55,10 +53,8 @@ CREATE TYPE public."ProductModerate" AS ENUM (
 );
 
 
-ALTER TYPE public."ProductModerate" OWNER TO postgres;
-
 --
--- Name: ProductState; Type: TYPE; Schema: public; Owner: postgres
+-- Name: ProductState; Type: TYPE; Schema: public; Owner: -
 --
 
 CREATE TYPE public."ProductState" AS ENUM (
@@ -67,10 +63,8 @@ CREATE TYPE public."ProductState" AS ENUM (
 );
 
 
-ALTER TYPE public."ProductState" OWNER TO postgres;
-
 --
--- Name: ProfileType; Type: TYPE; Schema: public; Owner: postgres
+-- Name: ProfileType; Type: TYPE; Schema: public; Owner: -
 --
 
 CREATE TYPE public."ProfileType" AS ENUM (
@@ -80,10 +74,8 @@ CREATE TYPE public."ProfileType" AS ENUM (
 );
 
 
-ALTER TYPE public."ProfileType" OWNER TO postgres;
-
 --
--- Name: ReviewModerate; Type: TYPE; Schema: public; Owner: postgres
+-- Name: ReviewModerate; Type: TYPE; Schema: public; Owner: -
 --
 
 CREATE TYPE public."ReviewModerate" AS ENUM (
@@ -93,10 +85,8 @@ CREATE TYPE public."ReviewModerate" AS ENUM (
 );
 
 
-ALTER TYPE public."ReviewModerate" OWNER TO postgres;
-
 --
--- Name: TicketPriority; Type: TYPE; Schema: public; Owner: postgres
+-- Name: TicketPriority; Type: TYPE; Schema: public; Owner: -
 --
 
 CREATE TYPE public."TicketPriority" AS ENUM (
@@ -107,10 +97,8 @@ CREATE TYPE public."TicketPriority" AS ENUM (
 );
 
 
-ALTER TYPE public."TicketPriority" OWNER TO postgres;
-
 --
--- Name: TicketStatus; Type: TYPE; Schema: public; Owner: postgres
+-- Name: TicketStatus; Type: TYPE; Schema: public; Owner: -
 --
 
 CREATE TYPE public."TicketStatus" AS ENUM (
@@ -121,10 +109,8 @@ CREATE TYPE public."TicketStatus" AS ENUM (
 );
 
 
-ALTER TYPE public."TicketStatus" OWNER TO postgres;
-
 --
--- Name: TicketTheme; Type: TYPE; Schema: public; Owner: postgres
+-- Name: TicketTheme; Type: TYPE; Schema: public; Owner: -
 --
 
 CREATE TYPE public."TicketTheme" AS ENUM (
@@ -138,14 +124,12 @@ CREATE TYPE public."TicketTheme" AS ENUM (
 );
 
 
-ALTER TYPE public."TicketTheme" OWNER TO postgres;
-
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
 --
--- Name: Banner; Type: TABLE; Schema: public; Owner: postgres
+-- Name: Banner; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."Banner" (
@@ -161,10 +145,8 @@ CREATE TABLE public."Banner" (
 );
 
 
-ALTER TABLE public."Banner" OWNER TO postgres;
-
 --
--- Name: BannerView; Type: TABLE; Schema: public; Owner: postgres
+-- Name: BannerView; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."BannerView" (
@@ -176,10 +158,8 @@ CREATE TABLE public."BannerView" (
 );
 
 
-ALTER TABLE public."BannerView" OWNER TO postgres;
-
 --
--- Name: BannerView_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: BannerView_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."BannerView_id_seq"
@@ -191,17 +171,15 @@ CREATE SEQUENCE public."BannerView_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."BannerView_id_seq" OWNER TO postgres;
-
 --
--- Name: BannerView_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: BannerView_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."BannerView_id_seq" OWNED BY public."BannerView".id;
 
 
 --
--- Name: Banner_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: Banner_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."Banner_id_seq"
@@ -213,17 +191,15 @@ CREATE SEQUENCE public."Banner_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."Banner_id_seq" OWNER TO postgres;
-
 --
--- Name: Banner_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: Banner_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."Banner_id_seq" OWNED BY public."Banner".id;
 
 
 --
--- Name: Category; Type: TABLE; Schema: public; Owner: postgres
+-- Name: Category; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."Category" (
@@ -235,10 +211,8 @@ CREATE TABLE public."Category" (
 );
 
 
-ALTER TABLE public."Category" OWNER TO postgres;
-
 --
--- Name: Category_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: Category_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."Category_id_seq"
@@ -250,17 +224,15 @@ CREATE SEQUENCE public."Category_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."Category_id_seq" OWNER TO postgres;
-
 --
--- Name: Category_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: Category_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."Category_id_seq" OWNED BY public."Category".id;
 
 
 --
--- Name: Chat; Type: TABLE; Schema: public; Owner: postgres
+-- Name: Chat; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."Chat" (
@@ -278,10 +250,8 @@ CREATE TABLE public."Chat" (
 );
 
 
-ALTER TABLE public."Chat" OWNER TO postgres;
-
 --
--- Name: Chat_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: Chat_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."Chat_id_seq"
@@ -293,17 +263,15 @@ CREATE SEQUENCE public."Chat_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."Chat_id_seq" OWNER TO postgres;
-
 --
--- Name: Chat_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: Chat_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."Chat_id_seq" OWNED BY public."Chat".id;
 
 
 --
--- Name: FavoriteAction; Type: TABLE; Schema: public; Owner: postgres
+-- Name: FavoriteAction; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."FavoriteAction" (
@@ -314,10 +282,8 @@ CREATE TABLE public."FavoriteAction" (
 );
 
 
-ALTER TABLE public."FavoriteAction" OWNER TO postgres;
-
 --
--- Name: FavoriteAction_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: FavoriteAction_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."FavoriteAction_id_seq"
@@ -329,17 +295,15 @@ CREATE SEQUENCE public."FavoriteAction_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."FavoriteAction_id_seq" OWNER TO postgres;
-
 --
--- Name: FavoriteAction_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: FavoriteAction_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."FavoriteAction_id_seq" OWNED BY public."FavoriteAction".id;
 
 
 --
--- Name: Log; Type: TABLE; Schema: public; Owner: postgres
+-- Name: Log; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."Log" (
@@ -349,10 +313,8 @@ CREATE TABLE public."Log" (
 );
 
 
-ALTER TABLE public."Log" OWNER TO postgres;
-
 --
--- Name: Log_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: Log_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."Log_id_seq"
@@ -364,17 +326,15 @@ CREATE SEQUENCE public."Log_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."Log_id_seq" OWNER TO postgres;
-
 --
--- Name: Log_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: Log_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."Log_id_seq" OWNED BY public."Log".id;
 
 
 --
--- Name: Message; Type: TABLE; Schema: public; Owner: postgres
+-- Name: Message; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."Message" (
@@ -390,10 +350,8 @@ CREATE TABLE public."Message" (
 );
 
 
-ALTER TABLE public."Message" OWNER TO postgres;
-
 --
--- Name: Message_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: Message_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."Message_id_seq"
@@ -405,17 +363,15 @@ CREATE SEQUENCE public."Message_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."Message_id_seq" OWNER TO postgres;
-
 --
--- Name: Message_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: Message_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."Message_id_seq" OWNED BY public."Message".id;
 
 
 --
--- Name: Payment; Type: TABLE; Schema: public; Owner: postgres
+-- Name: Payment; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."Payment" (
@@ -431,10 +387,8 @@ CREATE TABLE public."Payment" (
 );
 
 
-ALTER TABLE public."Payment" OWNER TO postgres;
-
 --
--- Name: Payment_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: Payment_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."Payment_id_seq"
@@ -446,17 +400,15 @@ CREATE SEQUENCE public."Payment_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."Payment_id_seq" OWNER TO postgres;
-
 --
--- Name: Payment_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: Payment_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."Payment_id_seq" OWNED BY public."Payment".id;
 
 
 --
--- Name: PhoneNumberView; Type: TABLE; Schema: public; Owner: postgres
+-- Name: PhoneNumberView; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."PhoneNumberView" (
@@ -467,10 +419,8 @@ CREATE TABLE public."PhoneNumberView" (
 );
 
 
-ALTER TABLE public."PhoneNumberView" OWNER TO postgres;
-
 --
--- Name: PhoneNumberView_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: PhoneNumberView_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."PhoneNumberView_id_seq"
@@ -482,17 +432,15 @@ CREATE SEQUENCE public."PhoneNumberView_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."PhoneNumberView_id_seq" OWNER TO postgres;
-
 --
--- Name: PhoneNumberView_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: PhoneNumberView_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."PhoneNumberView_id_seq" OWNED BY public."PhoneNumberView".id;
 
 
 --
--- Name: Product; Type: TABLE; Schema: public; Owner: postgres
+-- Name: Product; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."Product" (
@@ -516,10 +464,8 @@ CREATE TABLE public."Product" (
 );
 
 
-ALTER TABLE public."Product" OWNER TO postgres;
-
 --
--- Name: ProductFieldValue; Type: TABLE; Schema: public; Owner: postgres
+-- Name: ProductFieldValue; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."ProductFieldValue" (
@@ -530,10 +476,8 @@ CREATE TABLE public."ProductFieldValue" (
 );
 
 
-ALTER TABLE public."ProductFieldValue" OWNER TO postgres;
-
 --
--- Name: ProductFieldValue_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: ProductFieldValue_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."ProductFieldValue_id_seq"
@@ -545,17 +489,15 @@ CREATE SEQUENCE public."ProductFieldValue_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."ProductFieldValue_id_seq" OWNER TO postgres;
-
 --
--- Name: ProductFieldValue_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: ProductFieldValue_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."ProductFieldValue_id_seq" OWNED BY public."ProductFieldValue".id;
 
 
 --
--- Name: ProductPromotion; Type: TABLE; Schema: public; Owner: postgres
+-- Name: ProductPromotion; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."ProductPromotion" (
@@ -574,10 +516,8 @@ CREATE TABLE public."ProductPromotion" (
 );
 
 
-ALTER TABLE public."ProductPromotion" OWNER TO postgres;
-
 --
--- Name: ProductPromotion_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: ProductPromotion_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."ProductPromotion_id_seq"
@@ -589,17 +529,15 @@ CREATE SEQUENCE public."ProductPromotion_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."ProductPromotion_id_seq" OWNER TO postgres;
-
 --
--- Name: ProductPromotion_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: ProductPromotion_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."ProductPromotion_id_seq" OWNED BY public."ProductPromotion".id;
 
 
 --
--- Name: ProductView; Type: TABLE; Schema: public; Owner: postgres
+-- Name: ProductView; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."ProductView" (
@@ -610,10 +548,8 @@ CREATE TABLE public."ProductView" (
 );
 
 
-ALTER TABLE public."ProductView" OWNER TO postgres;
-
 --
--- Name: ProductView_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: ProductView_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."ProductView_id_seq"
@@ -625,17 +561,15 @@ CREATE SEQUENCE public."ProductView_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."ProductView_id_seq" OWNER TO postgres;
-
 --
--- Name: ProductView_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: ProductView_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."ProductView_id_seq" OWNED BY public."ProductView".id;
 
 
 --
--- Name: Promotion; Type: TABLE; Schema: public; Owner: postgres
+-- Name: Promotion; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."Promotion" (
@@ -647,10 +581,8 @@ CREATE TABLE public."Promotion" (
 );
 
 
-ALTER TABLE public."Promotion" OWNER TO postgres;
-
 --
--- Name: Promotion_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: Promotion_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."Promotion_id_seq"
@@ -662,17 +594,15 @@ CREATE SEQUENCE public."Promotion_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."Promotion_id_seq" OWNER TO postgres;
-
 --
--- Name: Promotion_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: Promotion_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."Promotion_id_seq" OWNED BY public."Promotion".id;
 
 
 --
--- Name: Review; Type: TABLE; Schema: public; Owner: postgres
+-- Name: Review; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."Review" (
@@ -686,10 +616,8 @@ CREATE TABLE public."Review" (
 );
 
 
-ALTER TABLE public."Review" OWNER TO postgres;
-
 --
--- Name: Review_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: Review_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."Review_id_seq"
@@ -701,17 +629,15 @@ CREATE SEQUENCE public."Review_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."Review_id_seq" OWNER TO postgres;
-
 --
--- Name: Review_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: Review_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."Review_id_seq" OWNED BY public."Review".id;
 
 
 --
--- Name: Role; Type: TABLE; Schema: public; Owner: postgres
+-- Name: Role; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."Role" (
@@ -720,10 +646,8 @@ CREATE TABLE public."Role" (
 );
 
 
-ALTER TABLE public."Role" OWNER TO postgres;
-
 --
--- Name: Role_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: Role_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."Role_id_seq"
@@ -735,17 +659,15 @@ CREATE SEQUENCE public."Role_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."Role_id_seq" OWNER TO postgres;
-
 --
--- Name: Role_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: Role_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."Role_id_seq" OWNED BY public."Role".id;
 
 
 --
--- Name: SubCategory; Type: TABLE; Schema: public; Owner: postgres
+-- Name: SubCategory; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."SubCategory" (
@@ -758,10 +680,8 @@ CREATE TABLE public."SubCategory" (
 );
 
 
-ALTER TABLE public."SubCategory" OWNER TO postgres;
-
 --
--- Name: SubCategory_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: SubCategory_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."SubCategory_id_seq"
@@ -773,17 +693,15 @@ CREATE SEQUENCE public."SubCategory_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."SubCategory_id_seq" OWNER TO postgres;
-
 --
--- Name: SubCategory_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: SubCategory_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."SubCategory_id_seq" OWNED BY public."SubCategory".id;
 
 
 --
--- Name: SubcategotyType; Type: TABLE; Schema: public; Owner: postgres
+-- Name: SubcategotyType; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."SubcategotyType" (
@@ -796,10 +714,8 @@ CREATE TABLE public."SubcategotyType" (
 );
 
 
-ALTER TABLE public."SubcategotyType" OWNER TO postgres;
-
 --
--- Name: SubcategotyType_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: SubcategotyType_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."SubcategotyType_id_seq"
@@ -811,17 +727,15 @@ CREATE SEQUENCE public."SubcategotyType_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."SubcategotyType_id_seq" OWNER TO postgres;
-
 --
--- Name: SubcategotyType_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: SubcategotyType_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."SubcategotyType_id_seq" OWNED BY public."SubcategotyType".id;
 
 
 --
--- Name: SupportMessage; Type: TABLE; Schema: public; Owner: postgres
+-- Name: SupportMessage; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."SupportMessage" (
@@ -833,10 +747,8 @@ CREATE TABLE public."SupportMessage" (
 );
 
 
-ALTER TABLE public."SupportMessage" OWNER TO postgres;
-
 --
--- Name: SupportMessage_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: SupportMessage_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."SupportMessage_id_seq"
@@ -848,17 +760,15 @@ CREATE SEQUENCE public."SupportMessage_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."SupportMessage_id_seq" OWNER TO postgres;
-
 --
--- Name: SupportMessage_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: SupportMessage_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."SupportMessage_id_seq" OWNED BY public."SupportMessage".id;
 
 
 --
--- Name: SupportTicket; Type: TABLE; Schema: public; Owner: postgres
+-- Name: SupportTicket; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."SupportTicket" (
@@ -874,10 +784,8 @@ CREATE TABLE public."SupportTicket" (
 );
 
 
-ALTER TABLE public."SupportTicket" OWNER TO postgres;
-
 --
--- Name: SupportTicket_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: SupportTicket_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."SupportTicket_id_seq"
@@ -889,17 +797,15 @@ CREATE SEQUENCE public."SupportTicket_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."SupportTicket_id_seq" OWNER TO postgres;
-
 --
--- Name: SupportTicket_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: SupportTicket_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."SupportTicket_id_seq" OWNED BY public."SupportTicket".id;
 
 
 --
--- Name: TypeField; Type: TABLE; Schema: public; Owner: postgres
+-- Name: TypeField; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."TypeField" (
@@ -910,10 +816,8 @@ CREATE TABLE public."TypeField" (
 );
 
 
-ALTER TABLE public."TypeField" OWNER TO postgres;
-
 --
--- Name: TypeField_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: TypeField_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."TypeField_id_seq"
@@ -925,17 +829,15 @@ CREATE SEQUENCE public."TypeField_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."TypeField_id_seq" OWNER TO postgres;
-
 --
--- Name: TypeField_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: TypeField_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."TypeField_id_seq" OWNED BY public."TypeField".id;
 
 
 --
--- Name: User; Type: TABLE; Schema: public; Owner: postgres
+-- Name: User; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."User" (
@@ -962,10 +864,8 @@ CREATE TABLE public."User" (
 );
 
 
-ALTER TABLE public."User" OWNER TO postgres;
-
 --
--- Name: _UserFavorites; Type: TABLE; Schema: public; Owner: postgres
+-- Name: _UserFavorites; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."_UserFavorites" (
@@ -974,10 +874,8 @@ CREATE TABLE public."_UserFavorites" (
 );
 
 
-ALTER TABLE public."_UserFavorites" OWNER TO postgres;
-
 --
--- Name: _prisma_migrations; Type: TABLE; Schema: public; Owner: postgres
+-- Name: _prisma_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public._prisma_migrations (
@@ -992,150 +890,148 @@ CREATE TABLE public._prisma_migrations (
 );
 
 
-ALTER TABLE public._prisma_migrations OWNER TO postgres;
-
 --
--- Name: Banner id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: Banner id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Banner" ALTER COLUMN id SET DEFAULT nextval('public."Banner_id_seq"'::regclass);
 
 
 --
--- Name: BannerView id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: BannerView id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."BannerView" ALTER COLUMN id SET DEFAULT nextval('public."BannerView_id_seq"'::regclass);
 
 
 --
--- Name: Category id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: Category id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Category" ALTER COLUMN id SET DEFAULT nextval('public."Category_id_seq"'::regclass);
 
 
 --
--- Name: Chat id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: Chat id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Chat" ALTER COLUMN id SET DEFAULT nextval('public."Chat_id_seq"'::regclass);
 
 
 --
--- Name: FavoriteAction id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: FavoriteAction id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."FavoriteAction" ALTER COLUMN id SET DEFAULT nextval('public."FavoriteAction_id_seq"'::regclass);
 
 
 --
--- Name: Log id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: Log id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Log" ALTER COLUMN id SET DEFAULT nextval('public."Log_id_seq"'::regclass);
 
 
 --
--- Name: Message id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: Message id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Message" ALTER COLUMN id SET DEFAULT nextval('public."Message_id_seq"'::regclass);
 
 
 --
--- Name: Payment id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: Payment id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Payment" ALTER COLUMN id SET DEFAULT nextval('public."Payment_id_seq"'::regclass);
 
 
 --
--- Name: PhoneNumberView id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: PhoneNumberView id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."PhoneNumberView" ALTER COLUMN id SET DEFAULT nextval('public."PhoneNumberView_id_seq"'::regclass);
 
 
 --
--- Name: ProductFieldValue id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: ProductFieldValue id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."ProductFieldValue" ALTER COLUMN id SET DEFAULT nextval('public."ProductFieldValue_id_seq"'::regclass);
 
 
 --
--- Name: ProductPromotion id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: ProductPromotion id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."ProductPromotion" ALTER COLUMN id SET DEFAULT nextval('public."ProductPromotion_id_seq"'::regclass);
 
 
 --
--- Name: ProductView id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: ProductView id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."ProductView" ALTER COLUMN id SET DEFAULT nextval('public."ProductView_id_seq"'::regclass);
 
 
 --
--- Name: Promotion id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: Promotion id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Promotion" ALTER COLUMN id SET DEFAULT nextval('public."Promotion_id_seq"'::regclass);
 
 
 --
--- Name: Review id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: Review id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Review" ALTER COLUMN id SET DEFAULT nextval('public."Review_id_seq"'::regclass);
 
 
 --
--- Name: Role id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: Role id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Role" ALTER COLUMN id SET DEFAULT nextval('public."Role_id_seq"'::regclass);
 
 
 --
--- Name: SubCategory id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: SubCategory id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."SubCategory" ALTER COLUMN id SET DEFAULT nextval('public."SubCategory_id_seq"'::regclass);
 
 
 --
--- Name: SubcategotyType id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: SubcategotyType id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."SubcategotyType" ALTER COLUMN id SET DEFAULT nextval('public."SubcategotyType_id_seq"'::regclass);
 
 
 --
--- Name: SupportMessage id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: SupportMessage id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."SupportMessage" ALTER COLUMN id SET DEFAULT nextval('public."SupportMessage_id_seq"'::regclass);
 
 
 --
--- Name: SupportTicket id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: SupportTicket id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."SupportTicket" ALTER COLUMN id SET DEFAULT nextval('public."SupportTicket_id_seq"'::regclass);
 
 
 --
--- Name: TypeField id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: TypeField id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."TypeField" ALTER COLUMN id SET DEFAULT nextval('public."TypeField_id_seq"'::regclass);
 
 
 --
--- Name: BannerView BannerView_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: BannerView BannerView_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."BannerView"
@@ -1143,7 +1039,7 @@ ALTER TABLE ONLY public."BannerView"
 
 
 --
--- Name: Banner Banner_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Banner Banner_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Banner"
@@ -1151,7 +1047,7 @@ ALTER TABLE ONLY public."Banner"
 
 
 --
--- Name: Category Category_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Category Category_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Category"
@@ -1159,7 +1055,7 @@ ALTER TABLE ONLY public."Category"
 
 
 --
--- Name: Chat Chat_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Chat Chat_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Chat"
@@ -1167,7 +1063,7 @@ ALTER TABLE ONLY public."Chat"
 
 
 --
--- Name: FavoriteAction FavoriteAction_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: FavoriteAction FavoriteAction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."FavoriteAction"
@@ -1175,7 +1071,7 @@ ALTER TABLE ONLY public."FavoriteAction"
 
 
 --
--- Name: Log Log_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Log Log_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Log"
@@ -1183,7 +1079,7 @@ ALTER TABLE ONLY public."Log"
 
 
 --
--- Name: Message Message_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Message Message_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Message"
@@ -1191,7 +1087,7 @@ ALTER TABLE ONLY public."Message"
 
 
 --
--- Name: Payment Payment_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Payment Payment_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Payment"
@@ -1199,7 +1095,7 @@ ALTER TABLE ONLY public."Payment"
 
 
 --
--- Name: PhoneNumberView PhoneNumberView_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: PhoneNumberView PhoneNumberView_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."PhoneNumberView"
@@ -1207,7 +1103,7 @@ ALTER TABLE ONLY public."PhoneNumberView"
 
 
 --
--- Name: ProductFieldValue ProductFieldValue_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: ProductFieldValue ProductFieldValue_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."ProductFieldValue"
@@ -1215,7 +1111,7 @@ ALTER TABLE ONLY public."ProductFieldValue"
 
 
 --
--- Name: ProductPromotion ProductPromotion_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: ProductPromotion ProductPromotion_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."ProductPromotion"
@@ -1223,7 +1119,7 @@ ALTER TABLE ONLY public."ProductPromotion"
 
 
 --
--- Name: ProductView ProductView_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: ProductView ProductView_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."ProductView"
@@ -1231,7 +1127,7 @@ ALTER TABLE ONLY public."ProductView"
 
 
 --
--- Name: Product Product_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Product Product_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Product"
@@ -1239,7 +1135,7 @@ ALTER TABLE ONLY public."Product"
 
 
 --
--- Name: Promotion Promotion_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Promotion Promotion_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Promotion"
@@ -1247,7 +1143,7 @@ ALTER TABLE ONLY public."Promotion"
 
 
 --
--- Name: Review Review_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Review Review_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Review"
@@ -1255,7 +1151,7 @@ ALTER TABLE ONLY public."Review"
 
 
 --
--- Name: Role Role_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Role Role_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Role"
@@ -1263,7 +1159,7 @@ ALTER TABLE ONLY public."Role"
 
 
 --
--- Name: SubCategory SubCategory_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: SubCategory SubCategory_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."SubCategory"
@@ -1271,7 +1167,7 @@ ALTER TABLE ONLY public."SubCategory"
 
 
 --
--- Name: SubcategotyType SubcategotyType_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: SubcategotyType SubcategotyType_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."SubcategotyType"
@@ -1279,7 +1175,7 @@ ALTER TABLE ONLY public."SubcategotyType"
 
 
 --
--- Name: SupportMessage SupportMessage_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: SupportMessage SupportMessage_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."SupportMessage"
@@ -1287,7 +1183,7 @@ ALTER TABLE ONLY public."SupportMessage"
 
 
 --
--- Name: SupportTicket SupportTicket_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: SupportTicket SupportTicket_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."SupportTicket"
@@ -1295,7 +1191,7 @@ ALTER TABLE ONLY public."SupportTicket"
 
 
 --
--- Name: TypeField TypeField_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: TypeField TypeField_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."TypeField"
@@ -1303,7 +1199,7 @@ ALTER TABLE ONLY public."TypeField"
 
 
 --
--- Name: User User_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: User User_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."User"
@@ -1311,7 +1207,7 @@ ALTER TABLE ONLY public."User"
 
 
 --
--- Name: _UserFavorites _UserFavorites_AB_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: _UserFavorites _UserFavorites_AB_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."_UserFavorites"
@@ -1319,7 +1215,7 @@ ALTER TABLE ONLY public."_UserFavorites"
 
 
 --
--- Name: _prisma_migrations _prisma_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: _prisma_migrations _prisma_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public._prisma_migrations
@@ -1327,154 +1223,154 @@ ALTER TABLE ONLY public._prisma_migrations
 
 
 --
--- Name: BannerView_bannerId_idx; Type: INDEX; Schema: public; Owner: postgres
+-- Name: BannerView_bannerId_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "BannerView_bannerId_idx" ON public."BannerView" USING btree ("bannerId");
 
 
 --
--- Name: BannerView_userId_idx; Type: INDEX; Schema: public; Owner: postgres
+-- Name: BannerView_userId_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "BannerView_userId_idx" ON public."BannerView" USING btree ("userId");
 
 
 --
--- Name: Category_slug_idx; Type: INDEX; Schema: public; Owner: postgres
+-- Name: Category_slug_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "Category_slug_idx" ON public."Category" USING btree (slug);
 
 
 --
--- Name: Category_slug_key; Type: INDEX; Schema: public; Owner: postgres
+-- Name: Category_slug_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "Category_slug_key" ON public."Category" USING btree (slug);
 
 
 --
--- Name: Chat_buyerId_sellerId_productId_key; Type: INDEX; Schema: public; Owner: postgres
+-- Name: Chat_buyerId_sellerId_productId_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "Chat_buyerId_sellerId_productId_key" ON public."Chat" USING btree ("buyerId", "sellerId", "productId");
 
 
 --
--- Name: FavoriteAction_userId_productId_key; Type: INDEX; Schema: public; Owner: postgres
+-- Name: FavoriteAction_userId_productId_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "FavoriteAction_userId_productId_key" ON public."FavoriteAction" USING btree ("userId", "productId");
 
 
 --
--- Name: Payment_orderId_key; Type: INDEX; Schema: public; Owner: postgres
+-- Name: Payment_orderId_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "Payment_orderId_key" ON public."Payment" USING btree ("orderId");
 
 
 --
--- Name: Payment_paymentId_key; Type: INDEX; Schema: public; Owner: postgres
+-- Name: Payment_paymentId_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "Payment_paymentId_key" ON public."Payment" USING btree ("paymentId");
 
 
 --
--- Name: PhoneNumberView_viewedById_viewedUserId_key; Type: INDEX; Schema: public; Owner: postgres
+-- Name: PhoneNumberView_viewedById_viewedUserId_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "PhoneNumberView_viewedById_viewedUserId_key" ON public."PhoneNumberView" USING btree ("viewedById", "viewedUserId");
 
 
 --
--- Name: ProductFieldValue_fieldId_productId_key; Type: INDEX; Schema: public; Owner: postgres
+-- Name: ProductFieldValue_fieldId_productId_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "ProductFieldValue_fieldId_productId_key" ON public."ProductFieldValue" USING btree ("fieldId", "productId");
 
 
 --
--- Name: ProductView_viewedById_productId_key; Type: INDEX; Schema: public; Owner: postgres
+-- Name: ProductView_viewedById_productId_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "ProductView_viewedById_productId_key" ON public."ProductView" USING btree ("viewedById", "productId");
 
 
 --
--- Name: Promotion_name_key; Type: INDEX; Schema: public; Owner: postgres
+-- Name: Promotion_name_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "Promotion_name_key" ON public."Promotion" USING btree (name);
 
 
 --
--- Name: Review_reviewedById_reviewedUserId_key; Type: INDEX; Schema: public; Owner: postgres
+-- Name: Review_reviewedById_reviewedUserId_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "Review_reviewedById_reviewedUserId_key" ON public."Review" USING btree ("reviewedById", "reviewedUserId");
 
 
 --
--- Name: Role_name_key; Type: INDEX; Schema: public; Owner: postgres
+-- Name: Role_name_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "Role_name_key" ON public."Role" USING btree (name);
 
 
 --
--- Name: SubCategory_slug_categoryId_key; Type: INDEX; Schema: public; Owner: postgres
+-- Name: SubCategory_slug_categoryId_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "SubCategory_slug_categoryId_key" ON public."SubCategory" USING btree (slug, "categoryId");
 
 
 --
--- Name: SubCategory_slug_idx; Type: INDEX; Schema: public; Owner: postgres
+-- Name: SubCategory_slug_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "SubCategory_slug_idx" ON public."SubCategory" USING btree (slug);
 
 
 --
--- Name: SubcategotyType_slug_idx; Type: INDEX; Schema: public; Owner: postgres
+-- Name: SubcategotyType_slug_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "SubcategotyType_slug_idx" ON public."SubcategotyType" USING btree (slug);
 
 
 --
--- Name: SubcategotyType_slug_subcategoryId_key; Type: INDEX; Schema: public; Owner: postgres
+-- Name: SubcategotyType_slug_subcategoryId_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "SubcategotyType_slug_subcategoryId_key" ON public."SubcategotyType" USING btree (slug, "subcategoryId");
 
 
 --
--- Name: User_email_key; Type: INDEX; Schema: public; Owner: postgres
+-- Name: User_email_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "User_email_key" ON public."User" USING btree (email);
 
 
 --
--- Name: User_phoneNumber_key; Type: INDEX; Schema: public; Owner: postgres
+-- Name: User_phoneNumber_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "User_phoneNumber_key" ON public."User" USING btree ("phoneNumber");
 
 
 --
--- Name: _UserFavorites_B_index; Type: INDEX; Schema: public; Owner: postgres
+-- Name: _UserFavorites_B_index; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "_UserFavorites_B_index" ON public."_UserFavorites" USING btree ("B");
 
 
 --
--- Name: BannerView BannerView_bannerId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: BannerView BannerView_bannerId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."BannerView"
@@ -1482,7 +1378,7 @@ ALTER TABLE ONLY public."BannerView"
 
 
 --
--- Name: BannerView BannerView_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: BannerView BannerView_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."BannerView"
@@ -1490,7 +1386,7 @@ ALTER TABLE ONLY public."BannerView"
 
 
 --
--- Name: Banner Banner_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Banner Banner_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Banner"
@@ -1498,7 +1394,7 @@ ALTER TABLE ONLY public."Banner"
 
 
 --
--- Name: Chat Chat_buyerId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Chat Chat_buyerId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Chat"
@@ -1506,7 +1402,7 @@ ALTER TABLE ONLY public."Chat"
 
 
 --
--- Name: Chat Chat_lastMessageId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Chat Chat_lastMessageId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Chat"
@@ -1514,7 +1410,7 @@ ALTER TABLE ONLY public."Chat"
 
 
 --
--- Name: Chat Chat_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Chat Chat_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Chat"
@@ -1522,7 +1418,7 @@ ALTER TABLE ONLY public."Chat"
 
 
 --
--- Name: Chat Chat_sellerId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Chat Chat_sellerId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Chat"
@@ -1530,7 +1426,7 @@ ALTER TABLE ONLY public."Chat"
 
 
 --
--- Name: FavoriteAction FavoriteAction_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: FavoriteAction FavoriteAction_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."FavoriteAction"
@@ -1538,7 +1434,7 @@ ALTER TABLE ONLY public."FavoriteAction"
 
 
 --
--- Name: FavoriteAction FavoriteAction_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: FavoriteAction FavoriteAction_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."FavoriteAction"
@@ -1546,7 +1442,7 @@ ALTER TABLE ONLY public."FavoriteAction"
 
 
 --
--- Name: Log Log_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Log Log_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Log"
@@ -1554,7 +1450,7 @@ ALTER TABLE ONLY public."Log"
 
 
 --
--- Name: Message Message_chatId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Message Message_chatId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Message"
@@ -1562,7 +1458,7 @@ ALTER TABLE ONLY public."Message"
 
 
 --
--- Name: Message Message_relatedProductId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Message Message_relatedProductId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Message"
@@ -1570,7 +1466,7 @@ ALTER TABLE ONLY public."Message"
 
 
 --
--- Name: Message Message_senderId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Message Message_senderId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Message"
@@ -1578,7 +1474,7 @@ ALTER TABLE ONLY public."Message"
 
 
 --
--- Name: Payment Payment_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Payment Payment_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Payment"
@@ -1586,7 +1482,7 @@ ALTER TABLE ONLY public."Payment"
 
 
 --
--- Name: PhoneNumberView PhoneNumberView_viewedById_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: PhoneNumberView PhoneNumberView_viewedById_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."PhoneNumberView"
@@ -1594,7 +1490,7 @@ ALTER TABLE ONLY public."PhoneNumberView"
 
 
 --
--- Name: PhoneNumberView PhoneNumberView_viewedUserId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: PhoneNumberView PhoneNumberView_viewedUserId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."PhoneNumberView"
@@ -1602,7 +1498,7 @@ ALTER TABLE ONLY public."PhoneNumberView"
 
 
 --
--- Name: ProductFieldValue ProductFieldValue_fieldId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: ProductFieldValue ProductFieldValue_fieldId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."ProductFieldValue"
@@ -1610,7 +1506,7 @@ ALTER TABLE ONLY public."ProductFieldValue"
 
 
 --
--- Name: ProductFieldValue ProductFieldValue_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: ProductFieldValue ProductFieldValue_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."ProductFieldValue"
@@ -1618,7 +1514,7 @@ ALTER TABLE ONLY public."ProductFieldValue"
 
 
 --
--- Name: ProductPromotion ProductPromotion_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: ProductPromotion ProductPromotion_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."ProductPromotion"
@@ -1626,7 +1522,7 @@ ALTER TABLE ONLY public."ProductPromotion"
 
 
 --
--- Name: ProductPromotion ProductPromotion_promotionId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: ProductPromotion ProductPromotion_promotionId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."ProductPromotion"
@@ -1634,7 +1530,7 @@ ALTER TABLE ONLY public."ProductPromotion"
 
 
 --
--- Name: ProductPromotion ProductPromotion_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: ProductPromotion ProductPromotion_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."ProductPromotion"
@@ -1642,7 +1538,7 @@ ALTER TABLE ONLY public."ProductPromotion"
 
 
 --
--- Name: ProductView ProductView_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: ProductView ProductView_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."ProductView"
@@ -1650,7 +1546,7 @@ ALTER TABLE ONLY public."ProductView"
 
 
 --
--- Name: ProductView ProductView_viewedById_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: ProductView ProductView_viewedById_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."ProductView"
@@ -1658,7 +1554,7 @@ ALTER TABLE ONLY public."ProductView"
 
 
 --
--- Name: Product Product_categoryId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Product Product_categoryId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Product"
@@ -1666,7 +1562,7 @@ ALTER TABLE ONLY public."Product"
 
 
 --
--- Name: Product Product_subCategoryId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Product Product_subCategoryId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Product"
@@ -1674,7 +1570,7 @@ ALTER TABLE ONLY public."Product"
 
 
 --
--- Name: Product Product_typeId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Product Product_typeId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Product"
@@ -1682,7 +1578,7 @@ ALTER TABLE ONLY public."Product"
 
 
 --
--- Name: Product Product_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Product Product_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Product"
@@ -1690,7 +1586,7 @@ ALTER TABLE ONLY public."Product"
 
 
 --
--- Name: Review Review_reviewedById_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Review Review_reviewedById_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Review"
@@ -1698,7 +1594,7 @@ ALTER TABLE ONLY public."Review"
 
 
 --
--- Name: Review Review_reviewedUserId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Review Review_reviewedUserId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Review"
@@ -1706,7 +1602,7 @@ ALTER TABLE ONLY public."Review"
 
 
 --
--- Name: SubCategory SubCategory_categoryId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: SubCategory SubCategory_categoryId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."SubCategory"
@@ -1714,7 +1610,7 @@ ALTER TABLE ONLY public."SubCategory"
 
 
 --
--- Name: SubcategotyType SubcategotyType_subcategoryId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: SubcategotyType SubcategotyType_subcategoryId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."SubcategotyType"
@@ -1722,7 +1618,7 @@ ALTER TABLE ONLY public."SubcategotyType"
 
 
 --
--- Name: SupportMessage SupportMessage_authorId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: SupportMessage SupportMessage_authorId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."SupportMessage"
@@ -1730,7 +1626,7 @@ ALTER TABLE ONLY public."SupportMessage"
 
 
 --
--- Name: SupportMessage SupportMessage_ticketId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: SupportMessage SupportMessage_ticketId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."SupportMessage"
@@ -1738,7 +1634,7 @@ ALTER TABLE ONLY public."SupportMessage"
 
 
 --
--- Name: SupportTicket SupportTicket_moderatorId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: SupportTicket SupportTicket_moderatorId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."SupportTicket"
@@ -1746,7 +1642,7 @@ ALTER TABLE ONLY public."SupportTicket"
 
 
 --
--- Name: SupportTicket SupportTicket_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: SupportTicket SupportTicket_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."SupportTicket"
@@ -1754,7 +1650,7 @@ ALTER TABLE ONLY public."SupportTicket"
 
 
 --
--- Name: TypeField TypeField_typeId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: TypeField TypeField_typeId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."TypeField"
@@ -1762,7 +1658,7 @@ ALTER TABLE ONLY public."TypeField"
 
 
 --
--- Name: User User_roleId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: User User_roleId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."User"
@@ -1770,7 +1666,7 @@ ALTER TABLE ONLY public."User"
 
 
 --
--- Name: _UserFavorites _UserFavorites_A_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: _UserFavorites _UserFavorites_A_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."_UserFavorites"
@@ -1778,7 +1674,7 @@ ALTER TABLE ONLY public."_UserFavorites"
 
 
 --
--- Name: _UserFavorites _UserFavorites_B_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: _UserFavorites _UserFavorites_B_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."_UserFavorites"
@@ -1786,15 +1682,8 @@ ALTER TABLE ONLY public."_UserFavorites"
 
 
 --
--- Name: SCHEMA public; Type: ACL; Schema: -; Owner: pg_database_owner
---
-
-REVOKE USAGE ON SCHEMA public FROM PUBLIC;
-GRANT CREATE ON SCHEMA public TO PUBLIC;
-
-
---
 -- PostgreSQL database dump complete
 --
 
+\unrestrict YwZLX2dVAiGQvIo7VWfdNj2gahz2XDm8HffyhatVVeOGHaVyIhyTXbm5n4ddrds
 
