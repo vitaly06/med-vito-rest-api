@@ -43,6 +43,8 @@ func New(endpoint, region, bucket, accessKey, secretKey, publicBase string) (*Cl
 	cfg, err := awsconfig.LoadDefaultConfig(context.Background(),
 		awsconfig.WithRegion(region),
 		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
+		awsconfig.WithRequestChecksumCalculation(aws.RequestChecksumCalculationWhenRequired),
+		awsconfig.WithResponseChecksumValidation(aws.ResponseChecksumValidationWhenRequired),
 	)
 	if err != nil {
 		return nil, err
@@ -67,10 +69,11 @@ func (c *Client) Upload(ctx context.Context, folder, originalName, contentType s
 		ct = "application/octet-stream"
 	}
 	_, err := c.svc.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:      aws.String(c.bucket),
-		Key:         aws.String(key),
-		Body:        bytes.NewReader(body),
-		ContentType: aws.String(ct),
+		Bucket:        aws.String(c.bucket),
+		Key:           aws.String(key),
+		Body:          bytes.NewReader(body),
+		ContentType:   aws.String(ct),
+		ContentLength: aws.Int64(int64(len(body))),
 	})
 	if err != nil {
 		return "", err
