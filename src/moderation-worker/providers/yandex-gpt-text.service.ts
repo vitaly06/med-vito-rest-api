@@ -97,10 +97,29 @@ export class YandexGptTextService {
       );
 
       const raw = String(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         response.data.result.alternatives[0].message.text,
       ).trim();
+      this.logger.log(`[Text] Raw response: ${raw}`);
+
       const cleaned = raw.replace(/```json|```/g, '').trim();
+
+      // If the model returned a plain-text refusal instead of JSON, treat as DENIED
+      if (!cleaned.startsWith('{')) {
+        this.logger.warn(
+          `[Text] Model returned non-JSON refusal: ${cleaned.substring(0, 200)}`,
+        );
+        return {
+          category: 'DENIED',
+          reason: `Модель отказалась обрабатывать объявление: ${cleaned.substring(0, 300)}`,
+          details: {
+            categorization: 'VIOLATION',
+            spam: 'OK',
+            fraud: 'OK',
+            contacts: 'OK',
+          },
+        };
+      }
+
       const parsed = JSON.parse(cleaned) as TextModerationResult;
 
       // Validate the expected shape to guard against prompt injection in the AI response
@@ -109,7 +128,7 @@ export class YandexGptTextService {
         typeof parsed.reason !== 'string' ||
         !parsed.details
       ) {
-        throw new Error('Unexpected response shape from YandexGPT');
+        throw new Error(`Unexpected response shape from YandexGPT: ${cleaned}`);
       }
 
       return parsed;
