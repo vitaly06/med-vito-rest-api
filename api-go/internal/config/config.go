@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// Config — env для сервера, БД, Redis, внешних API и почты.
+// Config holds env for server, DB, Redis, and external APIs.
 type Config struct {
 	Port        string
 	DatabaseURL string
@@ -22,18 +22,16 @@ type Config struct {
 	RedisAddr     string
 	RedisPassword string
 
-	MTSBearer      string
-	NotisendAPIKey string
-	// NotisendProject — слаг проекта в query project= (у Nest зашито torgui_sam).
+	MTSBearer       string
+	NotisendAPIKey  string
 	NotisendProject string
 
-	SMTPHost     string
-	SMTPPort     int
-	SMTPUser     string
-	SMTPPassword string
-	SMTPFrom     string
-	SMTPSecure   bool
-	// SMTPTLSInsecure — как tls.rejectUnauthorized: false у Nest mailer (только для проблемных CA).
+	SMTPHost        string
+	SMTPPort        int
+	SMTPUser        string
+	SMTPPassword    string
+	SMTPFrom        string
+	SMTPSecure      bool
 	SMTPTLSInsecure bool
 
 	S3Endpoint   string
@@ -41,17 +39,24 @@ type Config struct {
 	S3Bucket     string
 	S3AccessKey  string
 	S3SecretKey  string
-	S3PublicBase string // публичный префикс URL (как https://s3.ru1.storage.beget.cloud)
+	S3PublicBase string
 
 	TinkoffTerminalKey string
 	TinkoffSecretKey   string
 
-	DadataAPIKey string // подсказки адресов (как Nest address.service)
+	DadataAPIKey string
+
+	CDEKClientID     string
+	CDEKClientSecret string
+	CDEKAPIBase      string
+
+	DealPlatformFeePercent int
+	DealPayoutDelayDays    int
+	DealAutoCompleteDays   int
 }
 
 func Load() Config {
 	p := os.Getenv("PORT")
-
 	if p == "" {
 		p = "3000"
 	}
@@ -91,6 +96,28 @@ func Load() Config {
 	smtpSecure := sec == "true" || sec == "1" || sec == "yes"
 	smtpTLSInsecure := strings.ToLower(strings.TrimSpace(os.Getenv("SMTP_TLS_INSECURE"))) == "true" ||
 		strings.TrimSpace(os.Getenv("SMTP_TLS_INSECURE")) == "1"
+	feePercent := 0
+	if v := strings.TrimSpace(os.Getenv("DEAL_PLATFORM_FEE_PERCENT")); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			feePercent = n
+		}
+	}
+	payoutDelay := 1
+	if v := strings.TrimSpace(os.Getenv("DEAL_PAYOUT_DELAY_DAYS")); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			payoutDelay = n
+		}
+	}
+	autoComplete := 14
+	if v := strings.TrimSpace(os.Getenv("DEAL_AUTO_COMPLETE_DAYS")); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			autoComplete = n
+		}
+	}
+	cdekBase := strings.TrimSpace(os.Getenv("CDEK_API_BASE"))
+	if cdekBase == "" {
+		cdekBase = "https://api.cdek.ru/v2"
+	}
 
 	return Config{
 		Port:        p,
@@ -130,6 +157,14 @@ func Load() Config {
 		TinkoffSecretKey:   strings.TrimSpace(os.Getenv("TINKOFF_SECRET_KEY")),
 
 		DadataAPIKey: strings.TrimSpace(os.Getenv("DADATA_API_KEY")),
+
+		CDEKClientID:     strings.TrimSpace(os.Getenv("CDEK_CLIENT_ID")),
+		CDEKClientSecret: strings.TrimSpace(os.Getenv("CDEK_CLIENT_SECRET")),
+		CDEKAPIBase:      cdekBase,
+
+		DealPlatformFeePercent: feePercent,
+		DealPayoutDelayDays:    payoutDelay,
+		DealAutoCompleteDays:   autoComplete,
 	}
 }
 

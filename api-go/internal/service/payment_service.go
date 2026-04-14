@@ -63,7 +63,7 @@ func tinkoffBoolSuccess(v interface{}) bool {
 	return tinkoff.ScalarString(v) == "true"
 }
 
-// tokenParams — только для подписи (все значения строки); jsonBody — фактическое тело (Amount числом, как у Nest).
+// tokenParams вЂ” С‚РѕР»СЊРєРѕ РґР»СЏ РїРѕРґРїРёСЃРё (РІСЃРµ Р·РЅР°С‡РµРЅРёСЏ СЃС‚СЂРѕРєРё); jsonBody вЂ” С„Р°РєС‚РёС‡РµСЃРєРѕРµ С‚РµР»Рѕ (Amount С‡РёСЃР»РѕРј, РєР°Рє Сѓ Nest).
 func (s *PaymentService) tinkoffRequest(ctx context.Context, path string, tokenParams map[string]string, jsonBody map[string]any) (map[string]interface{}, error) {
 	token := tinkoff.Token(s.cfg.TinkoffSecretKey, tokenParams)
 	payload := make(map[string]any, len(jsonBody)+1)
@@ -91,7 +91,7 @@ func (s *PaymentService) tinkoffRequest(ctx context.Context, path string, tokenP
 		return nil, err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("Т-Банк HTTP %d: %s", resp.StatusCode, truncateTinkoffBody(raw))
+		return nil, fmt.Errorf("Рў-Р‘Р°РЅРє HTTP %d: %s", resp.StatusCode, truncateTinkoffBody(raw))
 	}
 	var data map[string]interface{}
 	dec := json.NewDecoder(bytes.NewReader(raw))
@@ -102,16 +102,16 @@ func (s *PaymentService) tinkoffRequest(ctx context.Context, path string, tokenP
 	return data, nil
 }
 
-// CreatePayment — Init + запись в БД (как Nest createPayment).
+// CreatePayment вЂ” Init + Р·Р°РїРёСЃСЊ РІ Р‘Р” (РєР°Рє Nest createPayment).
 func (s *PaymentService) CreatePayment(ctx context.Context, userID int32, amount float64, description string) (map[string]any, error) {
 	if !s.tinkoffConfigured() {
-		return nil, &AppError{400, "Платёжная система не настроена (TINKOFF_TERMINAL_KEY / TINKOFF_SECRET_KEY)"}
+		return nil, &AppError{400, "РџР»Р°С‚С‘Р¶РЅР°СЏ СЃРёСЃС‚РµРјР° РЅРµ РЅР°СЃС‚СЂРѕРµРЅР° (TINKOFF_TERMINAL_KEY / TINKOFF_SECRET_KEY)"}
 	}
 	if amount < 1 {
-		return nil, &AppError{400, "Минимальная сумма пополнения 1 рубль"}
+		return nil, &AppError{400, "РњРёРЅРёРјР°Р»СЊРЅР°СЏ СЃСѓРјРјР° РїРѕРїРѕР»РЅРµРЅРёСЏ 1 СЂСѓР±Р»СЊ"}
 	}
 	if description == "" {
-		description = "Пополнение баланса"
+		description = "РџРѕРїРѕР»РЅРµРЅРёРµ Р±Р°Р»Р°РЅСЃР°"
 	}
 	kopeks := int64(math.Round(amount * 100))
 	orderID := fmt.Sprintf("%d-%d", userID, time.Now().UnixMilli())
@@ -131,22 +131,22 @@ func (s *PaymentService) CreatePayment(ctx context.Context, userID int32, amount
 	}
 	data, err := s.tinkoffRequest(ctx, "/Init", params, jsonBody)
 	if err != nil {
-		return nil, &AppError{400, fmt.Sprintf("Ошибка при создании платежа: %v", err)}
+		return nil, &AppError{400, fmt.Sprintf("РћС€РёР±РєР° РїСЂРё СЃРѕР·РґР°РЅРёРё РїР»Р°С‚РµР¶Р°: %v", err)}
 	}
 	if !tinkoffBoolSuccess(data["Success"]) {
 		msg := tinkoff.ScalarString(data["Message"])
 		if msg == "" {
 			msg = tinkoff.ScalarString(data["Details"])
 		}
-		return nil, &AppError{400, fmt.Sprintf("Ошибка создания платежа: %s", msg)}
+		return nil, &AppError{400, fmt.Sprintf("РћС€РёР±РєР° СЃРѕР·РґР°РЅРёСЏ РїР»Р°С‚РµР¶Р°: %s", msg)}
 	}
 	pidRaw, err := json.Marshal(data["PaymentId"])
 	if err != nil {
-		return nil, &AppError{400, "Ошибка создания платежа: PaymentId"}
+		return nil, &AppError{400, "РћС€РёР±РєР° СЃРѕР·РґР°РЅРёСЏ РїР»Р°С‚РµР¶Р°: PaymentId"}
 	}
 	paymentID, err := parseTinkoffPaymentID(pidRaw)
 	if err != nil {
-		return nil, &AppError{400, "Ошибка создания платежа: PaymentId"}
+		return nil, &AppError{400, "РћС€РёР±РєР° СЃРѕР·РґР°РЅРёСЏ РїР»Р°С‚РµР¶Р°: PaymentId"}
 	}
 	paymentURL := tinkoff.ScalarString(data["PaymentURL"])
 	var urlPtr *string
@@ -154,7 +154,7 @@ func (s *PaymentService) CreatePayment(ctx context.Context, userID int32, amount
 		urlPtr = &paymentURL
 	}
 	if err := s.repo.Insert(ctx, orderID, paymentID, userID, amount, "PENDING", urlPtr); err != nil {
-		return nil, &AppError{400, fmt.Sprintf("Ошибка при создании платежа: %v", err)}
+		return nil, &AppError{400, fmt.Sprintf("РћС€РёР±РєР° РїСЂРё СЃРѕР·РґР°РЅРёРё РїР»Р°С‚РµР¶Р°: %v", err)}
 	}
 	return map[string]any{
 		"paymentId":  paymentID,
@@ -164,28 +164,78 @@ func (s *PaymentService) CreatePayment(ctx context.Context, userID int32, amount
 	}, nil
 }
 
-// HandleNotification — webhook Т-Банк: проверка Token, идемпотентное начисление.
+// CreateDealPayment — Init для безопасной сделки (без записи в Payment).
+func (s *PaymentService) CreateDealPayment(ctx context.Context, userID, dealID int32, amount float64, description string) (string, string, string, error) {
+	if !s.tinkoffConfigured() {
+		return "", "", "", &AppError{400, "РџР»Р°С‚С‘Р¶РЅР°СЏ СЃРёСЃС‚РµРјР° РЅРµ РЅР°СЃС‚СЂРѕРµРЅР° (TINKOFF_TERMINAL_KEY / TINKOFF_SECRET_KEY)"}
+	}
+	if amount < 1 {
+		return "", "", "", &AppError{400, "РњРёРЅРёРјР°Р»СЊРЅР°СЏ СЃСѓРјРјР° РѕРїР»Р°С‚С‹ 1 СЂСѓР±Р»СЊ"}
+	}
+	if description == "" {
+		description = "Р‘РµР·РѕРїР°СЃРЅР°СЏ СЃРґРµР»РєР°"
+	}
+	kopeks := int64(math.Round(amount * 100))
+	orderID := fmt.Sprintf("deal-%d-%d", dealID, time.Now().UnixMilli())
+
+	params := map[string]string{
+		"TerminalKey": s.cfg.TinkoffTerminalKey,
+		"Amount":      strconv.FormatInt(kopeks, 10),
+		"OrderId":     orderID,
+		"Description": description,
+	}
+
+	jsonBody := map[string]any{
+		"TerminalKey": s.cfg.TinkoffTerminalKey,
+		"Amount":      kopeks,
+		"OrderId":     orderID,
+		"Description": description,
+	}
+	data, err := s.tinkoffRequest(ctx, "/Init", params, jsonBody)
+	if err != nil {
+		return "", "", "", &AppError{400, fmt.Sprintf("РћС€РёР±РєР° РїСЂРё СЃРѕР·РґР°РЅРёРё РїР»Р°С‚РµР¶Р°: %v", err)}
+	}
+	if !tinkoffBoolSuccess(data["Success"]) {
+		msg := tinkoff.ScalarString(data["Message"])
+		if msg == "" {
+			msg = tinkoff.ScalarString(data["Details"])
+		}
+		return "", "", "", &AppError{400, fmt.Sprintf("РћС€РёР±РєР° СЃРѕР·РґР°РЅРёСЏ РїР»Р°С‚РµР¶Р°: %s", msg)}
+	}
+	pidRaw, err := json.Marshal(data["PaymentId"])
+	if err != nil {
+		return "", "", "", &AppError{400, "РћС€РёР±РєР° СЃРѕР·РґР°РЅРёСЏ РїР»Р°С‚РµР¶Р°: PaymentId"}
+	}
+	paymentID, err := parseTinkoffPaymentID(pidRaw)
+	if err != nil {
+		return "", "", "", &AppError{400, "РћС€РёР±РєР° СЃРѕР·РґР°РЅРёСЏ РїР»Р°С‚РµР¶Р°: PaymentId"}
+	}
+	paymentURL := tinkoff.ScalarString(data["PaymentURL"])
+	return paymentID, paymentURL, orderID, nil
+}
+
+// HandleNotification вЂ” webhook Рў-Р‘Р°РЅРє: РїСЂРѕРІРµСЂРєР° Token, РёРґРµРјРїРѕС‚РµРЅС‚РЅРѕРµ РЅР°С‡РёСЃР»РµРЅРёРµ.
 func (s *PaymentService) HandleNotification(ctx context.Context, rawJSON []byte) (map[string]any, error) {
 	if !s.tinkoffConfigured() {
-		return nil, &AppError{400, "Платёжная система не настроена"}
+		return nil, &AppError{400, "РџР»Р°С‚С‘Р¶РЅР°СЏ СЃРёСЃС‚РµРјР° РЅРµ РЅР°СЃС‚СЂРѕРµРЅР°"}
 	}
 	dec := json.NewDecoder(bytes.NewReader(rawJSON))
 	dec.UseNumber()
 	var root map[string]interface{}
 	if err := dec.Decode(&root); err != nil {
-		return nil, &AppError{400, "Некорректное тело уведомления"}
+		return nil, &AppError{400, "РќРµРєРѕСЂСЂРµРєС‚РЅРѕРµ С‚РµР»Рѕ СѓРІРµРґРѕРјР»РµРЅРёСЏ"}
 	}
 	got, _ := root["Token"].(string)
 	if got == "" {
-		return nil, &AppError{400, "Неверная подпись уведомления"}
+		return nil, &AppError{400, "РќРµРІРµСЂРЅР°СЏ РїРѕРґРїРёСЃСЊ СѓРІРµРґРѕРјР»РµРЅРёСЏ"}
 	}
 	want := tinkoff.Token(s.cfg.TinkoffSecretKey, tinkoff.ParamsFromNotificationMap(root))
 	if got != want {
-		return nil, &AppError{400, "Неверная подпись уведомления"}
+		return nil, &AppError{400, "РќРµРІРµСЂРЅР°СЏ РїРѕРґРїРёСЃСЊ СѓРІРµРґРѕРјР»РµРЅРёСЏ"}
 	}
 	paymentID := tinkoff.ScalarString(root["PaymentId"])
 	if paymentID == "" {
-		return nil, &AppError{400, "Платеж не найден"}
+		return nil, &AppError{400, "РџР»Р°С‚РµР¶ РЅРµ РЅР°Р№РґРµРЅ"}
 	}
 	status := tinkoff.ScalarString(root["Status"])
 
@@ -193,19 +243,19 @@ func (s *PaymentService) HandleNotification(ctx context.Context, rawJSON []byte)
 	case "CONFIRMED":
 		already, err := s.repo.TryCompleteTopUp(ctx, paymentID)
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, &AppError{400, "Платеж не найден"}
+			return nil, &AppError{400, "РџР»Р°С‚РµР¶ РЅРµ РЅР°Р№РґРµРЅ"}
 		}
 		if err != nil {
 			return nil, err
 		}
 		if already {
-			return map[string]any{"success": true, "message": "Платеж уже обработан"}, nil
+			return map[string]any{"success": true, "message": "РџР»Р°С‚РµР¶ СѓР¶Рµ РѕР±СЂР°Р±РѕС‚Р°РЅ"}, nil
 		}
-		return map[string]any{"success": true, "message": "Баланс успешно пополнен"}, nil
+		return map[string]any{"success": true, "message": "Р‘Р°Р»Р°РЅСЃ СѓСЃРїРµС€РЅРѕ РїРѕРїРѕР»РЅРµРЅ"}, nil
 	case "REJECTED", "CANCELED":
 		already, err := s.repo.TryFailIfPending(ctx, paymentID)
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, &AppError{400, "Платеж не найден"}
+			return nil, &AppError{400, "РџР»Р°С‚РµР¶ РЅРµ РЅР°Р№РґРµРЅ"}
 		}
 		if err != nil {
 			return nil, err
@@ -223,10 +273,10 @@ func (s *PaymentService) GetUserPayments(ctx context.Context, userID int32) ([]r
 	return s.repo.ListByUserID(ctx, userID, 50)
 }
 
-// CheckPaymentStatus — GetState в Т-Банк.
+// CheckPaymentStatus вЂ” GetState РІ Рў-Р‘Р°РЅРє.
 func (s *PaymentService) CheckPaymentStatus(ctx context.Context, paymentID string) (map[string]any, error) {
 	if !s.tinkoffConfigured() {
-		return nil, &AppError{400, "Платёжная система не настроена"}
+		return nil, &AppError{400, "РџР»Р°С‚С‘Р¶РЅР°СЏ СЃРёСЃС‚РµРјР° РЅРµ РЅР°СЃС‚СЂРѕРµРЅР°"}
 	}
 	params := map[string]string{
 		"TerminalKey": s.cfg.TinkoffTerminalKey,
@@ -238,10 +288,10 @@ func (s *PaymentService) CheckPaymentStatus(ctx context.Context, paymentID strin
 	}
 	data, err := s.tinkoffRequest(ctx, "/GetState", params, jsonBody)
 	if err != nil {
-		return nil, &AppError{400, fmt.Sprintf("Ошибка при проверке статуса: %v", err)}
+		return nil, &AppError{400, fmt.Sprintf("РћС€РёР±РєР° РїСЂРё РїСЂРѕРІРµСЂРєРµ СЃС‚Р°С‚СѓСЃР°: %v", err)}
 	}
 	if !tinkoffBoolSuccess(data["Success"]) {
-		return nil, &AppError{400, "Ошибка проверки статуса платежа"}
+		return nil, &AppError{400, "РћС€РёР±РєР° РїСЂРѕРІРµСЂРєРё СЃС‚Р°С‚СѓСЃР° РїР»Р°С‚РµР¶Р°"}
 	}
 	var rub float64
 	switch x := data["Amount"].(type) {
@@ -267,5 +317,5 @@ func truncateTinkoffBody(b []byte) string {
 	if len(s) <= maxTinkoffErrBody {
 		return s
 	}
-	return s[:maxTinkoffErrBody] + "…"
+	return s[:maxTinkoffErrBody] + "вЂ¦"
 }
