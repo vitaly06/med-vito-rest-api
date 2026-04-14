@@ -56,7 +56,7 @@ func Load() Config {
 		p = "3000"
 	}
 	aiEnabled := strings.ToLower(strings.TrimSpace(os.Getenv("AI_MODERATION_ENABLED")))
-	aiModerationEnabled := aiEnabled == "true" || aiEnabled == "1" || aiEnabled == "yes"
+	aiModerationEnabled := aiEnabled != "false" && aiEnabled != "0" && aiEnabled != "no"
 	aiPollInterval := 30
 	if v := strings.TrimSpace(os.Getenv("AI_MODERATION_POLL_INTERVAL_SECONDS")); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
