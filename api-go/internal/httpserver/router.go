@@ -28,6 +28,8 @@ type AppDeps struct {
 	Support    *service.SupportService
 	Address    *service.AddressService
 	Banner     *service.BannerService
+	CDEK       *service.CDEKService
+	Deal       *service.DealService
 }
 
 // NewApp собирает Fiber: middleware + маршруты (handlers = бывшие controllers).
@@ -62,6 +64,8 @@ func NewApp(corsOrigins string, deps AppDeps) *fiber.App {
 	RegisterSupportRoutes(app, deps.Support, deps.Auth)
 	RegisterAddressRoutes(app, deps.Address)
 	RegisterBannerRoutes(app, deps.Banner, deps.Auth)
+	RegisterCDEKRoutes(app, deps.CDEK)
+	RegisterDealRoutes(app, deps.Deal, deps.Auth)
 	RegisterSocketIO(app, corsOrigins, deps.Auth, deps.Chat, deps.Support)
 
 	// OpenAPI 2 + Swagger UI (Try it out). doc.json из пакета docs (swag init).

@@ -23,11 +23,11 @@ const docTemplate = `{
                 "tags": [
                     "address"
                 ],
-                "summary": "РџРѕРґСЃРєР°Р·РєРё Р°РґСЂРµСЃР° (DaData)",
+                "summary": "Р СџР С•Р Т‘РЎРѓР С”Р В°Р В·Р С”Р С‘ Р В°Р Т‘РЎР‚Р ВµРЎРѓР В° (DaData)",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "РЎС‚СЂРѕРєР° РїРѕРёСЃРєР°",
+                        "description": "Р РЋРЎвЂљРЎР‚Р С•Р С”Р В° Р С—Р С•Р С‘РЎРѓР С”Р В°",
                         "name": "query",
                         "in": "query",
                         "required": true
@@ -35,7 +35,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "default": 5,
-                        "description": "Р›РёРјРёС‚",
+                        "description": "Р вЂєР С‘Р СР С‘РЎвЂљ",
                         "name": "limit",
                         "in": "query"
                     }
@@ -64,10 +64,10 @@ const docTemplate = `{
                 "tags": [
                     "address"
                 ],
-                "summary": "РџСЂРѕРІРµСЂРєР° Р°РґСЂРµСЃР° РїРѕ РїРµСЂРІРѕР№ РїРѕРґСЃРєР°Р·РєРµ DaData",
+                "summary": "Р СџРЎР‚Р С•Р Р†Р ВµРЎР‚Р С”Р В° Р В°Р Т‘РЎР‚Р ВµРЎРѓР В° Р С—Р С• Р С—Р ВµРЎР‚Р Р†Р С•Р в„– Р С—Р С•Р Т‘РЎРѓР С”Р В°Р В·Р С”Р Вµ DaData",
                 "parameters": [
                     {
-                        "description": "РђРґСЂРµСЃ",
+                        "description": "Р С’Р Т‘РЎР‚Р ВµРЎРѓ",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -101,7 +101,7 @@ const docTemplate = `{
                 "tags": [
                     "moderation-admin"
                 ],
-                "summary": "Список товаров AI-модерации",
+                "summary": "РЎРїРёСЃРѕРє С‚РѕРІР°СЂРѕРІ AI-РјРѕРґРµСЂР°С†РёРё",
                 "parameters": [
                     {
                         "type": "string",
@@ -111,7 +111,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "Номер страницы",
+                        "description": "РќРѕРјРµСЂ СЃС‚СЂР°РЅРёС†С‹",
                         "name": "page",
                         "in": "query"
                     }
@@ -148,11 +148,11 @@ const docTemplate = `{
                 "tags": [
                     "moderation-admin"
                 ],
-                "summary": "Детали товара из AI-модерации",
+                "summary": "Р”РµС‚Р°Р»Рё С‚РѕРІР°СЂР° РёР· AI-РјРѕРґРµСЂР°С†РёРё",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID товара",
+                        "description": "ID С‚РѕРІР°СЂР°",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -207,10 +207,10 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "РќРѕРІС‹Р№ РїР°СЂРѕР»СЊ РїРѕСЃР»Рµ verify-code",
+                "summary": "Р СњР С•Р Р†РЎвЂ№Р в„– Р С—Р В°РЎР‚Р С•Р В»РЎРЉ Р С—Р С•РЎРѓР В»Р Вµ verify-code",
                 "parameters": [
                     {
-                        "description": "РўРµР»Рѕ",
+                        "description": "Р СћР ВµР В»Р С•",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -243,7 +243,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Р—Р°РїСЂРѕСЃ РєРѕРґР° СЃР±СЂРѕСЃР° РЅР° РїРѕС‡С‚Сѓ",
+                "summary": "Р вЂ”Р В°Р С—РЎР‚Р С•РЎРѓ Р С”Р С•Р Т‘Р В° РЎРѓР В±РЎР‚Р С•РЎРѓР В° Р Р…Р В° Р С—Р С•РЎвЂЎРЎвЂљРЎС“",
                 "parameters": [
                     {
                         "description": "email",
@@ -276,7 +276,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "РџСЂРѕРІРµСЂРєР° СЂРѕР»Рё admin",
+                "summary": "Р СџРЎР‚Р С•Р Р†Р ВµРЎР‚Р С”Р В° РЎР‚Р С•Р В»Р С‘ admin",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -298,7 +298,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Р’С‹С…РѕРґ",
+                "summary": "Р вЂ™РЎвЂ№РЎвЂ¦Р С•Р Т‘",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -320,7 +320,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "РўРµРєСѓС‰РёР№ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ",
+                "summary": "Р СћР ВµР С”РЎС“РЎвЂ°Р С‘Р в„– Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЉ",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -342,10 +342,10 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Р’С…РѕРґ (СЃС‚Р°РІРёС‚ cookie session_id)",
+                "summary": "Р вЂ™РЎвЂ¦Р С•Р Т‘ (РЎРѓРЎвЂљР В°Р Р†Р С‘РЎвЂљ cookie session_id)",
                 "parameters": [
                     {
-                        "description": "Р›РѕРіРёРЅ",
+                        "description": "Р вЂєР С•Р С–Р С‘Р Р…",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -375,7 +375,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Р РµРіРёСЃС‚СЂР°С†РёСЏ вЂ” РѕС‚РїСЂР°РІРєР° РєРѕРґР° (query where=telegram|sms)",
+                "summary": "Р В Р ВµР С–Р С‘РЎРѓРЎвЂљРЎР‚Р В°РЎвЂ Р С‘РЎРЏ РІР‚вЂќ Р С•РЎвЂљР С—РЎР‚Р В°Р Р†Р С”Р В° Р С”Р С•Р Т‘Р В° (query where=telegram|sms)",
                 "parameters": [
                     {
                         "enum": [
@@ -383,13 +383,13 @@ const docTemplate = `{
                             "sms"
                         ],
                         "type": "string",
-                        "description": "telegram РёР»Рё sms",
+                        "description": "telegram Р С‘Р В»Р С‘ sms",
                         "name": "where",
                         "in": "query",
                         "required": true
                     },
                     {
-                        "description": "Р”Р°РЅРЅС‹Рµ",
+                        "description": "Р вЂќР В°Р Р…Р Р…РЎвЂ№Р Вµ",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -419,11 +419,11 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "РџСЂРѕРІРµСЂРєР° РєРѕРґР° СЃР±СЂРѕСЃР°",
+                "summary": "Р СџРЎР‚Р С•Р Р†Р ВµРЎР‚Р С”Р В° Р С”Р С•Р Т‘Р В° РЎРѓР В±РЎР‚Р С•РЎРѓР В°",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "РљРѕРґ РёР· РїРёСЃСЊРјР°",
+                        "description": "Р С™Р С•Р Т‘ Р С‘Р В· Р С—Р С‘РЎРѓРЎРЉР СР В°",
                         "name": "code",
                         "in": "query",
                         "required": true
@@ -450,11 +450,11 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ С‚РµР»РµС„РѕРЅР° РїРѕ РєРѕРґСѓ",
+                "summary": "Р СџР С•Р Т‘РЎвЂљР Р†Р ВµРЎР‚Р В¶Р Т‘Р ВµР Р…Р С‘Р Вµ РЎвЂљР ВµР В»Р ВµРЎвЂћР С•Р Р…Р В° Р С—Р С• Р С”Р С•Р Т‘РЎС“",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "РљРѕРґ РёР· SMS/TG",
+                        "description": "Р С™Р С•Р Т‘ Р С‘Р В· SMS/TG",
                         "name": "code",
                         "in": "query",
                         "required": true
@@ -481,7 +481,7 @@ const docTemplate = `{
                 "tags": [
                     "banner"
                 ],
-                "summary": "РЎРїРёСЃРѕРє РѕРґРѕР±СЂРµРЅРЅС‹С… Р±Р°РЅРЅРµСЂРѕРІ (query place РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ)",
+                "summary": "Р РЋР С—Р С‘РЎРѓР С•Р С” Р С•Р Т‘Р С•Р В±РЎР‚Р ВµР Р…Р Р…РЎвЂ№РЎвЂ¦ Р В±Р В°Р Р…Р Р…Р ВµРЎР‚Р С•Р Р† (query place Р С•Р С—РЎвЂ Р С‘Р С•Р Р…Р В°Р В»РЎРЉР Р…Р С•)",
                 "responses": {}
             },
             "post": {
@@ -494,7 +494,7 @@ const docTemplate = `{
                 "tags": [
                     "banner"
                 ],
-                "summary": "РЎРѕР·РґР°С‚СЊ Р±Р°РЅРЅРµСЂ (multipart: image, name, place, navigateToUrl; СЃРµСЃСЃРёСЏ)",
+                "summary": "Р РЋР С•Р В·Р Т‘Р В°РЎвЂљРЎРЉ Р В±Р В°Р Р…Р Р…Р ВµРЎР‚ (multipart: image, name, place, navigateToUrl; РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
                 "responses": {
                     "201": {
                         "description": "Created",
@@ -513,7 +513,7 @@ const docTemplate = `{
                 "tags": [
                     "banner"
                 ],
-                "summary": "РћС‡РµСЂРµРґСЊ Р±Р°РЅРЅРµСЂРѕРІ РЅР° РјРѕРґРµСЂР°С†РёСЋ (admin)",
+                "summary": "Р С›РЎвЂЎР ВµРЎР‚Р ВµР Т‘РЎРЉ Р В±Р В°Р Р…Р Р…Р ВµРЎР‚Р С•Р Р† Р Р…Р В° Р СР С•Р Т‘Р ВµРЎР‚Р В°РЎвЂ Р С‘РЎР‹ (admin)",
                 "responses": {}
             }
         },
@@ -525,7 +525,7 @@ const docTemplate = `{
                 "tags": [
                     "banner"
                 ],
-                "summary": "РњРѕРґРµСЂР°С†РёСЏ Р±Р°РЅРЅРµСЂР° (admin, query status)",
+                "summary": "Р СљР С•Р Т‘Р ВµРЎР‚Р В°РЎвЂ Р С‘РЎРЏ Р В±Р В°Р Р…Р Р…Р ВµРЎР‚Р В° (admin, query status)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -553,7 +553,7 @@ const docTemplate = `{
                 "tags": [
                     "banner"
                 ],
-                "summary": "РЎР»СѓС‡Р°Р№РЅС‹Рµ РѕРґРѕР±СЂРµРЅРЅС‹Рµ Р±Р°РЅРЅРµСЂС‹",
+                "summary": "Р РЋР В»РЎС“РЎвЂЎР В°Р в„–Р Р…РЎвЂ№Р Вµ Р С•Р Т‘Р С•Р В±РЎР‚Р ВµР Р…Р Р…РЎвЂ№Р Вµ Р В±Р В°Р Р…Р Р…Р ВµРЎР‚РЎвЂ№",
                 "responses": {}
             }
         },
@@ -568,10 +568,10 @@ const docTemplate = `{
                 "tags": [
                     "category-admin"
                 ],
-                "summary": "РЎРѕР·РґР°С‚СЊ РєР°С‚РµРіРѕСЂРёСЋ",
+                "summary": "Р РЋР С•Р В·Р Т‘Р В°РЎвЂљРЎРЉ Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘РЎР‹",
                 "parameters": [
                     {
-                        "description": "РўРµР»Рѕ",
+                        "description": "Р СћР ВµР В»Р С•",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -605,7 +605,7 @@ const docTemplate = `{
                 "tags": [
                     "category-admin"
                 ],
-                "summary": "РЈРґР°Р»РёС‚СЊ РєР°С‚РµРіРѕСЂРёСЋ",
+                "summary": "Р Р€Р Т‘Р В°Р В»Р С‘РЎвЂљРЎРЉ Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘РЎР‹",
                 "parameters": [
                     {
                         "type": "integer",
@@ -643,7 +643,7 @@ const docTemplate = `{
                 "tags": [
                     "category"
                 ],
-                "summary": "Р”РµСЂРµРІРѕ РІСЃРµС… РєР°С‚РµРіРѕСЂРёР№",
+                "summary": "Р вЂќР ВµРЎР‚Р ВµР Р†Р С• Р Р†РЎРѓР ВµРЎвЂ¦ Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘Р в„–",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -665,11 +665,11 @@ const docTemplate = `{
                 "tags": [
                     "category"
                 ],
-                "summary": "РљР°С‚РµРіРѕСЂРёСЏ РїРѕ id (РїРѕР»РЅРѕРµ РґРµСЂРµРІРѕ)",
+                "summary": "Р С™Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘РЎРЏ Р С—Р С• id (Р С—Р С•Р В»Р Р…Р С•Р Вµ Р Т‘Р ВµРЎР‚Р ВµР Р†Р С•)",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID РєР°С‚РµРіРѕСЂРёРё",
+                        "description": "ID Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘Р С‘",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -694,18 +694,18 @@ const docTemplate = `{
         },
         "/category/path/{slugPath}": {
             "get": {
-                "description": "Р’ Swagger В«Try it outВ» РІРІРµРґРё СЃРµРіРјРµРЅС‚С‹ С‡РµСЂРµР· %2F, РЅР°РїСЂРёРјРµСЂ: elektronika%2Ftelefony",
+                "description": "Р вЂ™ Swagger Р’В«Try it outР’В» Р Р†Р Р†Р ВµР Т‘Р С‘ РЎРѓР ВµР С–Р СР ВµР Р…РЎвЂљРЎвЂ№ РЎвЂЎР ВµРЎР‚Р ВµР В· %2F, Р Р…Р В°Р С—РЎР‚Р С‘Р СР ВµРЎР‚: elektronika%2Ftelefony",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "category"
                 ],
-                "summary": "Р Р°Р·СЂРµС€РµРЅРёРµ С†РµРїРѕС‡РєРё slug (РєР°С‚РµРіРѕСЂРёСЏ / РїРѕРґРєР°С‚РµРіРѕСЂРёСЏ / С‚РёРї)",
+                "summary": "Р В Р В°Р В·РЎР‚Р ВµРЎв‚¬Р ВµР Р…Р С‘Р Вµ РЎвЂ Р ВµР С—Р С•РЎвЂЎР С”Р С‘ slug (Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘РЎРЏ / Р С—Р С•Р Т‘Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘РЎРЏ / РЎвЂљР С‘Р С—)",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Р¦РµРїРѕС‡РєР° (РёР»Рё РѕРґРёРЅ СЃРµРіРјРµРЅС‚)",
+                        "description": "Р В¦Р ВµР С—Р С•РЎвЂЎР С”Р В° (Р С‘Р В»Р С‘ Р С•Р Т‘Р С‘Р Р… РЎРѓР ВµР С–Р СР ВµР Р…РЎвЂљ)",
                         "name": "slugPath",
                         "in": "path",
                         "required": true
@@ -743,7 +743,7 @@ const docTemplate = `{
                 "tags": [
                     "category"
                 ],
-                "summary": "РљР°С‚РµРіРѕСЂРёСЏ РїРѕ slug",
+                "summary": "Р С™Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘РЎРЏ Р С—Р С• slug",
                 "parameters": [
                     {
                         "type": "string",
@@ -781,7 +781,7 @@ const docTemplate = `{
                 "tags": [
                     "category-admin"
                 ],
-                "summary": "РћР±РЅРѕРІРёС‚СЊ РєР°С‚РµРіРѕСЂРёСЋ",
+                "summary": "Р С›Р В±Р Р…Р С•Р Р†Р С‘РЎвЂљРЎРЉ Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘РЎР‹",
                 "parameters": [
                     {
                         "type": "integer",
@@ -791,7 +791,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "РўРµР»Рѕ",
+                        "description": "Р СћР ВµР В»Р С•",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -824,6 +824,129 @@ const docTemplate = `{
                 }
             }
         },
+        "/cdek/calculate": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cdek"
+                ],
+                "summary": "Calculate CDEK delivery tariff",
+                "parameters": [
+                    {
+                        "description": "Body",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.swaggerCDEKCalculateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/cdek/cities": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cdek"
+                ],
+                "summary": "Search CDEK cities",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "City name",
+                        "name": "city",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/cdek/delivery-points": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cdek"
+                ],
+                "summary": "Get CDEK delivery points (PVZ) by city code",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "CDEK city code",
+                        "name": "cityCode",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/chat": {
             "get": {
                 "produces": [
@@ -832,7 +955,7 @@ const docTemplate = `{
                 "tags": [
                     "chat"
                 ],
-                "summary": "РЎРїРёСЃРѕРє С‡Р°С‚РѕРІ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ",
+                "summary": "Р РЋР С—Р С‘РЎРѓР С•Р С” РЎвЂЎР В°РЎвЂљР С•Р Р† Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЏ",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -857,7 +980,7 @@ const docTemplate = `{
                 "tags": [
                     "chat"
                 ],
-                "summary": "РќР°С‡Р°С‚СЊ С‡Р°С‚ РїРѕ С‚РѕРІР°СЂСѓ",
+                "summary": "Р СњР В°РЎвЂЎР В°РЎвЂљРЎРЉ РЎвЂЎР В°РЎвЂљ Р С—Р С• РЎвЂљР С•Р Р†Р В°РЎР‚РЎС“",
                 "parameters": [
                     {
                         "description": "productId",
@@ -901,7 +1024,7 @@ const docTemplate = `{
                 "tags": [
                     "chat"
                 ],
-                "summary": "РРЅС„РѕСЂРјР°С†РёСЏ Рѕ С‡Р°С‚Рµ",
+                "summary": "Р ВР Р…РЎвЂћР С•РЎР‚Р СР В°РЎвЂ Р С‘РЎРЏ Р С• РЎвЂЎР В°РЎвЂљР Вµ",
                 "parameters": [
                     {
                         "type": "integer",
@@ -929,7 +1052,7 @@ const docTemplate = `{
                 "tags": [
                     "chat"
                 ],
-                "summary": "РЎРѕРѕР±С‰РµРЅРёСЏ С‡Р°С‚Р° (РїР°РіРёРЅР°С†РёСЏ)",
+                "summary": "Р РЋР С•Р С•Р В±РЎвЂ°Р ВµР Р…Р С‘РЎРЏ РЎвЂЎР В°РЎвЂљР В° (Р С—Р В°Р С–Р С‘Р Р…Р В°РЎвЂ Р С‘РЎРЏ)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -941,14 +1064,14 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "default": 1,
-                        "description": "РЎС‚СЂР°РЅРёС†Р°",
+                        "description": "Р РЋРЎвЂљРЎР‚Р В°Р Р…Р С‘РЎвЂ Р В°",
                         "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
                         "default": 50,
-                        "description": "Р›РёРјРёС‚",
+                        "description": "Р вЂєР С‘Р СР С‘РЎвЂљ",
                         "name": "limit",
                         "in": "query"
                     }
@@ -965,14 +1088,14 @@ const docTemplate = `{
         },
         "/health": {
             "get": {
-                "description": "Р’РѕР·РІСЂР°С‰Р°РµС‚ status ok",
+                "description": "Р вЂ™Р С•Р В·Р Р†РЎР‚Р В°РЎвЂ°Р В°Р ВµРЎвЂљ status ok",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "system"
                 ],
-                "summary": "РџСЂРѕРІРµСЂРєР° Р¶РёРІРѕСЃС‚Рё СЃРµСЂРІРёСЃР°",
+                "summary": "Р СџРЎР‚Р С•Р Р†Р ВµРЎР‚Р С”Р В° Р В¶Р С‘Р Р†Р С•РЎРѓРЎвЂљР С‘ РЎРѓР ВµРЎР‚Р Р†Р С‘РЎРѓР В°",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -994,7 +1117,7 @@ const docTemplate = `{
                 "tags": [
                     "knowledge-base"
                 ],
-                "summary": "РЎРїРёСЃРѕРє СЃС‚Р°С‚РµР№ Р±Р°Р·С‹ Р·РЅР°РЅРёР№",
+                "summary": "Р РЋР С—Р С‘РЎРѓР С•Р С” РЎРѓРЎвЂљР В°РЎвЂљР ВµР в„– Р В±Р В°Р В·РЎвЂ№ Р В·Р Р…Р В°Р Р…Р С‘Р в„–",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1017,10 +1140,10 @@ const docTemplate = `{
                 "tags": [
                     "knowledge-base-admin"
                 ],
-                "summary": "РЎРѕР·РґР°С‚СЊ СЃС‚Р°С‚СЊСЋ Р±Р°Р·С‹ Р·РЅР°РЅРёР№",
+                "summary": "Р РЋР С•Р В·Р Т‘Р В°РЎвЂљРЎРЉ РЎРѓРЎвЂљР В°РЎвЂљРЎРЉРЎР‹ Р В±Р В°Р В·РЎвЂ№ Р В·Р Р…Р В°Р Р…Р С‘Р в„–",
                 "parameters": [
                     {
-                        "description": "РўРµР»Рѕ",
+                        "description": "Р СћР ВµР В»Р С•",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -1068,11 +1191,11 @@ const docTemplate = `{
                 "tags": [
                     "knowledge-base"
                 ],
-                "summary": "РЎС‚Р°С‚СЊСЏ Р±Р°Р·С‹ Р·РЅР°РЅРёР№ РїРѕ id",
+                "summary": "Р РЋРЎвЂљР В°РЎвЂљРЎРЉРЎРЏ Р В±Р В°Р В·РЎвЂ№ Р В·Р Р…Р В°Р Р…Р С‘Р в„– Р С—Р С• id",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID СЃС‚Р°С‚СЊРё",
+                        "description": "ID РЎРѓРЎвЂљР В°РЎвЂљРЎРЉР С‘",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1111,17 +1234,17 @@ const docTemplate = `{
                 "tags": [
                     "knowledge-base-admin"
                 ],
-                "summary": "РћР±РЅРѕРІРёС‚СЊ СЃС‚Р°С‚СЊСЋ Р±Р°Р·С‹ Р·РЅР°РЅРёР№",
+                "summary": "Р С›Р В±Р Р…Р С•Р Р†Р С‘РЎвЂљРЎРЉ РЎРѓРЎвЂљР В°РЎвЂљРЎРЉРЎР‹ Р В±Р В°Р В·РЎвЂ№ Р В·Р Р…Р В°Р Р…Р С‘Р в„–",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID СЃС‚Р°С‚СЊРё",
+                        "description": "ID РЎРѓРЎвЂљР В°РЎвЂљРЎРЉР С‘",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "РўРµР»Рѕ",
+                        "description": "Р СћР ВµР В»Р С•",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -1174,11 +1297,11 @@ const docTemplate = `{
                 "tags": [
                     "knowledge-base-admin"
                 ],
-                "summary": "РЈРґР°Р»РёС‚СЊ СЃС‚Р°С‚СЊСЋ Р±Р°Р·С‹ Р·РЅР°РЅРёР№",
+                "summary": "Р Р€Р Т‘Р В°Р В»Р С‘РЎвЂљРЎРЉ РЎРѓРЎвЂљР В°РЎвЂљРЎРЉРЎР‹ Р В±Р В°Р В·РЎвЂ№ Р В·Р Р…Р В°Р Р…Р С‘Р в„–",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID СЃС‚Р°С‚СЊРё",
+                        "description": "ID РЎРѓРЎвЂљР В°РЎвЂљРЎРЉР С‘",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1230,7 +1353,7 @@ const docTemplate = `{
                 "tags": [
                     "log"
                 ],
-                "summary": "РЎРїРёСЃРѕРє Р·Р°РїРёСЃРµР№ Log",
+                "summary": "Р РЋР С—Р С‘РЎРѓР С•Р С” Р В·Р В°Р С—Р С‘РЎРѓР ВµР в„– Log",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1246,7 +1369,7 @@ const docTemplate = `{
         },
         "/payment/check-status": {
             "post": {
-                "description": "РЎРµСЃСЃРёСЏ: cookie session_id. Р’ С‚РµР»Рµ вЂ” paymentId РёР· РѕС‚РІРµС‚Р° Init РёР»Рё СѓРІРµРґРѕРјР»РµРЅРёСЏ.",
+                "description": "Р РЋР ВµРЎРѓРЎРѓР С‘РЎРЏ: cookie session_id. Р вЂ™ РЎвЂљР ВµР В»Р Вµ РІР‚вЂќ paymentId Р С‘Р В· Р С•РЎвЂљР Р†Р ВµРЎвЂљР В° Init Р С‘Р В»Р С‘ РЎС“Р Р†Р ВµР Т‘Р С•Р СР В»Р ВµР Р…Р С‘РЎРЏ.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1256,7 +1379,7 @@ const docTemplate = `{
                 "tags": [
                     "payment"
                 ],
-                "summary": "РџСЂРѕРІРµСЂРєР° СЃС‚Р°С‚СѓСЃР° РїР»Р°С‚РµР¶Р° РІ Рў-Р‘Р°РЅРєРµ (GetState)",
+                "summary": "Р СџРЎР‚Р С•Р Р†Р ВµРЎР‚Р С”Р В° РЎРѓРЎвЂљР В°РЎвЂљРЎС“РЎРѓР В° Р С—Р В»Р В°РЎвЂљР ВµР В¶Р В° Р Р† Р Сћ-Р вЂР В°Р Р…Р С”Р Вµ (GetState)",
                 "parameters": [
                     {
                         "description": "paymentId",
@@ -1294,7 +1417,7 @@ const docTemplate = `{
         },
         "/payment/create": {
             "post": {
-                "description": "Init РІ Рў-Р‘Р°РЅРє. РќСѓР¶РЅС‹ TINKOFF_TERMINAL_KEY Рё TINKOFF_SECRET_KEY. РђРІС‚РѕСЂРёР·Р°С†РёСЏ: cookie session_id РїРѕСЃР»Рµ POST /auth/sign-in.",
+                "description": "Init Р Р† Р Сћ-Р вЂР В°Р Р…Р С”. Р СњРЎС“Р В¶Р Р…РЎвЂ№ TINKOFF_TERMINAL_KEY Р С‘ TINKOFF_SECRET_KEY. Р С’Р Р†РЎвЂљР С•РЎР‚Р С‘Р В·Р В°РЎвЂ Р С‘РЎРЏ: cookie session_id Р С—Р С•РЎРѓР В»Р Вµ POST /auth/sign-in.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1304,10 +1427,10 @@ const docTemplate = `{
                 "tags": [
                     "payment"
                 ],
-                "summary": "РЎРѕР·РґР°РЅРёРµ РїР»Р°С‚РµР¶Р° РґР»СЏ РїРѕРїРѕР»РЅРµРЅРёСЏ Р±Р°Р»Р°РЅСЃР°",
+                "summary": "Р РЋР С•Р В·Р Т‘Р В°Р Р…Р С‘Р Вµ Р С—Р В»Р В°РЎвЂљР ВµР В¶Р В° Р Т‘Р В»РЎРЏ Р С—Р С•Р С—Р С•Р В»Р Р…Р ВµР Р…Р С‘РЎРЏ Р В±Р В°Р В»Р В°Р Р…РЎРѓР В°",
                 "parameters": [
                     {
-                        "description": "РЎСѓРјРјР° РІ СЂСѓР±Р»СЏС… (РјРёРЅ. 1)",
+                        "description": "Р РЋРЎС“Р СР СР В° Р Р† РЎР‚РЎС“Р В±Р В»РЎРЏРЎвЂ¦ (Р СР С‘Р Р…. 1)",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -1342,14 +1465,14 @@ const docTemplate = `{
         },
         "/payment/history": {
             "get": {
-                "description": "Р”Рѕ 50 Р·Р°РїРёСЃРµР№, РЅРѕРІС‹Рµ СЃРІРµСЂС…Сѓ. РЎРµСЃСЃРёСЏ: cookie session_id.",
+                "description": "Р вЂќР С• 50 Р В·Р В°Р С—Р С‘РЎРѓР ВµР в„–, Р Р…Р С•Р Р†РЎвЂ№Р Вµ РЎРѓР Р†Р ВµРЎР‚РЎвЂ¦РЎС“. Р РЋР ВµРЎРѓРЎРѓР С‘РЎРЏ: cookie session_id.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "payment"
                 ],
-                "summary": "РСЃС‚РѕСЂРёСЏ РїР»Р°С‚РµР¶РµР№ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ",
+                "summary": "Р ВРЎРѓРЎвЂљР С•РЎР‚Р С‘РЎРЏ Р С—Р В»Р В°РЎвЂљР ВµР В¶Р ВµР в„– Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЏ",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1372,7 +1495,7 @@ const docTemplate = `{
         },
         "/payment/notification": {
             "post": {
-                "description": "Р‘РµР· СЃРµСЃСЃРёРё. РџРѕРґРїРёСЃСЊ Token РїСЂРѕРІРµСЂСЏРµС‚СЃСЏ РїРѕ РїРѕР»СЏРј С‚РµР»Р°. РўРµР»Рѕ вЂ” РєР°Рє РїСЂРёС…РѕРґРёС‚ РѕС‚ Р±Р°РЅРєР°; РїСЂРёРјРµСЂ РЅРёР¶Рµ.",
+                "description": "Р вЂР ВµР В· РЎРѓР ВµРЎРѓРЎРѓР С‘Р С‘. Р СџР С•Р Т‘Р С—Р С‘РЎРѓРЎРЉ Token Р С—РЎР‚Р С•Р Р†Р ВµРЎР‚РЎРЏР ВµРЎвЂљРЎРѓРЎРЏ Р С—Р С• Р С—Р С•Р В»РЎРЏР С РЎвЂљР ВµР В»Р В°. Р СћР ВµР В»Р С• РІР‚вЂќ Р С”Р В°Р С” Р С—РЎР‚Р С‘РЎвЂ¦Р С•Р Т‘Р С‘РЎвЂљ Р С•РЎвЂљ Р В±Р В°Р Р…Р С”Р В°; Р С—РЎР‚Р С‘Р СР ВµРЎР‚ Р Р…Р С‘Р В¶Р Вµ.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1382,10 +1505,10 @@ const docTemplate = `{
                 "tags": [
                     "payment"
                 ],
-                "summary": "Webhook СѓРІРµРґРѕРјР»РµРЅРёР№ Рў-Р‘Р°РЅРєР° Рѕ СЃС‚Р°С‚СѓСЃРµ РїР»Р°С‚РµР¶Р°",
+                "summary": "Webhook РЎС“Р Р†Р ВµР Т‘Р С•Р СР В»Р ВµР Р…Р С‘Р в„– Р Сћ-Р вЂР В°Р Р…Р С”Р В° Р С• РЎРѓРЎвЂљР В°РЎвЂљРЎС“РЎРѓР Вµ Р С—Р В»Р В°РЎвЂљР ВµР В¶Р В°",
                 "parameters": [
                     {
-                        "description": "РЈРІРµРґРѕРјР»РµРЅРёРµ",
+                        "description": "Р Р€Р Р†Р ВµР Т‘Р С•Р СР В»Р ВµР Р…Р С‘Р Вµ",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -1419,7 +1542,7 @@ const docTemplate = `{
                 "tags": [
                     "product"
                 ],
-                "summary": "РЎРїРёСЃРѕРє С‚РѕРІР°СЂРѕРІ / РїРѕРёСЃРє (query; optional СЃРµСЃСЃРёСЏ РґР»СЏ РёР·Р±СЂР°РЅРЅРѕРіРѕ)",
+                "summary": "Р РЋР С—Р С‘РЎРѓР С•Р С” РЎвЂљР С•Р Р†Р В°РЎР‚Р С•Р Р† / Р С—Р С•Р С‘РЎРѓР С” (query; optional РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ Р Т‘Р В»РЎРЏ Р С‘Р В·Р В±РЎР‚Р В°Р Р…Р Р…Р С•Р С–Р С•)",
                 "responses": {}
             }
         },
@@ -1434,7 +1557,7 @@ const docTemplate = `{
                 "tags": [
                     "product"
                 ],
-                "summary": "РЎРѕР·РґР°С‚СЊ С‚РѕРІР°СЂ (multipart, РґРѕ 8 images, СЃРµСЃСЃРёСЏ)",
+                "summary": "Р РЋР С•Р В·Р Т‘Р В°РЎвЂљРЎРЉ РЎвЂљР С•Р Р†Р В°РЎР‚ (multipart, Р Т‘Р С• 8 images, РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
                 "responses": {
                     "201": {
                         "description": "Created",
@@ -1453,7 +1576,7 @@ const docTemplate = `{
                 "tags": [
                     "product-admin"
                 ],
-                "summary": "РњРѕРґРµСЂР°С†РёСЏ (admin)",
+                "summary": "Р СљР С•Р Т‘Р ВµРЎР‚Р В°РЎвЂ Р С‘РЎРЏ (admin)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1471,7 +1594,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "РџСЂРёС‡РёРЅР° РїСЂРё DENIDED",
+                        "description": "Р СџРЎР‚Р С‘РЎвЂЎР С‘Р Р…Р В° Р С—РЎР‚Р С‘ DENIDED",
                         "name": "reason",
                         "in": "query"
                     }
@@ -1487,7 +1610,7 @@ const docTemplate = `{
                 "tags": [
                     "product"
                 ],
-                "summary": "РљР°СЂС‚РѕС‡РєР° С‚РѕРІР°СЂР°",
+                "summary": "Р С™Р В°РЎР‚РЎвЂљР С•РЎвЂЎР С”Р В° РЎвЂљР С•Р Р†Р В°РЎР‚Р В°",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1508,7 +1631,7 @@ const docTemplate = `{
                 "tags": [
                     "product"
                 ],
-                "summary": "РЈРґР°Р»РёС‚СЊ СЃРІРѕР№ С‚РѕРІР°СЂ",
+                "summary": "Р Р€Р Т‘Р В°Р В»Р С‘РЎвЂљРЎРЉ РЎРѓР Р†Р С•Р в„– РЎвЂљР С•Р Р†Р В°РЎР‚",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1530,7 +1653,7 @@ const docTemplate = `{
                 "tags": [
                     "product"
                 ],
-                "summary": "РћР±РЅРѕРІРёС‚СЊ С‚РѕРІР°СЂ (multipart)",
+                "summary": "Р С›Р В±Р Р…Р С•Р Р†Р С‘РЎвЂљРЎРЉ РЎвЂљР С•Р Р†Р В°РЎР‚ (multipart)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1554,10 +1677,10 @@ const docTemplate = `{
                 "tags": [
                     "promotion"
                 ],
-                "summary": "РџРѕРґРєР»СЋС‡РёС‚СЊ РїСЂРѕРґРІРёР¶РµРЅРёРµ Рє С‚РѕРІР°СЂСѓ (СЃРµСЃСЃРёСЏ)",
+                "summary": "Р СџР С•Р Т‘Р С”Р В»РЎР‹РЎвЂЎР С‘РЎвЂљРЎРЉ Р С—РЎР‚Р С•Р Т‘Р Р†Р С‘Р В¶Р ВµР Р…Р С‘Р Вµ Р С” РЎвЂљР С•Р Р†Р В°РЎР‚РЎС“ (РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
                 "parameters": [
                     {
-                        "description": "РўРµР»Рѕ",
+                        "description": "Р СћР ВµР В»Р С•",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -1605,7 +1728,7 @@ const docTemplate = `{
                 "tags": [
                     "promotion"
                 ],
-                "summary": "Р’СЃРµ С‚РёРїС‹ РїСЂРѕРґРІРёР¶РµРЅРёСЏ (С‚Р°СЂРёС„С‹)",
+                "summary": "Р вЂ™РЎРѓР Вµ РЎвЂљР С‘Р С—РЎвЂ№ Р С—РЎР‚Р С•Р Т‘Р Р†Р С‘Р В¶Р ВµР Р…Р С‘РЎРЏ (РЎвЂљР В°РЎР‚Р С‘РЎвЂћРЎвЂ№)",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1627,7 +1750,7 @@ const docTemplate = `{
                 "tags": [
                     "review-admin"
                 ],
-                "summary": "РћС‡РµСЂРµРґСЊ РѕС‚Р·С‹РІРѕРІ РЅР° РјРѕРґРµСЂР°С†РёСЋ (admin)",
+                "summary": "Р С›РЎвЂЎР ВµРЎР‚Р ВµР Т‘РЎРЉ Р С•РЎвЂљР В·РЎвЂ№Р Р†Р С•Р Р† Р Р…Р В° Р СР С•Р Т‘Р ВµРЎР‚Р В°РЎвЂ Р С‘РЎР‹ (admin)",
                 "responses": {}
             }
         },
@@ -1639,7 +1762,7 @@ const docTemplate = `{
                 "tags": [
                     "review-admin"
                 ],
-                "summary": "РњРѕРґРµСЂР°С†РёСЏ РѕС‚Р·С‹РІР° (admin)",
+                "summary": "Р СљР С•Р Т‘Р ВµРЎР‚Р В°РЎвЂ Р С‘РЎРЏ Р С•РЎвЂљР В·РЎвЂ№Р Р†Р В° (admin)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1670,10 +1793,10 @@ const docTemplate = `{
                 "tags": [
                     "review"
                 ],
-                "summary": "РћСЃС‚Р°РІРёС‚СЊ РѕС‚Р·С‹РІ РїСЂРѕРґР°РІС†Сѓ (СЃРµСЃСЃРёСЏ)",
+                "summary": "Р С›РЎРѓРЎвЂљР В°Р Р†Р С‘РЎвЂљРЎРЉ Р С•РЎвЂљР В·РЎвЂ№Р Р† Р С—РЎР‚Р С•Р Т‘Р В°Р Р†РЎвЂ РЎС“ (РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
                 "parameters": [
                     {
-                        "description": "РўРµР»Рѕ",
+                        "description": "Р СћР ВµР В»Р С•",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -1703,7 +1826,7 @@ const docTemplate = `{
                 "tags": [
                     "review"
                 ],
-                "summary": "РћРґРѕР±СЂРµРЅРЅС‹Рµ РѕС‚Р·С‹РІС‹ Рѕ РїРѕР»СЊР·РѕРІР°С‚РµР»Рµ",
+                "summary": "Р С›Р Т‘Р С•Р В±РЎР‚Р ВµР Р…Р Р…РЎвЂ№Р Вµ Р С•РЎвЂљР В·РЎвЂ№Р Р†РЎвЂ№ Р С• Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»Р Вµ",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1724,7 +1847,7 @@ const docTemplate = `{
                 "tags": [
                     "statistics"
                 ],
-                "summary": "РЎС‚Р°С‚РёСЃС‚РёРєР° РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ (РїСЂРѕСЃРјРѕС‚СЂС‹, С‚РµР»РµС„РѕРЅ, РёР·Р±СЂР°РЅРЅРѕРµ)",
+                "summary": "Р РЋРЎвЂљР В°РЎвЂљР С‘РЎРѓРЎвЂљР С‘Р С”Р В° Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЏ (Р С—РЎР‚Р С•РЎРѓР СР С•РЎвЂљРЎР‚РЎвЂ№, РЎвЂљР ВµР В»Р ВµРЎвЂћР С•Р Р…, Р С‘Р В·Р В±РЎР‚Р В°Р Р…Р Р…Р С•Р Вµ)",
                 "parameters": [
                     {
                         "type": "string",
@@ -1734,19 +1857,19 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "Р¤РёР»СЊС‚СЂ РїРѕ РєР°С‚РµРіРѕСЂРёРё (С‡РµСЂРµР· SubCategory)",
+                        "description": "Р В¤Р С‘Р В»РЎРЉРЎвЂљРЎР‚ Р С—Р С• Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘Р С‘ (РЎвЂЎР ВµРЎР‚Р ВµР В· SubCategory)",
                         "name": "categoryId",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "РџРѕРґСЃС‚СЂРѕРєР° РІ address (ILIKE)",
+                        "description": "Р СџР С•Р Т‘РЎРѓРЎвЂљРЎР‚Р С•Р С”Р В° Р Р† address (ILIKE)",
                         "name": "region",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "РљРѕРЅРєСЂРµС‚РЅС‹Р№ С‚РѕРІР°СЂ",
+                        "description": "Р С™Р С•Р Р…Р С”РЎР‚Р ВµРЎвЂљР Р…РЎвЂ№Р в„– РЎвЂљР С•Р Р†Р В°РЎР‚",
                         "name": "productId",
                         "in": "query"
                     }
@@ -1769,7 +1892,7 @@ const docTemplate = `{
                 "tags": [
                     "statistics"
                 ],
-                "summary": "РђРЅР°Р»РёС‚РёРєР° РїРѕ РєР°Р¶РґРѕРјСѓ С‚РѕРІР°СЂСѓ РїСЂРѕРґР°РІС†Р°",
+                "summary": "Р С’Р Р…Р В°Р В»Р С‘РЎвЂљР С‘Р С”Р В° Р С—Р С• Р С”Р В°Р В¶Р Т‘Р С•Р СРЎС“ РЎвЂљР С•Р Р†Р В°РЎР‚РЎС“ Р С—РЎР‚Р С•Р Т‘Р В°Р Р†РЎвЂ Р В°",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1791,7 +1914,7 @@ const docTemplate = `{
                 "tags": [
                     "subcategory-type"
                 ],
-                "summary": "Р’СЃРµ С‚РёРїС‹ РїРѕРґРєР°С‚РµРіРѕСЂРёР№",
+                "summary": "Р вЂ™РЎРѓР Вµ РЎвЂљР С‘Р С—РЎвЂ№ Р С—Р С•Р Т‘Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘Р в„–",
                 "responses": {}
             }
         },
@@ -1803,7 +1926,7 @@ const docTemplate = `{
                 "tags": [
                     "subcategory-type"
                 ],
-                "summary": "РўРёРї РїРѕРґРєР°С‚РµРіРѕСЂРёРё РїРѕ id",
+                "summary": "Р СћР С‘Р С— Р С—Р С•Р Т‘Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘Р С‘ Р С—Р С• id",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1824,7 +1947,7 @@ const docTemplate = `{
                 "tags": [
                     "subcategory"
                 ],
-                "summary": "РЎРїРёСЃРѕРє РїРѕРґРєР°С‚РµРіРѕСЂРёР№",
+                "summary": "Р РЋР С—Р С‘РЎРѓР С•Р С” Р С—Р С•Р Т‘Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘Р в„–",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1846,7 +1969,7 @@ const docTemplate = `{
                 "tags": [
                     "subcategory"
                 ],
-                "summary": "РџРѕРґРєР°С‚РµРіРѕСЂРёСЏ РїРѕ id",
+                "summary": "Р СџР С•Р Т‘Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘РЎРЏ Р С—Р С• id",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1867,7 +1990,7 @@ const docTemplate = `{
                 "tags": [
                     "support"
                 ],
-                "summary": "РЎС‚Р°С‚РёСЃС‚РёРєР° С‚РёРєРµС‚РѕРІ (С‚РѕР»СЊРєРѕ admin)",
+                "summary": "Р РЋРЎвЂљР В°РЎвЂљР С‘РЎРѓРЎвЂљР С‘Р С”Р В° РЎвЂљР С‘Р С”Р ВµРЎвЂљР С•Р Р† (РЎвЂљР С•Р В»РЎРЉР С”Р С• admin)",
                 "responses": {}
             }
         },
@@ -1882,10 +2005,10 @@ const docTemplate = `{
                 "tags": [
                     "support"
                 ],
-                "summary": "РЎРѕР·РґР°С‚СЊ С‚РёРєРµС‚ РїРѕРґРґРµСЂР¶РєРё",
+                "summary": "Р РЋР С•Р В·Р Т‘Р В°РЎвЂљРЎРЉ РЎвЂљР С‘Р С”Р ВµРЎвЂљ Р С—Р С•Р Т‘Р Т‘Р ВµРЎР‚Р В¶Р С”Р С‘",
                 "parameters": [
                     {
-                        "description": "РўРµР»Рѕ",
+                        "description": "Р СћР ВµР В»Р С•",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -1912,7 +2035,7 @@ const docTemplate = `{
                 "tags": [
                     "support"
                 ],
-                "summary": "Р’СЃРµ С‚РёРєРµС‚С‹ (РјРѕРґРµСЂР°С‚РѕСЂ/admin)",
+                "summary": "Р вЂ™РЎРѓР Вµ РЎвЂљР С‘Р С”Р ВµРЎвЂљРЎвЂ№ (Р СР С•Р Т‘Р ВµРЎР‚Р В°РЎвЂљР С•РЎР‚/admin)",
                 "responses": {}
             }
         },
@@ -1924,7 +2047,7 @@ const docTemplate = `{
                 "tags": [
                     "support"
                 ],
-                "summary": "РњРѕРё С‚РёРєРµС‚С‹ (РїР°РіРёРЅР°С†РёСЏ, С„РёР»СЊС‚СЂС‹ query)",
+                "summary": "Р СљР С•Р С‘ РЎвЂљР С‘Р С”Р ВµРЎвЂљРЎвЂ№ (Р С—Р В°Р С–Р С‘Р Р…Р В°РЎвЂ Р С‘РЎРЏ, РЎвЂћР С‘Р В»РЎРЉРЎвЂљРЎР‚РЎвЂ№ query)",
                 "responses": {}
             }
         },
@@ -1936,7 +2059,7 @@ const docTemplate = `{
                 "tags": [
                     "support"
                 ],
-                "summary": "РўРёРєРµС‚ СЃ СЃРѕРѕР±С‰РµРЅРёСЏРјРё",
+                "summary": "Р СћР С‘Р С”Р ВµРЎвЂљ РЎРѓ РЎРѓР С•Р С•Р В±РЎвЂ°Р ВµР Р…Р С‘РЎРЏР СР С‘",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1955,7 +2078,7 @@ const docTemplate = `{
                 "tags": [
                     "support"
                 ],
-                "summary": "РћР±РЅРѕРІРёС‚СЊ С‚РёРєРµС‚ (РјРѕРґРµСЂР°С‚РѕСЂ/admin)",
+                "summary": "Р С›Р В±Р Р…Р С•Р Р†Р С‘РЎвЂљРЎРЉ РЎвЂљР С‘Р С”Р ВµРЎвЂљ (Р СР С•Р Т‘Р ВµРЎР‚Р В°РЎвЂљР С•РЎР‚/admin)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1965,7 +2088,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "РџРѕР»СЏ",
+                        "description": "Р СџР С•Р В»РЎРЏ",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -1982,7 +2105,7 @@ const docTemplate = `{
                 "tags": [
                     "support"
                 ],
-                "summary": "РќР°Р·РЅР°С‡РёС‚СЊ С‚РёРєРµС‚ РЅР° СЃРµР±СЏ",
+                "summary": "Р СњР В°Р В·Р Р…Р В°РЎвЂЎР С‘РЎвЂљРЎРЉ РЎвЂљР С‘Р С”Р ВµРЎвЂљ Р Р…Р В° РЎРѓР ВµР В±РЎРЏ",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2003,7 +2126,7 @@ const docTemplate = `{
                 "tags": [
                     "support"
                 ],
-                "summary": "РЎРѕРѕР±С‰РµРЅРёРµ РІ С‚РёРєРµС‚",
+                "summary": "Р РЋР С•Р С•Р В±РЎвЂ°Р ВµР Р…Р С‘Р Вµ Р Р† РЎвЂљР С‘Р С”Р ВµРЎвЂљ",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2013,7 +2136,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "РўРµРєСЃС‚",
+                        "description": "Р СћР ВµР С”РЎРѓРЎвЂљ",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -2033,7 +2156,7 @@ const docTemplate = `{
                 "tags": [
                     "type-field"
                 ],
-                "summary": "Р’СЃРµ С…Р°СЂР°РєС‚РµСЂРёСЃС‚РёРєРё (РїРѕР»СЏ С‚РёРїР°)",
+                "summary": "Р вЂ™РЎРѓР Вµ РЎвЂ¦Р В°РЎР‚Р В°Р С”РЎвЂљР ВµРЎР‚Р С‘РЎРѓРЎвЂљР С‘Р С”Р С‘ (Р С—Р С•Р В»РЎРЏ РЎвЂљР С‘Р С—Р В°)",
                 "responses": {}
             }
         },
@@ -2045,7 +2168,7 @@ const docTemplate = `{
                 "tags": [
                     "type-field"
                 ],
-                "summary": "РҐР°СЂР°РєС‚РµСЂРёСЃС‚РёРєР° РїРѕ id",
+                "summary": "Р ТђР В°РЎР‚Р В°Р С”РЎвЂљР ВµРЎР‚Р С‘РЎРѓРЎвЂљР С‘Р С”Р В° Р С—Р С• id",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2066,7 +2189,7 @@ const docTemplate = `{
                 "tags": [
                     "user-admin"
                 ],
-                "summary": "РЎРїРёСЃРѕРє РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№ (Р°РґРјРёРЅ: cookie session_id + СЂРѕР»СЊ admin)",
+                "summary": "Р РЋР С—Р С‘РЎРѓР С•Р С” Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»Р ВµР в„– (Р В°Р Т‘Р СР С‘Р Р…: cookie session_id + РЎР‚Р С•Р В»РЎРЉ admin)",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -2102,7 +2225,7 @@ const docTemplate = `{
                 "tags": [
                     "user"
                 ],
-                "summary": "РљР°СЂС‚РѕС‡РєР° РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ (СЂРµР№С‚РёРЅРі, Р»РёРјРёС‚ РѕР±СЉСЏРІР»РµРЅРёР№)",
+                "summary": "Р С™Р В°РЎР‚РЎвЂљР С•РЎвЂЎР С”Р В° Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЏ (РЎР‚Р ВµР в„–РЎвЂљР С‘Р Р…Р С–, Р В»Р С‘Р СР С‘РЎвЂљ Р С•Р В±РЎР‰РЎРЏР Р†Р В»Р ВµР Р…Р С‘Р в„–)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2137,7 +2260,7 @@ const docTemplate = `{
                 "tags": [
                     "user"
                 ],
-                "summary": "РћСЃС‚Р°С‚РѕРє Р±РµСЃРїР»Р°С‚РЅС‹С… РѕР±СЉСЏРІР»РµРЅРёР№ (СЃРµСЃСЃРёСЏ)",
+                "summary": "Р С›РЎРѓРЎвЂљР В°РЎвЂљР С•Р С” Р В±Р ВµРЎРѓР С—Р В»Р В°РЎвЂљР Р…РЎвЂ№РЎвЂ¦ Р С•Р В±РЎР‰РЎРЏР Р†Р В»Р ВµР Р…Р С‘Р в„– (РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -2156,7 +2279,7 @@ const docTemplate = `{
                 "tags": [
                     "user-admin"
                 ],
-                "summary": "РЈСЃС‚Р°РЅРѕРІРёС‚СЊ bonusBalance (Р°РґРјРёРЅ, СЃРµСЃСЃРёСЏ)",
+                "summary": "Р Р€РЎРѓРЎвЂљР В°Р Р…Р С•Р Р†Р С‘РЎвЂљРЎРЉ bonusBalance (Р В°Р Т‘Р СР С‘Р Р…, РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2167,7 +2290,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Р§РёСЃР»Рѕ",
+                        "description": "Р В§Р С‘РЎРѓР В»Р С•",
                         "name": "balance",
                         "in": "query",
                         "required": true
@@ -2194,11 +2317,11 @@ const docTemplate = `{
                 "tags": [
                     "user"
                 ],
-                "summary": "РџРѕРєР°Р·Р°С‚СЊ РЅРѕРјРµСЂ РїСЂРѕРґР°РІС†Р° (СЃРµСЃСЃРёСЏ)",
+                "summary": "Р СџР С•Р С”Р В°Р В·Р В°РЎвЂљРЎРЉ Р Р…Р С•Р СР ВµРЎР‚ Р С—РЎР‚Р С•Р Т‘Р В°Р Р†РЎвЂ Р В° (РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "РџСЂРѕРґР°РІРµС†",
+                        "description": "Р СџРЎР‚Р С•Р Т‘Р В°Р Р†Р ВµРЎвЂ ",
                         "name": "userId",
                         "in": "path",
                         "required": true
@@ -2225,7 +2348,7 @@ const docTemplate = `{
                 "tags": [
                     "user-admin"
                 ],
-                "summary": "Р‘Р°РЅ / СЂР°Р·Р±Р°РЅ (Р°РґРјРёРЅ, СЃРµСЃСЃРёСЏ)",
+                "summary": "Р вЂР В°Р Р… / РЎР‚Р В°Р В·Р В±Р В°Р Р… (Р В°Р Т‘Р СР С‘Р Р…, РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2259,17 +2382,17 @@ const docTemplate = `{
                 "tags": [
                     "user"
                 ],
-                "summary": "РћР±РЅРѕРІР»РµРЅРёРµ РЅР°СЃС‚СЂРѕРµРє (multipart, СЃРµСЃСЃРёСЏ)",
+                "summary": "Р С›Р В±Р Р…Р С•Р Р†Р В»Р ВµР Р…Р С‘Р Вµ Р Р…Р В°РЎРѓРЎвЂљРЎР‚Р С•Р ВµР С” (multipart, РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Р¤РРћ",
+                        "description": "Р В¤Р ВР С›",
                         "name": "fullName",
                         "in": "formData"
                     },
                     {
                         "type": "string",
-                        "description": "РўРµР»РµС„РѕРЅ",
+                        "description": "Р СћР ВµР В»Р ВµРЎвЂћР С•Р Р…",
                         "name": "phoneNumber",
                         "in": "formData"
                     },
@@ -2287,7 +2410,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "file",
-                        "description": "РђРІР°С‚Р°СЂ",
+                        "description": "Р С’Р Р†Р В°РЎвЂљР В°РЎР‚",
                         "name": "photo",
                         "in": "formData"
                     }
@@ -2310,11 +2433,11 @@ const docTemplate = `{
                 "tags": [
                     "user"
                 ],
-                "summary": "РџРѕРґС‚РІРµСЂРґРёС‚СЊ РїРѕС‡С‚Сѓ РїРѕ РєРѕРґСѓ РёР· РїРёСЃСЊРјР°",
+                "summary": "Р СџР С•Р Т‘РЎвЂљР Р†Р ВµРЎР‚Р Т‘Р С‘РЎвЂљРЎРЉ Р С—Р С•РЎвЂЎРЎвЂљРЎС“ Р С—Р С• Р С”Р С•Р Т‘РЎС“ Р С‘Р В· Р С—Р С‘РЎРѓРЎРЉР СР В°",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "РљРѕРґ",
+                        "description": "Р С™Р С•Р Т‘",
                         "name": "code",
                         "in": "query",
                         "required": true
@@ -2341,7 +2464,7 @@ const docTemplate = `{
                 "tags": [
                     "user"
                 ],
-                "summary": "РћС‚РїСЂР°РІРёС‚СЊ РєРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ РЅР° РїРѕС‡С‚Сѓ (СЃРµСЃСЃРёСЏ)",
+                "summary": "Р С›РЎвЂљР С—РЎР‚Р В°Р Р†Р С‘РЎвЂљРЎРЉ Р С”Р С•Р Т‘ Р С—Р С•Р Т‘РЎвЂљР Р†Р ВµРЎР‚Р В¶Р Т‘Р ВµР Р…Р С‘РЎРЏ Р Р…Р В° Р С—Р С•РЎвЂЎРЎвЂљРЎС“ (РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -2363,7 +2486,7 @@ const docTemplate = `{
                 "tags": [
                     "user-admin"
                 ],
-                "summary": "РЈРґР°Р»РёС‚СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ (Р°РґРјРёРЅ, СЃРµСЃСЃРёСЏ)",
+                "summary": "Р Р€Р Т‘Р В°Р В»Р С‘РЎвЂљРЎРЉ Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЏ (Р В°Р Т‘Р СР С‘Р Р…, РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2395,7 +2518,7 @@ const docTemplate = `{
                 "tags": [
                     "user-admin"
                 ],
-                "summary": "РћР±РЅРѕРІРёС‚СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ (Р°РґРјРёРЅ, СЃРµСЃСЃРёСЏ)",
+                "summary": "Р С›Р В±Р Р…Р С•Р Р†Р С‘РЎвЂљРЎРЉ Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЏ (Р В°Р Т‘Р СР С‘Р Р…, РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2405,7 +2528,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "РџРѕР»СЏ",
+                        "description": "Р СџР С•Р В»РЎРЏ",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -2466,6 +2589,39 @@ const docTemplate = `{
                 }
             }
         },
+        "main.swaggerCDEKCalculateRequest": {
+            "type": "object",
+            "properties": {
+                "fromCityCode": {
+                    "type": "integer",
+                    "example": 44
+                },
+                "height": {
+                    "type": "integer",
+                    "example": 20
+                },
+                "length": {
+                    "type": "integer",
+                    "example": 20
+                },
+                "tariffCode": {
+                    "type": "integer",
+                    "example": 136
+                },
+                "toCityCode": {
+                    "type": "integer",
+                    "example": 270
+                },
+                "weight": {
+                    "type": "integer",
+                    "example": 1000
+                },
+                "width": {
+                    "type": "integer",
+                    "example": 20
+                }
+            }
+        },
         "main.swaggerChangePassword": {
             "type": "object",
             "properties": {
@@ -2491,7 +2647,7 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string",
-                    "example": "РђРІС‚РѕРјРѕР±РёР»Рё"
+                    "example": "Р С’Р Р†РЎвЂљР С•Р СР С•Р В±Р С‘Р В»Р С‘"
                 },
                 "slug": {
                     "type": "string",
@@ -2508,7 +2664,7 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string",
-                    "example": "РџРѕРїРѕР»РЅРµРЅРёРµ Р±Р°Р»Р°РЅСЃР°"
+                    "example": "Р СџР С•Р С—Р С•Р В»Р Р…Р ВµР Р…Р С‘Р Вµ Р В±Р В°Р В»Р В°Р Р…РЎРѓР В°"
                 }
             }
         },
@@ -2544,7 +2700,7 @@ const docTemplate = `{
             "properties": {
                 "content": {
                     "type": "string",
-                    "example": "РўРµРєСЃС‚ СЃС‚Р°С‚СЊРё..."
+                    "example": "Р СћР ВµР С”РЎРѓРЎвЂљ РЎРѓРЎвЂљР В°РЎвЂљРЎРЉР С‘..."
                 },
                 "createdAt": {
                     "type": "string",
@@ -2556,7 +2712,7 @@ const docTemplate = `{
                 },
                 "title": {
                     "type": "string",
-                    "example": "РљР°Рє РѕС„РѕСЂРјРёС‚СЊ Р·Р°РєР°Р·"
+                    "example": "Р С™Р В°Р С” Р С•РЎвЂћР С•РЎР‚Р СР С‘РЎвЂљРЎРЉ Р В·Р В°Р С”Р В°Р В·"
                 },
                 "updatedAt": {
                     "type": "string",
@@ -2569,11 +2725,11 @@ const docTemplate = `{
             "properties": {
                 "content": {
                     "type": "string",
-                    "example": "РўРµРєСЃС‚ СЃС‚Р°С‚СЊРё..."
+                    "example": "Р СћР ВµР С”РЎРѓРЎвЂљ РЎРѓРЎвЂљР В°РЎвЂљРЎРЉР С‘..."
                 },
                 "title": {
                     "type": "string",
-                    "example": "РљР°Рє РѕС„РѕСЂРјРёС‚СЊ Р·Р°РєР°Р·"
+                    "example": "Р С™Р В°Р С” Р С•РЎвЂћР С•РЎР‚Р СР С‘РЎвЂљРЎРЉ Р В·Р В°Р С”Р В°Р В·"
                 }
             }
         },
@@ -2585,7 +2741,7 @@ const docTemplate = `{
                 },
                 "message": {
                     "type": "string",
-                    "example": "РЎС‚Р°С‚СЊСЏ СѓСЃРїРµС€РЅРѕ СЃРѕР·РґР°РЅР°"
+                    "example": "Р РЋРЎвЂљР В°РЎвЂљРЎРЉРЎРЏ РЎС“РЎРѓР С—Р ВµРЎв‚¬Р Р…Р С• РЎРѓР С•Р В·Р Т‘Р В°Р Р…Р В°"
                 }
             }
         },
@@ -2594,7 +2750,7 @@ const docTemplate = `{
             "properties": {
                 "message": {
                     "type": "string",
-                    "example": "РЎС‚Р°С‚СЊСЏ СѓСЃРїРµС€РЅРѕ СѓРґР°Р»РµРЅР°"
+                    "example": "Р РЋРЎвЂљР В°РЎвЂљРЎРЉРЎРЏ РЎС“РЎРѓР С—Р ВµРЎв‚¬Р Р…Р С• РЎС“Р Т‘Р В°Р В»Р ВµР Р…Р В°"
                 }
             }
         },
@@ -2606,7 +2762,7 @@ const docTemplate = `{
                 },
                 "message": {
                     "type": "string",
-                    "example": "РЎС‚Р°С‚СЊСЏ СѓСЃРїРµС€РЅРѕ РѕР±РЅРѕРІР»РµРЅР°"
+                    "example": "Р РЋРЎвЂљР В°РЎвЂљРЎРЉРЎРЏ РЎС“РЎРѓР С—Р ВµРЎв‚¬Р Р…Р С• Р С•Р В±Р Р…Р С•Р Р†Р В»Р ВµР Р…Р В°"
                 }
             }
         },
@@ -2619,7 +2775,7 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string",
-                    "example": "Производитель"
+                    "example": "РџСЂРѕРёР·РІРѕРґРёС‚РµР»СЊ"
                 }
             }
         },
@@ -2661,11 +2817,11 @@ const docTemplate = `{
                 },
                 "moderationRejectionReason": {
                     "type": "string",
-                    "example": "Текст: есть контакты"
+                    "example": "РўРµРєСЃС‚: РµСЃС‚СЊ РєРѕРЅС‚Р°РєС‚С‹"
                 },
                 "name": {
                     "type": "string",
-                    "example": "Тонометр"
+                    "example": "РўРѕРЅРѕРјРµС‚СЂ"
                 },
                 "price": {
                     "type": "integer",
@@ -2718,7 +2874,7 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string",
-                    "example": "Описание товара"
+                    "example": "РћРїРёСЃР°РЅРёРµ С‚РѕРІР°СЂР°"
                 },
                 "fieldValues": {
                     "type": "array",
@@ -2742,11 +2898,11 @@ const docTemplate = `{
                 },
                 "moderationRejectionReason": {
                     "type": "string",
-                    "example": "Фото: требуется ручная проверка"
+                    "example": "Р¤РѕС‚Рѕ: С‚СЂРµР±СѓРµС‚СЃСЏ СЂСѓС‡РЅР°СЏ РїСЂРѕРІРµСЂРєР°"
                 },
                 "name": {
                     "type": "string",
-                    "example": "Тонометр"
+                    "example": "РўРѕРЅРѕРјРµС‚СЂ"
                 },
                 "price": {
                     "type": "integer",
@@ -2780,7 +2936,7 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string",
-                    "example": "Медтехника"
+                    "example": "РњРµРґС‚РµС…РЅРёРєР°"
                 }
             }
         },
@@ -2793,7 +2949,7 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string",
-                    "example": "Тонометры"
+                    "example": "РўРѕРЅРѕРјРµС‚СЂС‹"
                 }
             }
         },
@@ -2806,7 +2962,7 @@ const docTemplate = `{
                 },
                 "fullName": {
                     "type": "string",
-                    "example": "Иван Иванов"
+                    "example": "РРІР°РЅ РРІР°РЅРѕРІ"
                 },
                 "id": {
                     "type": "integer",
@@ -2827,7 +2983,7 @@ const docTemplate = `{
                 },
                 "fullName": {
                     "type": "string",
-                    "example": "Иван Иванов"
+                    "example": "РРІР°РЅ РРІР°РЅРѕРІ"
                 },
                 "id": {
                     "type": "integer",
@@ -2918,7 +3074,7 @@ const docTemplate = `{
             "properties": {
                 "message": {
                     "type": "string",
-                    "example": "Р‘Р°Р»Р°РЅСЃ СѓСЃРїРµС€РЅРѕ РїРѕРїРѕР»РЅРµРЅ"
+                    "example": "Р вЂР В°Р В»Р В°Р Р…РЎРѓ РЎС“РЎРѓР С—Р ВµРЎв‚¬Р Р…Р С• Р С—Р С•Р С—Р С•Р В»Р Р…Р ВµР Р…"
                 },
                 "success": {
                     "type": "boolean",
@@ -3023,7 +3179,7 @@ const docTemplate = `{
                 },
                 "Token": {
                     "type": "string",
-                    "example": "РїРѕРґРїРёСЃСЊ_РѕС‚_Р±Р°РЅРєР°"
+                    "example": "Р С—Р С•Р Т‘Р С—Р С‘РЎРѓРЎРЉ_Р С•РЎвЂљ_Р В±Р В°Р Р…Р С”Р В°"
                 }
             }
         },
@@ -3032,7 +3188,7 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string",
-                    "example": "РђРІС‚РѕРјРѕР±РёР»Рё"
+                    "example": "Р С’Р Р†РЎвЂљР С•Р СР С•Р В±Р С‘Р В»Р С‘"
                 },
                 "slug": {
                     "type": "string"

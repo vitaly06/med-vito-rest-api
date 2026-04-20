@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"med-vito/api-go/internal/config"
 )
@@ -33,14 +35,34 @@ func (s *CDEKService) configured() bool {
 }
 
 func (s *CDEKService) Cities(ctx context.Context, city string, limit int) ([]map[string]any, error) {
-	if strings.TrimSpace(city) == "" {
-		return nil, &AppError{400, "Нужно указать city"}
+	city = strings.TrimSpace(city)
+	if city == "" {
+		return nil, &AppError{400, "РќСѓР¶РЅРѕ СѓРєР°Р·Р°С‚СЊ city"}
 	}
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
+
+	out, err := s.fetchCities(ctx, city, limit)
+	if err == nil {
+		return out, nil
+	}
+
+	// CDEK sandbox can return 410 for Cyrillic city queries; retry with transliteration.
+	var appErr *AppError
+	if errors.As(err, &appErr) && appErr.Status == http.StatusGone && containsCyrillic(city) {
+		latinCity := transliterateRU(city)
+		if latinCity != "" && latinCity != city {
+			return s.fetchCities(ctx, latinCity, limit)
+		}
+	}
+
+	return nil, err
+}
+
+func (s *CDEKService) fetchCities(ctx context.Context, city string, limit int) ([]map[string]any, error) {
 	q := url.Values{}
-	q.Set("city", strings.TrimSpace(city))
+	q.Set("city", city)
 	q.Set("size", strconv.Itoa(limit))
 	var out []map[string]any
 	if err := s.getJSON(ctx, "/location/cities?"+q.Encode(), &out); err != nil {
@@ -51,7 +73,7 @@ func (s *CDEKService) Cities(ctx context.Context, city string, limit int) ([]map
 
 func (s *CDEKService) DeliveryPoints(ctx context.Context, cityCode int) ([]map[string]any, error) {
 	if cityCode <= 0 {
-		return nil, &AppError{400, "Нужен cityCode"}
+		return nil, &AppError{400, "РќСѓР¶РµРЅ cityCode"}
 	}
 	q := url.Values{}
 	q.Set("city_code", strconv.Itoa(cityCode))
@@ -75,7 +97,7 @@ type CDEKCalculateRequest struct {
 
 func (s *CDEKService) Calculate(ctx context.Context, req CDEKCalculateRequest) (map[string]any, error) {
 	if req.TariffCode <= 0 || req.FromCityCode <= 0 || req.ToCityCode <= 0 {
-		return nil, &AppError{400, "Нужны tariffCode, fromCityCode и toCityCode"}
+		return nil, &AppError{400, "РќСѓР¶РЅС‹ tariffCode, fromCityCode Рё toCityCode"}
 	}
 	if req.Weight <= 0 {
 		req.Weight = 1000
@@ -156,7 +178,7 @@ func (s *CDEKService) postJSON(ctx context.Context, path string, payload any, ta
 
 func (s *CDEKService) token(ctx context.Context) (string, error) {
 	if !s.configured() {
-		return "", &AppError{400, "CDEK не настроен (CDEK_CLIENT_ID / CDEK_CLIENT_SECRET)"}
+		return "", &AppError{400, "CDEK РЅРµ РЅР°СЃС‚СЂРѕРµРЅ (CDEK_CLIENT_ID / CDEK_CLIENT_SECRET)"}
 	}
 	s.mu.Lock()
 	if s.accessToken != "" && time.Now().Before(s.tokenExpires.Add(-time.Minute)) {
@@ -216,4 +238,27 @@ func decodeCDEKResponse(resp *http.Response, target any) error {
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.UseNumber()
 	return dec.Decode(target)
+}
+
+func containsCyrillic(s string) bool {
+	for _, r := range s {
+		if unicode.In(r, unicode.Cyrillic) {
+			return true
+		}
+	}
+	return false
+}
+
+func transliterateRU(s string) string {
+	replacer := strings.NewReplacer(
+		"а", "a", "б", "b", "в", "v", "г", "g", "д", "d",
+		"е", "e", "ё", "e", "ж", "zh", "з", "z", "и", "i", "й", "y",
+		"к", "k", "л", "l", "м", "m", "н", "n", "о", "o", "п", "p",
+		"р", "r", "с", "s", "т", "t", "у", "u", "ф", "f", "х", "kh",
+		"ц", "ts", "ч", "ch", "ш", "sh", "щ", "shch", "ъ", "", "ы", "y",
+		"ь", "", "э", "e", "ю", "yu", "я", "ya",
+	)
+	lower := strings.ToLower(s)
+	latin := replacer.Replace(lower)
+	return strings.Join(strings.Fields(latin), " ")
 }
