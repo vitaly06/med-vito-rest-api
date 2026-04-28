@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-medvito}
@@ -17,7 +17,7 @@ services:
       retries: 10
 
   db-init:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     restart: "no"
     environment:
       POSTGRES_HOST: postgres
@@ -57,6 +57,8 @@ services:
       context: ./api-go
       dockerfile: Dockerfile
     restart: unless-stopped
+    env_file:
+      - ./.env
     ports:
       - "${PORT:-3000}:3000"
     environment:

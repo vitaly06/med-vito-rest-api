@@ -47,7 +47,8 @@ CREATE TYPE public."BannerPlace" AS ENUM (
 CREATE TYPE public."ProductModerate" AS ENUM (
     'MODERATE',
     'APPROVED',
-    'DENIDED'
+    'DENIDED',
+    'AI_REVIEWED'
 );
 
 

@@ -61,6 +61,12 @@ type Config struct {
 	DealPlatformFeePercent int
 	DealPayoutDelayDays    int
 	DealAutoCompleteDays   int
+
+	ReservationDefaultHours int
+	ReservationMaxHours     int
+	ReservationMaxActive    int
+	ReservationDailyLimit   int
+	ReservationBlockDays    int
 }
 
 func Load() Config {
@@ -125,6 +131,36 @@ func Load() Config {
 	cdekBase := strings.TrimSpace(os.Getenv("CDEK_API_BASE"))
 	if cdekBase == "" {
 		cdekBase = "https://api.cdek.ru/v2"
+	}
+	resDefaultHours := 24
+	if v := strings.TrimSpace(os.Getenv("RESERVATION_DEFAULT_HOURS")); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			resDefaultHours = n
+		}
+	}
+	resMaxHours := 72
+	if v := strings.TrimSpace(os.Getenv("RESERVATION_MAX_HOURS")); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			resMaxHours = n
+		}
+	}
+	resMaxActive := 5
+	if v := strings.TrimSpace(os.Getenv("RESERVATION_MAX_ACTIVE")); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			resMaxActive = n
+		}
+	}
+	resDailyLimit := 4
+	if v := strings.TrimSpace(os.Getenv("RESERVATION_DAILY_LIMIT")); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			resDailyLimit = n
+		}
+	}
+	resBlockDays := 7
+	if v := strings.TrimSpace(os.Getenv("RESERVATION_BLOCK_DAYS")); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			resBlockDays = n
+		}
 	}
 	maxAuthorize := strings.TrimSpace(os.Getenv("MAX_OAUTH_AUTHORIZE_URL"))
 	if maxAuthorize == "" {
@@ -197,6 +233,12 @@ func Load() Config {
 		DealPlatformFeePercent: feePercent,
 		DealPayoutDelayDays:    payoutDelay,
 		DealAutoCompleteDays:   autoComplete,
+
+		ReservationDefaultHours: resDefaultHours,
+		ReservationMaxHours:     resMaxHours,
+		ReservationMaxActive:    resMaxActive,
+		ReservationDailyLimit:   resDailyLimit,
+		ReservationBlockDays:    resBlockDays,
 	}
 }
 

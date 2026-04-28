@@ -61,6 +61,8 @@ services:
       context: ./api-go
       dockerfile: Dockerfile
     restart: always
+    env_file:
+      - ./.env
     ports:
       - "${PORT:-3000}:3000"
     environment:

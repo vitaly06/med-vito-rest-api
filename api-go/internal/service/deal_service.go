@@ -15,10 +15,11 @@ type DealService struct {
 	cfg     config.Config
 	repo    *repository.DealPG
 	payment *PaymentService
+	reserve *repository.ReservationPG
 }
 
-func NewDealService(cfg config.Config, repo *repository.DealPG, payment *PaymentService) *DealService {
-	return &DealService{cfg: cfg, repo: repo, payment: payment}
+func NewDealService(cfg config.Config, repo *repository.DealPG, payment *PaymentService, reserve *repository.ReservationPG) *DealService {
+	return &DealService{cfg: cfg, repo: repo, payment: payment, reserve: reserve}
 }
 
 type CreateDealRequest struct {
@@ -79,6 +80,9 @@ func (s *DealService) CreateDeal(ctx context.Context, buyerID int32, req CreateD
 	})
 	if err != nil {
 		return nil, err
+	}
+	if s.reserve != nil {
+		_ = s.reserve.MarkDealCreated(ctx, deal.ProductID, buyerID)
 	}
 	return s.formatDeal(*deal), nil
 }

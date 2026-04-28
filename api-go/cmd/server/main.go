@@ -90,9 +90,12 @@ func main() {
 	payRepo := repository.NewPaymentPG(pool)
 	paySvc := service.NewPaymentService(cfg, payRepo)
 	cdekSvc := service.NewCDEKService(cfg)
+	reservationRepo := repository.NewReservationPG(pool)
 	dealRepo := repository.NewDealPG(pool)
-	dealSvc := service.NewDealService(cfg, dealRepo, paySvc)
+	dealSvc := service.NewDealService(cfg, dealRepo, paySvc, reservationRepo)
 	dealSvc.StartPayoutWorker(ctx)
+	reservationSvc := service.NewReservationService(cfg, reservationRepo, userRepo)
+	reservationSvc.StartWorker(ctx)
 	promoRepo := repository.NewPromotionPG(pool)
 	promoSvc := service.NewPromotionService(promoRepo)
 	statRepo := repository.NewStatisticsPG(pool)
@@ -114,24 +117,25 @@ func main() {
 	}
 
 	app := httpserver.NewApp(origins, httpserver.AppDeps{
-		Config:     cfg,
-		Log:        logSvc,
-		Knowledge:  kbSvc,
-		Category:   catSvc,
-		Auth:       authSvc,
-		User:       userSvc,
-		Product:    prodSvc,
-		Moderation: moderationAdminSvc,
-		Review:     revSvc,
-		Chat:       chatSvc,
-		Payment:    paySvc,
-		Promotion:  promoSvc,
-		Statistics: statSvc,
-		Support:    supSvc,
-		Address:    addrSvc,
-		Banner:     banSvc,
-		CDEK:       cdekSvc,
-		Deal:       dealSvc,
+		Config:      cfg,
+		Log:         logSvc,
+		Knowledge:   kbSvc,
+		Category:    catSvc,
+		Auth:        authSvc,
+		User:        userSvc,
+		Product:     prodSvc,
+		Moderation:  moderationAdminSvc,
+		Review:      revSvc,
+		Chat:        chatSvc,
+		Payment:     paySvc,
+		Promotion:   promoSvc,
+		Statistics:  statSvc,
+		Support:     supSvc,
+		Address:     addrSvc,
+		Banner:      banSvc,
+		CDEK:        cdekSvc,
+		Deal:        dealSvc,
+		Reservation: reservationSvc,
 	})
 	moderationSvc.Start(ctx)
 

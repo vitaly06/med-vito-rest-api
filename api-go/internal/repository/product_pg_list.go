@@ -77,6 +77,7 @@ func (r *ProductPG) scanProductListRow(row pgx.Row) (*ProductListRow, error) {
 func (r *ProductPG) ListProductsPublic(ctx context.Context, orderClause string, limit, offset int) ([]ProductListRow, error) {
 	base := fmt.Sprintf(`SELECT %s %s
 		WHERE p."moderateState" = 'APPROVED'::"ProductModerate" AND p."isHide" = false
+		  AND NOT EXISTS (SELECT 1 FROM "ProductReservation" pr WHERE pr."productId" = p.id AND pr.status = 'ACTIVE')
 		ORDER BY %s`, productListSelect, productListFrom, orderClause)
 	var q string
 	var args []any
@@ -226,6 +227,7 @@ func (r *ProductPG) SearchProducts(ctx context.Context, p ProductSearchParams) (
 
 	where = append(where, `p."moderateState" = 'APPROVED'::"ProductModerate"`)
 	where = append(where, `p."isHide" = false`)
+	where = append(where, `NOT EXISTS (SELECT 1 FROM "ProductReservation" pr WHERE pr."productId" = p.id AND pr.status = 'ACTIVE')`)
 
 	if p.Search != nil && *p.Search != "" {
 		if idVal, ok := parseInt32(*p.Search); ok {

@@ -12,24 +12,25 @@ import (
 
 // AppDeps — зависимости HTTP-слоя (по мере миграции пополняется).
 type AppDeps struct {
-	Config     config.Config
-	Log        *service.LogService
-	Knowledge  *service.KnowledgeBaseService
-	Category   *service.CategoryService
-	Auth       *service.AuthService
-	User       *service.UserService
-	Product    *service.ProductService
-	Moderation *service.ModerationAdminService
-	Review     *service.ReviewService
-	Chat       *service.ChatService
-	Payment    *service.PaymentService
-	Promotion  *service.PromotionService
-	Statistics *service.StatisticsService
-	Support    *service.SupportService
-	Address    *service.AddressService
-	Banner     *service.BannerService
-	CDEK       *service.CDEKService
-	Deal       *service.DealService
+	Config      config.Config
+	Log         *service.LogService
+	Knowledge   *service.KnowledgeBaseService
+	Category    *service.CategoryService
+	Auth        *service.AuthService
+	User        *service.UserService
+	Product     *service.ProductService
+	Moderation  *service.ModerationAdminService
+	Review      *service.ReviewService
+	Chat        *service.ChatService
+	Payment     *service.PaymentService
+	Promotion   *service.PromotionService
+	Statistics  *service.StatisticsService
+	Support     *service.SupportService
+	Address     *service.AddressService
+	Banner      *service.BannerService
+	CDEK        *service.CDEKService
+	Deal        *service.DealService
+	Reservation *service.ReservationService
 }
 
 // NewApp собирает Fiber: middleware + маршруты (handlers = бывшие controllers).
@@ -66,6 +67,7 @@ func NewApp(corsOrigins string, deps AppDeps) *fiber.App {
 	RegisterBannerRoutes(app, deps.Banner, deps.Auth)
 	RegisterCDEKRoutes(app, deps.CDEK)
 	RegisterDealRoutes(app, deps.Deal, deps.Auth)
+	RegisterReservationRoutes(app, deps.Reservation, deps.Auth)
 	RegisterSocketIO(app, corsOrigins, deps.Auth, deps.Chat, deps.Support)
 
 	// OpenAPI 2 + Swagger UI (Try it out). doc.json из пакета docs (swag init).
