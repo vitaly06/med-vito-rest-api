@@ -28,7 +28,12 @@ if [ "$has_core_schema" = "0" ]; then
   psql_cmd -f /dumps/01-schema.sql
 
   echo "Applying base data dump..."
-  psql_cmd -f /dumps/data-only-dump.sql
+  cat >/tmp/import-data.sql <<'SQL'
+SET session_replication_role = replica;
+\i /dumps/data-only-dump.sql
+SET session_replication_role = DEFAULT;
+SQL
+  psql_cmd -f /tmp/import-data.sql
 else
   echo "Base schema already present, skipping schema/data dump import."
 fi

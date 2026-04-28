@@ -459,7 +459,9 @@ CREATE TABLE public."Product" (
     "videoUrl" text,
     "isHide" boolean DEFAULT false NOT NULL,
     "moderateState" public."ProductModerate" DEFAULT 'MODERATE'::public."ProductModerate" NOT NULL,
-    "moderationRejectionReason" text
+    "moderationRejectionReason" text,
+    "allowReservations" boolean DEFAULT true NOT NULL,
+    "reservationHours" integer DEFAULT 24 NOT NULL
 );
 
 
@@ -536,6 +538,47 @@ ALTER SEQUENCE public."ProductPromotion_id_seq" OWNED BY public."ProductPromotio
 
 
 --
+-- Name: ProductReservation; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."ProductReservation" (
+    id bigint NOT NULL,
+    "productId" integer NOT NULL,
+    "buyerId" integer NOT NULL,
+    "sellerId" integer NOT NULL,
+    status text DEFAULT 'ACTIVE'::text NOT NULL,
+    hours integer NOT NULL,
+    note text,
+    "cancelReason" text,
+    "extendedOnce" boolean DEFAULT false NOT NULL,
+    "expiresAt" timestamp(3) without time zone NOT NULL,
+    "cancelledAt" timestamp(3) without time zone,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL,
+    CONSTRAINT "ProductReservation_status_chk" CHECK ((status = ANY (ARRAY['ACTIVE'::text, 'CANCELLED_BY_BUYER'::text, 'CANCELLED_BY_SELLER'::text, 'EXPIRED'::text, 'DEAL_CREATED'::text, 'COMPLETED'::text])))
+);
+
+
+--
+-- Name: ProductReservation_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public."ProductReservation_id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: ProductReservation_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public."ProductReservation_id_seq" OWNED BY public."ProductReservation".id;
+
+
+--
 -- Name: ProductView; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -598,6 +641,18 @@ CREATE SEQUENCE public."Promotion_id_seq"
 --
 
 ALTER SEQUENCE public."Promotion_id_seq" OWNED BY public."Promotion".id;
+
+
+--
+-- Name: ReservationUserPenalty; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."ReservationUserPenalty" (
+    "userId" integer NOT NULL,
+    "blockedUntil" timestamp(3) without time zone NOT NULL,
+    reason text,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
 
 
 --
@@ -864,6 +919,16 @@ CREATE TABLE public."User" (
 
 
 --
+-- Name: _GoSchemaMigration; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."_GoSchemaMigration" (
+    name text NOT NULL,
+    "appliedAt" timestamp(3) without time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: _UserFavorites; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -964,6 +1029,13 @@ ALTER TABLE ONLY public."ProductFieldValue" ALTER COLUMN id SET DEFAULT nextval(
 --
 
 ALTER TABLE ONLY public."ProductPromotion" ALTER COLUMN id SET DEFAULT nextval('public."ProductPromotion_id_seq"'::regclass);
+
+
+--
+-- Name: ProductReservation id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ProductReservation" ALTER COLUMN id SET DEFAULT nextval('public."ProductReservation_id_seq"'::regclass);
 
 
 --
@@ -1118,6 +1190,14 @@ ALTER TABLE ONLY public."ProductPromotion"
 
 
 --
+-- Name: ProductReservation ProductReservation_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ProductReservation"
+    ADD CONSTRAINT "ProductReservation_pkey" PRIMARY KEY (id);
+
+
+--
 -- Name: ProductView ProductView_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1139,6 +1219,14 @@ ALTER TABLE ONLY public."Product"
 
 ALTER TABLE ONLY public."Promotion"
     ADD CONSTRAINT "Promotion_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: ReservationUserPenalty ReservationUserPenalty_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ReservationUserPenalty"
+    ADD CONSTRAINT "ReservationUserPenalty_pkey" PRIMARY KEY ("userId");
 
 
 --
@@ -1203,6 +1291,14 @@ ALTER TABLE ONLY public."TypeField"
 
 ALTER TABLE ONLY public."User"
     ADD CONSTRAINT "User_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: _GoSchemaMigration _GoSchemaMigration_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."_GoSchemaMigration"
+    ADD CONSTRAINT "_GoSchemaMigration_pkey" PRIMARY KEY (name);
 
 
 --
@@ -1289,6 +1385,20 @@ CREATE UNIQUE INDEX "PhoneNumberView_viewedById_viewedUserId_key" ON public."Pho
 --
 
 CREATE UNIQUE INDEX "ProductFieldValue_fieldId_productId_key" ON public."ProductFieldValue" USING btree ("fieldId", "productId");
+
+
+--
+-- Name: ProductReservation_buyer_created_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "ProductReservation_buyer_created_idx" ON public."ProductReservation" USING btree ("buyerId", "createdAt");
+
+
+--
+-- Name: ProductReservation_product_active_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "ProductReservation_product_active_idx" ON public."ProductReservation" USING btree ("productId", status);
 
 
 --
@@ -1537,6 +1647,30 @@ ALTER TABLE ONLY public."ProductPromotion"
 
 
 --
+-- Name: ProductReservation ProductReservation_buyerId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ProductReservation"
+    ADD CONSTRAINT "ProductReservation_buyerId_fkey" FOREIGN KEY ("buyerId") REFERENCES public."User"(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ProductReservation ProductReservation_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ProductReservation"
+    ADD CONSTRAINT "ProductReservation_productId_fkey" FOREIGN KEY ("productId") REFERENCES public."Product"(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ProductReservation ProductReservation_sellerId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ProductReservation"
+    ADD CONSTRAINT "ProductReservation_sellerId_fkey" FOREIGN KEY ("sellerId") REFERENCES public."User"(id) ON DELETE CASCADE;
+
+
+--
 -- Name: ProductView ProductView_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1582,6 +1716,14 @@ ALTER TABLE ONLY public."Product"
 
 ALTER TABLE ONLY public."Product"
     ADD CONSTRAINT "Product_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ReservationUserPenalty ReservationUserPenalty_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ReservationUserPenalty"
+    ADD CONSTRAINT "ReservationUserPenalty_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON DELETE CASCADE;
 
 
 --
