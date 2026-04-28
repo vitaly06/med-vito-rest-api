@@ -50,6 +50,14 @@ type Config struct {
 	CDEKClientSecret string
 	CDEKAPIBase      string
 
+	MaxOAuthClientID     string
+	MaxOAuthClientSecret string
+	MaxOAuthRedirectURI  string
+	MaxOAuthAuthorizeURL string
+	MaxOAuthTokenURL     string
+	MaxOAuthUserInfoURL  string
+	MaxOAuthScope        string
+
 	DealPlatformFeePercent int
 	DealPayoutDelayDays    int
 	DealAutoCompleteDays   int
@@ -118,6 +126,22 @@ func Load() Config {
 	if cdekBase == "" {
 		cdekBase = "https://api.cdek.ru/v2"
 	}
+	maxAuthorize := strings.TrimSpace(os.Getenv("MAX_OAUTH_AUTHORIZE_URL"))
+	if maxAuthorize == "" {
+		maxAuthorize = "https://id.max.ru/oauth2/authorize"
+	}
+	maxToken := strings.TrimSpace(os.Getenv("MAX_OAUTH_TOKEN_URL"))
+	if maxToken == "" {
+		maxToken = "https://id.max.ru/oauth2/token"
+	}
+	maxUserinfo := strings.TrimSpace(os.Getenv("MAX_OAUTH_USERINFO_URL"))
+	if maxUserinfo == "" {
+		maxUserinfo = "https://id.max.ru/oauth2/userinfo"
+	}
+	maxScope := strings.TrimSpace(os.Getenv("MAX_OAUTH_SCOPE"))
+	if maxScope == "" {
+		maxScope = "openid profile email phone"
+	}
 
 	return Config{
 		Port:        p,
@@ -161,6 +185,14 @@ func Load() Config {
 		CDEKClientID:     strings.TrimSpace(os.Getenv("CDEK_CLIENT_ID")),
 		CDEKClientSecret: strings.TrimSpace(os.Getenv("CDEK_CLIENT_SECRET")),
 		CDEKAPIBase:      cdekBase,
+
+		MaxOAuthClientID:     strings.TrimSpace(os.Getenv("MAX_OAUTH_CLIENT_ID")),
+		MaxOAuthClientSecret: strings.TrimSpace(os.Getenv("MAX_OAUTH_CLIENT_SECRET")),
+		MaxOAuthRedirectURI:  strings.TrimSpace(os.Getenv("MAX_OAUTH_REDIRECT_URI")),
+		MaxOAuthAuthorizeURL: maxAuthorize,
+		MaxOAuthTokenURL:     maxToken,
+		MaxOAuthUserInfoURL:  maxUserinfo,
+		MaxOAuthScope:        maxScope,
 
 		DealPlatformFeePercent: feePercent,
 		DealPayoutDelayDays:    payoutDelay,

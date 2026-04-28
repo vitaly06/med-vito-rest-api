@@ -44,6 +44,15 @@ func RegisterDealRoutes(app fiber.Router, deals *service.DealService, auth *serv
 		return c.JSON(out)
 	})
 
+	g.Get("/my", sess, func(c *fiber.Ctx) error {
+		me := authmw.UserFromLocals(c)
+		out, err := deals.MyAllDeals(c.UserContext(), me.ID)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
 	g.Get("/:id", sess, func(c *fiber.Ctx) error {
 		id, err := parseDealID(c)
 		if err != nil {

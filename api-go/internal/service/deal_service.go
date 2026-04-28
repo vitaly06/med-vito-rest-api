@@ -192,6 +192,29 @@ func (s *DealService) MySales(ctx context.Context, sellerID int32) ([]map[string
 	return s.formatDeals(deals), nil
 }
 
+func (s *DealService) MyAllDeals(ctx context.Context, userID int32) ([]map[string]any, error) {
+	purchases, err := s.repo.ListByBuyer(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	sales, err := s.repo.ListBySeller(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	all := make([]map[string]any, 0, len(purchases)+len(sales))
+	for _, deal := range purchases {
+		item := s.formatDeal(deal)
+		item["myRole"] = "buyer"
+		all = append(all, item)
+	}
+	for _, deal := range sales {
+		item := s.formatDeal(deal)
+		item["myRole"] = "seller"
+		all = append(all, item)
+	}
+	return all, nil
+}
+
 func (s *DealService) StartPayoutWorker(ctx context.Context) {
 	go func() {
 		ticker := time.NewTicker(time.Hour)
