@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -197,6 +198,9 @@ func (s *CDEKService) token(ctx context.Context) (string, error) {
 		return "", err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	// Some CDEK environments validate client auth via Basic Authorization header.
+	cred := s.cfg.CDEKClientID + ":" + s.cfg.CDEKClientSecret
+	req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(cred)))
 	resp, err := s.client.Do(req)
 	if err != nil {
 		return "", err

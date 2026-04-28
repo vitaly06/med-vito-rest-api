@@ -13,6 +13,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -40,6 +41,7 @@ func main() {
 	if cfg.DatabaseURL == "" {
 		log.Fatal("нужен DATABASE_URL в окружении (PostgreSQL, как в Prisma schema)")
 	}
+	fmt.Println(cfg.MTSBearer)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
