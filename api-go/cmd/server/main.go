@@ -27,6 +27,7 @@ import (
 	_ "med-vito/api-go/docs"
 
 	"med-vito/api-go/internal/config"
+	"med-vito/api-go/internal/dbmigrate"
 	"med-vito/api-go/internal/httpserver"
 	"med-vito/api-go/internal/pkg/s3client"
 	"med-vito/api-go/internal/repository"
@@ -51,6 +52,12 @@ func main() {
 	defer pool.Close()
 	if err := pool.Ping(ctx); err != nil {
 		log.Fatalf("postgres ping: %v", err)
+	}
+	if cfg.AutoMigrate {
+		if err := dbmigrate.Apply(ctx, pool); err != nil {
+			log.Fatalf("auto-migrate: %v", err)
+		}
+		log.Printf("auto-migrate: applied successfully")
 	}
 
 	opt := &redis.Options{Addr: cfg.RedisAddr}

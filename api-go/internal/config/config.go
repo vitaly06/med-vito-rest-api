@@ -12,6 +12,7 @@ type Config struct {
 	DatabaseURL string
 	BaseURL     string
 	Production  bool
+	AutoMigrate bool
 
 	AIModerationEnabled      bool
 	AIModerationPollInterval int
@@ -184,6 +185,7 @@ func Load() Config {
 		DatabaseURL: os.Getenv("DATABASE_URL"),
 		BaseURL:     strings.TrimRight(base, "/"),
 		Production:  strings.ToLower(os.Getenv("NODE_ENV")) == "production",
+		AutoMigrate: strings.ToLower(strings.TrimSpace(firstNonEmpty(os.Getenv("AUTO_MIGRATE"), "true"))) != "false",
 
 		AIModerationEnabled:      aiModerationEnabled,
 		AIModerationPollInterval: aiPollInterval,
