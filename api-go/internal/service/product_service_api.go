@@ -152,9 +152,28 @@ type ProductSearchQuery struct {
 
 func (s *ProductService) FindAll(ctx context.Context, viewer *int32, q ProductSearchQuery, useSearch bool) ([]map[string]any, error) {
 	if !useSearch {
-		rows, err := s.prod.ListProductsPublic(ctx, `p."createdAt" DESC`, 0, 0)
+		rows, err := s.prod.ListProductsPublic(ctx, `CASE
+			WHEN COALESCE((
+				SELECT MAX(pr."pricePerDay") FROM "ProductPromotion" pp
+				JOIN "Promotion" pr ON pr.id = pp."promotionId"
+				WHERE pp."productId" = p.id AND pp."isActive" AND pp."isPaid" AND pp."endDate" >= NOW()
+			), 0) >= 100 THEN 1
+			WHEN COALESCE((
+				SELECT MAX(pr."pricePerDay") FROM "ProductPromotion" pp
+				JOIN "Promotion" pr ON pr.id = pp."promotionId"
+				WHERE pp."productId" = p.id AND pp."isActive" AND pp."isPaid" AND pp."endDate" >= NOW()
+			), 0) > 0 THEN 2
+			ELSE 3
+		END ASC, p."createdAt" DESC`, 0, 0)
 		if err != nil {
 			return nil, err
+		}
+		if s.stat != nil {
+			var uid *int32
+			if viewer != nil {
+				uid = viewer
+			}
+			s.stat.TrackSearch(ctx, uid, q.Search, q.Region, q.CategorySlug, q.SubCategorySlug, q.TypeSlug, len(rows))
 		}
 		return s.mapListWithFavorites(ctx, rows, viewer)
 	}
@@ -204,6 +223,14 @@ func (s *ProductService) FindAll(ctx context.Context, viewer *int32, q ProductSe
 	if err != nil {
 		return nil, err
 	}
+	rows = enforcePaidSlots(rows, q.Page, q.Limit)
+	if s.stat != nil {
+		var uid *int32
+		if viewer != nil {
+			uid = viewer
+		}
+		s.stat.TrackSearch(ctx, uid, q.Search, q.Region, q.CategorySlug, q.SubCategorySlug, q.TypeSlug, len(rows))
+	}
 	return s.mapListWithFavorites(ctx, rows, viewer)
 }
 
@@ -224,6 +251,28 @@ func (s *ProductService) RandomProducts(ctx context.Context, viewer *int32) ([]m
 		out = append(out, s.formatListItem(pr, fav, false, 0))
 	}
 	return out, nil
+}
+
+func (s *ProductService) RecommendedBySubcategory(ctx context.Context, viewer *int32, subcategoryID int32, limit int) ([]map[string]any, error) {
+	rows, err := s.prod.RecommendedBySubcategory(ctx, subcategoryID, limit)
+	if err != nil {
+		return nil, err
+	}
+	paidInTop := 0
+	for i := 0; i < len(rows) && i < 6; i++ {
+		if rows[i].PromotionLevel > 0 {
+			paidInTop++
+			if paidInTop > 2 {
+				for j := i + 1; j < len(rows); j++ {
+					if rows[j].PromotionLevel == 0 {
+						rows[i], rows[j] = rows[j], rows[i]
+						break
+					}
+				}
+			}
+		}
+	}
+	return s.mapListWithFavorites(ctx, rows, viewer)
 }
 
 func (s *ProductService) ProductsByUserID(ctx context.Context, userID int32) ([]map[string]any, error) {

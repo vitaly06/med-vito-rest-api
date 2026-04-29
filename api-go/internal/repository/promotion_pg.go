@@ -14,6 +14,7 @@ var (
 	ErrPromoProductNotFound = errors.New("promotion: product not found")
 	ErrPromoTariffNotFound  = errors.New("promotion: tariff not found")
 	ErrPromoNotOwner        = errors.New("promotion: not product owner")
+	ErrPromoDowngrade       = errors.New("promotion: downgrade not allowed")
 )
 
 type PromotionInsufficientError struct {
@@ -61,6 +62,13 @@ type AddPromotionResult struct {
 	EndDate    time.Time
 }
 
+func (r *PromotionPG) InsertFunnelEvent(ctx context.Context, userID *int32, step string, promotionID, productID *int32) {
+	_, _ = r.pool.Exec(ctx, `
+		INSERT INTO "TariffFunnelEvent" ("userId", step, "promotionId", "productId", "createdAt")
+		VALUES ($1, $2, $3, $4, NOW())`,
+		userID, step, promotionID, productID)
+}
+
 func (r *PromotionPG) AddProductPromotion(ctx context.Context, userID, productID, promotionID, days int32) (*AddPromotionResult, error) {
 	if days < 1 {
 		return nil, fmt.Errorf("days")
@@ -91,6 +99,18 @@ func (r *PromotionPG) AddProductPromotion(ctx context.Context, userID, productID
 	if err != nil {
 		return nil, err
 	}
+	var currentMax int32
+	_ = tx.QueryRow(ctx, `
+		SELECT COALESCE(MAX(pr."pricePerDay"),0)::int
+		FROM "ProductPromotion" pp
+		JOIN "Promotion" pr ON pr.id = pp."promotionId"
+		WHERE pp."productId" = $1
+		  AND pp."isActive" = true
+		  AND pp."isPaid" = true
+		  AND pp."endDate" >= NOW()`, productID).Scan(&currentMax)
+	if currentMax > 0 && pricePerDay < currentMax {
+		return nil, ErrPromoDowngrade
+	}
 
 	totalPrice := int32(int64(days) * int64(pricePerDay))
 	totalF := float64(totalPrice)
@@ -116,14 +136,46 @@ func (r *PromotionPG) AddProductPromotion(ctx context.Context, userID, productID
 	end := start.AddDate(0, 0, int(days))
 
 	var ppID int32
+	var existed bool
 	err = tx.QueryRow(ctx, `
-		INSERT INTO "ProductPromotion" ("productId", "promotionId", "userId", days, "totalPrice", "startDate", "endDate", "isActive", "isPaid", "createdAt", "updatedAt")
-		VALUES ($1,$2,$3,$4,$5,$6,$7,true,false,NOW(),NOW())
-		RETURNING id`,
-		productID, promotionID, userID, days, totalPrice, start, end,
-	).Scan(&ppID)
-	if err != nil {
+		SELECT id
+		FROM "ProductPromotion"
+		WHERE "productId" = $1 AND "promotionId" = $2 AND "isActive" = true AND "isPaid" = true AND "endDate" >= NOW()
+		ORDER BY "endDate" DESC
+		LIMIT 1`, productID, promotionID).Scan(&ppID)
+	if err == nil {
+		existed = true
+	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return nil, err
+	}
+
+	if existed {
+		var curEnd time.Time
+		if err := tx.QueryRow(ctx, `SELECT "endDate" FROM "ProductPromotion" WHERE id = $1 FOR UPDATE`, ppID).Scan(&curEnd); err != nil {
+			return nil, err
+		}
+		newEnd := curEnd.AddDate(0, 0, int(days))
+		if _, err := tx.Exec(ctx, `
+			UPDATE "ProductPromotion"
+			SET days = days + $2,
+			    "totalPrice" = "totalPrice" + $3,
+			    "endDate" = $4,
+			    "updatedAt" = NOW()
+			WHERE id = $1`, ppID, days, totalPrice, newEnd); err != nil {
+			return nil, err
+		}
+		start = curEnd
+		end = newEnd
+	} else {
+		err = tx.QueryRow(ctx, `
+			INSERT INTO "ProductPromotion" ("productId", "promotionId", "userId", days, "totalPrice", "startDate", "endDate", "isActive", "isPaid", "createdAt", "updatedAt")
+			VALUES ($1,$2,$3,$4,$5,$6,$7,true,false,NOW(),NOW())
+			RETURNING id`,
+			productID, promotionID, userID, days, totalPrice, start, end,
+		).Scan(&ppID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	newBal := bal - balanceUsed
@@ -134,9 +186,14 @@ func (r *PromotionPG) AddProductPromotion(ctx context.Context, userID, productID
 	if _, err := tx.Exec(ctx, `UPDATE "ProductPromotion" SET "isPaid" = true, "updatedAt" = NOW() WHERE id = $1`, ppID); err != nil {
 		return nil, err
 	}
+	if _, err := tx.Exec(ctx, `UPDATE "Product" SET "updatedAt" = NOW() WHERE id = $1`, productID); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
+	r.InsertFunnelEvent(ctx, &userID, "payment", &promotionID, &productID)
+	r.InsertFunnelEvent(ctx, &userID, "publication", &promotionID, &productID)
 	return &AddPromotionResult{
 		ID:         ppID,
 		Days:       days,

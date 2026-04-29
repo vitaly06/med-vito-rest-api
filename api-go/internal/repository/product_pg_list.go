@@ -10,7 +10,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// ProductListRow — строка для списков (all-products, поиск, избранное).
 type ProductListRow struct {
 	ID              int32
 	Images          []string
@@ -31,7 +30,12 @@ type ProductListRow struct {
 	TypeName        *string
 	TypeSlug        *string
 	PromotionLevel  int32
-	ModerateState   *string // только где нужно (модерация)
+	PromotionName   *string
+	SellerRating    *int32
+	SellerVerified  bool
+	ViewsCount      int32
+	PopularityScore float64
+	ModerateState   *string
 }
 
 const productListSelect = `
@@ -45,13 +49,28 @@ const productListSelect = `
 		WHERE pp."productId" = p.id AND pp."isActive" AND pp."isPaid" AND pp."endDate" >= NOW()
 		ORDER BY pr."pricePerDay" DESC LIMIT 1
 	), 0)::int,
+	(
+		SELECT pr.name FROM "ProductPromotion" pp
+		JOIN "Promotion" pr ON pr.id = pp."promotionId"
+		WHERE pp."productId" = p.id AND pp."isActive" AND pp."isPaid" AND pp."endDate" >= NOW()
+		ORDER BY pr."pricePerDay" DESC LIMIT 1
+	),
+	u.rating,
+	COALESCE(u."isEmailVerified", false),
+	COALESCE((SELECT COUNT(*)::int FROM "ProductView" pv WHERE pv."productId" = p.id), 0)::int,
+	(
+		(COALESCE((SELECT COUNT(*)::numeric FROM "ProductView" pv WHERE pv."productId" = p.id), 0) * 0.5) +
+		(COALESCE(u.rating, 0)::numeric * 0.3) +
+		(CASE WHEN array_length(p.images, 1) IS NULL OR array_length(p.images, 1) = 0 THEN 0 ELSE 20 END * 0.2)
+	)::float8,
 	p."moderateState"::text`
 
 const productListFrom = `
 	FROM "Product" p
 	JOIN "Category" c ON c.id = p."categoryId"
 	JOIN "SubCategory" sc ON sc.id = p."subCategoryId"
-	LEFT JOIN "SubcategotyType" t ON t.id = p."typeId"`
+	LEFT JOIN "SubcategotyType" t ON t.id = p."typeId"
+	JOIN "User" u ON u.id = p."userId"`
 
 func (r *ProductPG) scanProductListRow(row pgx.Row) (*ProductListRow, error) {
 	var pr ProductListRow
@@ -63,7 +82,7 @@ func (r *ProductPG) scanProductListRow(row pgx.Row) (*ProductListRow, error) {
 		&pr.CategoryID, &pr.CategoryName, &pr.CategorySlug,
 		&pr.SubCategoryID, &pr.SubCategoryName, &pr.SubCategorySlug,
 		&typeID, &typeName, &typeSlug,
-		&pr.PromotionLevel, &mod,
+		&pr.PromotionLevel, &pr.PromotionName, &pr.SellerRating, &pr.SellerVerified, &pr.ViewsCount, &pr.PopularityScore, &mod,
 	)
 	pr.TypeID, pr.TypeName, pr.TypeSlug = typeID, typeName, typeSlug
 	pr.ModerateState = mod
@@ -73,7 +92,6 @@ func (r *ProductPG) scanProductListRow(row pgx.Row) (*ProductListRow, error) {
 	return &pr, nil
 }
 
-// ListProductsPublic — одобренные, не скрытые; limit<=0 — без LIMIT (как Nest findMany без take).
 func (r *ProductPG) ListProductsPublic(ctx context.Context, orderClause string, limit, offset int) ([]ProductListRow, error) {
 	base := fmt.Sprintf(`SELECT %s %s
 		WHERE p."moderateState" = 'APPROVED'::"ProductModerate" AND p."isHide" = false
@@ -107,7 +125,7 @@ func scanProductListRows(rows pgx.Rows) ([]ProductListRow, error) {
 			&pr.CategoryID, &pr.CategoryName, &pr.CategorySlug,
 			&pr.SubCategoryID, &pr.SubCategoryName, &pr.SubCategorySlug,
 			&typeID, &typeName, &typeSlug,
-			&pr.PromotionLevel, &mod,
+			&pr.PromotionLevel, &pr.PromotionName, &pr.SellerRating, &pr.SellerVerified, &pr.ViewsCount, &pr.PopularityScore, &mod,
 		)
 		if err != nil {
 			return nil, err
@@ -119,7 +137,6 @@ func scanProductListRows(rows pgx.Rows) ([]ProductListRow, error) {
 	return out, rows.Err()
 }
 
-// ListProductsModerate — на модерации.
 func (r *ProductPG) ListProductsModerate(ctx context.Context) ([]ProductListRow, error) {
 	q := fmt.Sprintf(`SELECT %s %s
 		WHERE p."moderateState" IN ('MODERATE'::"ProductModerate", 'AI_REVIEWED'::"ProductModerate")
@@ -154,7 +171,6 @@ func (r *ProductPG) ListFavoriteProducts(ctx context.Context, userID int32) ([]P
 	return scanProductListRows(rows)
 }
 
-// RandomSubcategoriesWithProducts — до 5 подкатегорий со случайным товаром (как Nest).
 func (r *ProductPG) RandomSubcategoriesWithProducts(ctx context.Context) ([]ProductListRow, error) {
 	const subQ = `
 		SELECT sc.id FROM "SubCategory" sc
@@ -196,7 +212,43 @@ func (r *ProductPG) RandomSubcategoriesWithProducts(ctx context.Context) ([]Prod
 	return out, nil
 }
 
-// ProductSearchParams — фильтры для поиска.
+func (r *ProductPG) RecommendedBySubcategory(ctx context.Context, subcategoryID int32, limit int) ([]ProductListRow, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	q := fmt.Sprintf(`SELECT %s %s
+		WHERE p."moderateState" = 'APPROVED'::"ProductModerate"
+		  AND p."isHide" = false
+		  AND p."subCategoryId" = $1
+		  AND NOT EXISTS (SELECT 1 FROM "ProductReservation" pr WHERE pr."productId" = p.id AND pr.status = 'ACTIVE')
+		ORDER BY
+		  CASE
+		    WHEN COALESCE((
+		      SELECT MAX(pr."pricePerDay")
+		      FROM "ProductPromotion" pp
+		      JOIN "Promotion" pr ON pr.id = pp."promotionId"
+		      WHERE pp."productId" = p.id AND pp."isActive" = true AND pp."isPaid" = true AND pp."endDate" >= NOW()
+		    ), 0) >= 100 THEN 1
+		    WHEN COALESCE((
+		      SELECT MAX(pr."pricePerDay")
+		      FROM "ProductPromotion" pp
+		      JOIN "Promotion" pr ON pr.id = pp."promotionId"
+		      WHERE pp."productId" = p.id AND pp."isActive" = true AND pp."isPaid" = true AND pp."endDate" >= NOW()
+		    ), 0) > 0 THEN 2
+		    ELSE 3
+		  END ASC,
+		  COALESCE((SELECT COUNT(*) FROM "ProductView" pv WHERE pv."productId" = p.id), 0) DESC,
+		  COALESCE(u.rating, 0) DESC,
+		  p."createdAt" DESC
+		LIMIT $2`, productListSelect, productListFrom)
+	rows, err := r.pool.Query(ctx, q, subcategoryID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanProductListRows(rows)
+}
+
 type ProductSearchParams struct {
 	Search        *string
 	CategoryID    *int32
@@ -207,7 +259,7 @@ type ProductSearchParams struct {
 	State         *string
 	Region        *string
 	ProfileType   *string
-	FieldValues   map[string]string // fieldId -> contains
+	FieldValues   map[string]string
 	SortBy        string
 	Page, Limit   int
 }
@@ -279,7 +331,7 @@ func (r *ProductPG) SearchProducts(ctx context.Context, p ProductSearchParams) (
 		n++
 	}
 	if p.ProfileType != nil && *p.ProfileType != "" {
-		where = append(where, fmt.Sprintf(`EXISTS (SELECT 1 FROM "User" u WHERE u.id = p."userId" AND u."profileType" = $%d::"ProfileType")`, n))
+		where = append(where, fmt.Sprintf(`EXISTS (SELECT 1 FROM "User" ux WHERE ux.id = p."userId" AND ux."profileType" = $%d::"ProfileType")`, n))
 		args = append(args, *p.ProfileType)
 		n++
 	}
@@ -294,16 +346,39 @@ func (r *ProductPG) SearchProducts(ctx context.Context, p ProductSearchParams) (
 		where = append(where, `EXISTS (SELECT 1 FROM "ProductFieldValue" pfv WHERE pfv."productId" = p.id AND (`+strings.Join(orParts, " OR ")+`))`)
 	}
 
-	order := `p."createdAt" DESC`
+	paidRankSQL := `CASE
+		WHEN COALESCE((
+			SELECT MAX(pr."pricePerDay") FROM "ProductPromotion" pp
+			JOIN "Promotion" pr ON pr.id = pp."promotionId"
+			WHERE pp."productId" = p.id AND pp."isActive" AND pp."isPaid" AND pp."endDate" >= NOW()
+		), 0) >= 100 THEN 1
+		WHEN COALESCE((
+			SELECT MAX(pr."pricePerDay") FROM "ProductPromotion" pp
+			JOIN "Promotion" pr ON pr.id = pp."promotionId"
+			WHERE pp."productId" = p.id AND pp."isActive" AND pp."isPaid" AND pp."endDate" >= NOW()
+		), 0) > 0 THEN 2
+		ELSE 3
+	END`
+	order := paidRankSQL + ` ASC, p."createdAt" DESC`
 	switch p.SortBy {
 	case "price_asc":
-		order = `p.price ASC`
+		order = paidRankSQL + ` ASC, p.price ASC, p."createdAt" DESC`
 	case "price_desc":
-		order = `p.price DESC`
+		order = paidRankSQL + ` ASC, p.price DESC, p."createdAt" DESC`
 	case "date_asc":
-		order = `p."createdAt" ASC`
+		order = paidRankSQL + ` ASC, p."createdAt" ASC`
+	case "seller_rating":
+		order = paidRankSQL + ` ASC, COALESCE(u.rating, 0) DESC, p."createdAt" DESC`
+	case "popularity":
+		order = paidRankSQL + ` ASC,
+		COALESCE((SELECT COUNT(*) FROM "ProductView" pv WHERE pv."productId" = p.id),0) DESC,
+		COALESCE(u.rating, 0) DESC,
+		p."createdAt" DESC`
 	case "date_desc", "relevance", "":
-		order = `p."createdAt" DESC`
+		order = paidRankSQL + ` ASC,
+		COALESCE((SELECT COUNT(*) FROM "ProductView" pv WHERE pv."productId" = p.id),0) DESC,
+		COALESCE(u.rating, 0) DESC,
+		p."createdAt" DESC`
 	}
 
 	whereSQL := strings.Join(where, " AND ")
@@ -328,7 +403,6 @@ func parseInt32(s string) (int32, bool) {
 	return int32(v), true
 }
 
-// ProductCardDB — сырые поля карточки товара.
 type ProductCardDB struct {
 	ID           int32
 	Name         string
@@ -394,7 +468,6 @@ func (r *ProductPG) GetProductCard(ctx context.Context, productID int32) (*Produ
 	return &card, frows.Err()
 }
 
-// LoadProductWithRelations — ответ после create/update (как Prisma include).
 func (r *ProductPG) LoadProductWithRelations(ctx context.Context, productID int32) (map[string]any, error) {
 	card, err := r.GetProductCard(ctx, productID)
 	if err != nil {
@@ -413,21 +486,21 @@ func (r *ProductPG) LoadProductWithRelations(ctx context.Context, productID int3
 	}
 	out := map[string]any{
 		"id": card.ID, "name": card.Name, "description": card.Description, "price": card.Price,
-		"state":  nil, // заполним отдельно если нужно
-		"images": card.Images, "address": card.Address, "videoUrl": card.VideoURL,
+		"state":       nil,
+		"images":      card.Images,
+		"address":     card.Address,
+		"videoUrl":    card.VideoURL,
 		"category":    map[string]any{"id": card.CategoryID, "name": card.CategoryName},
 		"subCategory": map[string]any{"id": card.SubCatID, "name": card.SubCatName},
 		"user":        map[string]any{"id": uid, "fullName": fullName, "email": email, "rating": rating},
 		"fieldValues": fv,
 	}
-	// state из Product
 	var st string
 	_ = r.pool.QueryRow(ctx, `SELECT state::text FROM "Product" WHERE id = $1`, productID).Scan(&st)
 	out["state"] = st
 	return out, nil
 }
 
-// PromotedProductRow — админский список продвижений.
 type PromotedProductRow struct {
 	ProductID   int32
 	Name        string

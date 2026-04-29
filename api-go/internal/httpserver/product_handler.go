@@ -161,6 +161,29 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 		return c.JSON(out)
 	})
 
+	g.Get("/recommended", opt, func(c *fiber.Ctx) error {
+		subID, err := strconv.ParseInt(c.Query("subcategoryId"), 10, 32)
+		if err != nil || subID < 1 {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный subcategoryId"})
+		}
+		limit := 20
+		if v := strings.TrimSpace(c.Query("limit")); v != "" {
+			n, err := strconv.Atoi(v)
+			if err == nil && n > 0 {
+				limit = n
+			}
+		}
+		var viewer *int32
+		if u := authmw.UserFromLocals(c); u != nil {
+			viewer = &u.ID
+		}
+		out, err := p.RecommendedBySubcategory(c.UserContext(), viewer, int32(subID), limit)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
 	g.Get("/user-products/:id", func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 32)
 		if err != nil {

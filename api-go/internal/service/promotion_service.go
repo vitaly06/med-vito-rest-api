@@ -20,20 +20,28 @@ func (s *PromotionService) AllPromotions(ctx context.Context) ([]repository.Prom
 	return s.repo.ListTariffs(ctx)
 }
 
+func (s *PromotionService) TrackTariffView(ctx context.Context, userID *int32) {
+	s.repo.InsertFunnelEvent(ctx, userID, "tariff_view", nil, nil)
+}
+
 func (s *PromotionService) AddPromotion(ctx context.Context, userID, productID, promotionID, days int32) (map[string]any, error) {
+	s.repo.InsertFunnelEvent(ctx, &userID, "tariff_select", &promotionID, &productID)
 	res, err := s.repo.AddProductPromotion(ctx, userID, productID, promotionID, days)
 	if errors.Is(err, repository.ErrPromoProductNotFound) {
 		return nil, &AppError{404, "Товар не найден"}
 	}
 	if errors.Is(err, repository.ErrPromoTariffNotFound) {
-		return nil, &AppError{404, "Тип продвижения не найден"}
+		return nil, &AppError{404, "Тариф продвижения не найден"}
 	}
 	if errors.Is(err, repository.ErrPromoNotOwner) {
-		return nil, &AppError{403, "Вы не можете продвигать чужой товар"}
+		return nil, &AppError{403, "Нельзя продвигать чужой товар"}
+	}
+	if errors.Is(err, repository.ErrPromoDowngrade) {
+		return nil, &AppError{400, "Понижение типа объявления не предусмотрено: доступен только апгрейд"}
 	}
 	var ins *repository.PromotionInsufficientError
 	if errors.As(err, &ins) {
-		return nil, &AppError{400, fmt.Sprintf("На балансе недостаточно средств. Требуется: %g₽, доступно: %g₽", ins.Required, ins.Available)}
+		return nil, &AppError{400, fmt.Sprintf("Недостаточно средств. Требуется: %g₽, доступно: %g₽", ins.Required, ins.Available)}
 	}
 	if err != nil {
 		return nil, err
@@ -49,3 +57,4 @@ func (s *PromotionService) AddPromotion(ctx context.Context, userID, productID, 
 		},
 	}, nil
 }
+

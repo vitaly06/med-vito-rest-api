@@ -166,7 +166,17 @@ func (r *ProductPG) ListProductsForModeration(ctx context.Context, filter string
 		JOIN "SubCategory" sc ON sc.id = p."subCategoryId"
 		JOIN "User" u ON u.id = p."userId"
 		WHERE `+whereSQL+`
-		ORDER BY p."updatedAt" DESC
+		ORDER BY
+			CASE
+				WHEN COALESCE((
+					SELECT MAX(pr."pricePerDay")
+					FROM "ProductPromotion" pp
+					JOIN "Promotion" pr ON pr.id = pp."promotionId"
+					WHERE pp."productId" = p.id AND pp."isActive" = true AND pp."isPaid" = true AND pp."endDate" >= NOW()
+				), 0) > 0 THEN 1
+				ELSE 2
+			END ASC,
+			p."updatedAt" DESC
 		LIMIT $`+fmt.Sprint(len(args)-1)+` OFFSET $`+fmt.Sprint(len(args)), args...)
 	if err != nil {
 		return nil, 0, err

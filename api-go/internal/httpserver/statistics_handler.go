@@ -55,4 +55,38 @@ func RegisterStatisticsRoutes(app fiber.Router, stat *service.StatisticsService,
 		}
 		return c.JSON(out)
 	})
+
+	g.Get("/search-queries", sess, func(c *fiber.Ctx) error {
+		days := 30
+		if v := strings.TrimSpace(c.Query("days")); v != "" {
+			n, err := strconv.Atoi(v)
+			if err != nil || n < 1 {
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный days"})
+			}
+			days = n
+		}
+		me := authmw.UserFromLocals(c)
+		out, err := stat.SearchQueriesInsights(c.UserContext(), me.ID, days)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
+	g.Get("/cabinet-dashboard", sess, func(c *fiber.Ctx) error {
+		days := 30
+		if v := strings.TrimSpace(c.Query("days")); v != "" {
+			n, err := strconv.Atoi(v)
+			if err != nil || n < 1 {
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный days"})
+			}
+			days = n
+		}
+		me := authmw.UserFromLocals(c)
+		out, err := stat.CabinetDashboard(c.UserContext(), me.ID, days)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
 }

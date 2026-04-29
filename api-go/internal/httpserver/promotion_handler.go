@@ -12,6 +12,11 @@ func RegisterPromotionRoutes(app fiber.Router, promo *service.PromotionService, 
 	g := app.Group("/promotion")
 
 	g.Get("/all-promotions", func(c *fiber.Ctx) error {
+		var uid *int32
+		if u, err := auth.UserFromSession(c.UserContext(), c.Cookies("session_id")); err == nil && u != nil {
+			uid = &u.ID
+		}
+		promo.TrackTariffView(c.UserContext(), uid)
 		out, err := promo.AllPromotions(c.UserContext())
 		if err != nil {
 			return writeAppError(c, err)

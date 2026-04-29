@@ -18,10 +18,11 @@ type ProductService struct {
 	prod *repository.ProductPG
 	s3   *s3client.Client
 	user *UserService
+	stat *StatisticsService
 }
 
-func NewProductService(prod *repository.ProductPG, s3 *s3client.Client, user *UserService) *ProductService {
-	return &ProductService{prod: prod, s3: s3, user: user}
+func NewProductService(prod *repository.ProductPG, s3 *s3client.Client, user *UserService, stat *StatisticsService) *ProductService {
+	return &ProductService{prod: prod, s3: s3, user: user, stat: stat}
 }
 
 func formatProductDate(t time.Time) string {
@@ -34,6 +35,16 @@ func formatProductDate(t time.Time) string {
 }
 
 func (s *ProductService) formatListItem(pr repository.ProductListRow, isFav bool, hasPromo bool, promoLevel int32) map[string]any {
+	badges := make([]string, 0, 3)
+	if pr.PromotionLevel >= 100 {
+		badges = append(badges, "Премиум")
+	}
+	if pr.SellerVerified {
+		badges = append(badges, "Верифицирован")
+	}
+	if pr.ViewsCount > 100 {
+		badges = append(badges, "Срочно")
+	}
 	out := map[string]any{
 		"id":              pr.ID,
 		"images":          pr.Images,
@@ -55,12 +66,44 @@ func (s *ProductService) formatListItem(pr repository.ProductListRow, isFav bool
 		"typeId":          pr.TypeID,
 		"typeName":        pr.TypeName,
 		"typeSlug":        pr.TypeSlug,
+		"promotionName":   pr.PromotionName,
+		"sellerRating":    pr.SellerRating,
+		"sellerVerified":  pr.SellerVerified,
+		"viewsCount":      pr.ViewsCount,
+		"popularityScore": pr.PopularityScore,
+		"badges":          badges,
 	}
 	if pr.ModerateState != nil {
 		out["moderateState"] = *pr.ModerateState
 	}
 	out["isHide"] = pr.IsHide
 	return out
+}
+
+func enforcePaidSlots(rows []repository.ProductListRow, page, limit int) []repository.ProductListRow {
+	if page != 1 || limit <= 0 {
+		return rows
+	}
+	maxPaid := 3
+	if maxPaid > limit {
+		maxPaid = limit
+	}
+	out := make([]repository.ProductListRow, 0, len(rows))
+	paidUsed := 0
+	var overflowPaid []repository.ProductListRow
+	for _, r := range rows {
+		if r.PromotionLevel > 0 {
+			if paidUsed < maxPaid {
+				out = append(out, r)
+				paidUsed++
+			} else {
+				overflowPaid = append(overflowPaid, r)
+			}
+			continue
+		}
+		out = append(out, r)
+	}
+	return append(out, overflowPaid...)
 }
 
 func interleaveLuxRegular(rows []repository.ProductListRow) []repository.ProductListRow {

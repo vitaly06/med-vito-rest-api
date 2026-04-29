@@ -2,10 +2,12 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -179,6 +181,154 @@ func (r *StatisticsPG) ProductsAnalytic(ctx context.Context, userID int32) ([]Pr
 			FavoritedBy:      fcount,
 			PhoneNumberViews: phoneTotal,
 		})
+	}
+	return out, rows.Err()
+}
+
+func (r *StatisticsPG) InsertSearchQueryStat(ctx context.Context, userID *int32, query, region, categorySlug, subCategorySlug, typeSlug *string, resultsCount int) {
+	if query == nil || strings.TrimSpace(*query) == "" {
+		return
+	}
+	_, _ = r.pool.Exec(ctx, `
+		INSERT INTO "SearchQueryStat"
+		(query, "region", "categorySlug", "subCategorySlug", "typeSlug", "resultsCount", "userId", "createdAt")
+		VALUES ($1,$2,$3,$4,$5,$6,$7,NOW())`,
+		strings.TrimSpace(*query), region, categorySlug, subCategorySlug, typeSlug, resultsCount, userID)
+}
+
+func (r *StatisticsPG) UserHasPaidAccess(ctx context.Context, userID int32) (bool, error) {
+	var one int
+	err := r.pool.QueryRow(ctx, `
+		SELECT 1
+		FROM "ProductPromotion" pp
+		JOIN "Product" p ON p.id = pp."productId"
+		WHERE p."userId" = $1
+		  AND pp."isActive" = true
+		  AND pp."isPaid" = true
+		  AND pp."endDate" >= NOW()
+		LIMIT 1`, userID).Scan(&one)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+type SearchQueryStatRow struct {
+	Query       string `json:"query"`
+	Searches    int64  `json:"searches"`
+	AvgResults  int64  `json:"avgResults"`
+	LastSearched string `json:"lastSearched"`
+}
+
+func (r *StatisticsPG) TopSearchQueries(ctx context.Context, days int) ([]SearchQueryStatRow, error) {
+	if days <= 0 {
+		days = 30
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT query, COUNT(*)::bigint, COALESCE(AVG("resultsCount"),0)::bigint, MAX("createdAt")::text
+		FROM "SearchQueryStat"
+		WHERE "createdAt" >= NOW() - ($1::text || ' days')::interval
+		GROUP BY query
+		ORDER BY COUNT(*) DESC, MAX("createdAt") DESC
+		LIMIT 100`, days)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []SearchQueryStatRow
+	for rows.Next() {
+		var row SearchQueryStatRow
+		if err := rows.Scan(&row.Query, &row.Searches, &row.AvgResults, &row.LastSearched); err != nil {
+			return nil, err
+		}
+		out = append(out, row)
+	}
+	return out, rows.Err()
+}
+
+func (r *StatisticsPG) AdsTypeDashboard(ctx context.Context, userID int32) (map[string]any, error) {
+	var freeCount, paidCount int64
+	if err := r.pool.QueryRow(ctx, `
+		SELECT
+			COUNT(*) FILTER (WHERE COALESCE((
+				SELECT MAX(pr."pricePerDay")
+				FROM "ProductPromotion" pp
+				JOIN "Promotion" pr ON pr.id = pp."promotionId"
+				WHERE pp."productId" = p.id AND pp."isActive" = true AND pp."isPaid" = true AND pp."endDate" >= NOW()
+			),0) = 0)::bigint AS free_count,
+			COUNT(*) FILTER (WHERE COALESCE((
+				SELECT MAX(pr."pricePerDay")
+				FROM "ProductPromotion" pp
+				JOIN "Promotion" pr ON pr.id = pp."promotionId"
+				WHERE pp."productId" = p.id AND pp."isActive" = true AND pp."isPaid" = true AND pp."endDate" >= NOW()
+			),0) > 0)::bigint AS paid_count
+		FROM "Product" p
+		WHERE p."userId" = $1`, userID).Scan(&freeCount, &paidCount); err != nil {
+		return nil, err
+	}
+	return map[string]any{"free": freeCount, "paid": paidCount, "total": freeCount + paidCount}, nil
+}
+
+func (r *StatisticsPG) TariffFunnel(ctx context.Context, userID int32, days int) (map[string]int64, error) {
+	if days <= 0 {
+		days = 30
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT step, COUNT(*)::bigint
+		FROM "TariffFunnelEvent"
+		WHERE ("userId" = $1 OR "userId" IS NULL)
+		  AND "createdAt" >= NOW() - ($2::text || ' days')::interval
+		GROUP BY step`, userID, days)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]int64{
+		"tariff_view":   0,
+		"tariff_select": 0,
+		"payment":       0,
+		"publication":   0,
+	}
+	for rows.Next() {
+		var step string
+		var cnt int64
+		if err := rows.Scan(&step, &cnt); err != nil {
+			return nil, err
+		}
+		out[step] = cnt
+	}
+	return out, rows.Err()
+}
+
+func (r *StatisticsPG) RevenueByTypeAndCategory(ctx context.Context, days int) ([]map[string]any, error) {
+	if days <= 0 {
+		days = 30
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT pr.name, c.name, SUM(pp."totalPrice")::bigint
+		FROM "ProductPromotion" pp
+		JOIN "Promotion" pr ON pr.id = pp."promotionId"
+		JOIN "Product" p ON p.id = pp."productId"
+		JOIN "Category" c ON c.id = p."categoryId"
+		WHERE pp."isPaid" = true
+		  AND pp."createdAt" >= NOW() - ($1::text || ' days')::interval
+		GROUP BY pr.name, c.name
+		ORDER BY SUM(pp."totalPrice") DESC`, days)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []map[string]any
+	for rows.Next() {
+		var promo, cat string
+		var sum int64
+		if err := rows.Scan(&promo, &cat, &sum); err != nil {
+			return nil, err
+		}
+		out = append(out, map[string]any{"promotionType": promo, "category": cat, "revenue": sum})
 	}
 	return out, rows.Err()
 }
