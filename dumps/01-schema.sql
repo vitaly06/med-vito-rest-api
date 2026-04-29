@@ -721,6 +721,42 @@ ALTER SEQUENCE public."Role_id_seq" OWNED BY public."Role".id;
 
 
 --
+-- Name: SearchQueryStat; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."SearchQueryStat" (
+    id bigint NOT NULL,
+    query text NOT NULL,
+    region text,
+    "categorySlug" text,
+    "subCategorySlug" text,
+    "typeSlug" text,
+    "resultsCount" integer DEFAULT 0 NOT NULL,
+    "userId" integer,
+    "createdAt" timestamp(3) without time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: SearchQueryStat_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public."SearchQueryStat_id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: SearchQueryStat_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public."SearchQueryStat_id_seq" OWNED BY public."SearchQueryStat".id;
+
+
+--
 -- Name: SubCategory; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -856,6 +892,39 @@ CREATE SEQUENCE public."SupportTicket_id_seq"
 --
 
 ALTER SEQUENCE public."SupportTicket_id_seq" OWNED BY public."SupportTicket".id;
+
+
+--
+-- Name: TariffFunnelEvent; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."TariffFunnelEvent" (
+    id bigint NOT NULL,
+    "userId" integer,
+    step text NOT NULL,
+    "promotionId" integer,
+    "productId" integer,
+    "createdAt" timestamp(3) without time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: TariffFunnelEvent_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public."TariffFunnelEvent_id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: TariffFunnelEvent_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public."TariffFunnelEvent_id_seq" OWNED BY public."TariffFunnelEvent".id;
 
 
 --
@@ -1067,6 +1136,13 @@ ALTER TABLE ONLY public."Role" ALTER COLUMN id SET DEFAULT nextval('public."Role
 
 
 --
+-- Name: SearchQueryStat id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."SearchQueryStat" ALTER COLUMN id SET DEFAULT nextval('public."SearchQueryStat_id_seq"'::regclass);
+
+
+--
 -- Name: SubCategory id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -1092,6 +1168,13 @@ ALTER TABLE ONLY public."SupportMessage" ALTER COLUMN id SET DEFAULT nextval('pu
 --
 
 ALTER TABLE ONLY public."SupportTicket" ALTER COLUMN id SET DEFAULT nextval('public."SupportTicket_id_seq"'::regclass);
+
+
+--
+-- Name: TariffFunnelEvent id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."TariffFunnelEvent" ALTER COLUMN id SET DEFAULT nextval('public."TariffFunnelEvent_id_seq"'::regclass);
 
 
 --
@@ -1246,6 +1329,14 @@ ALTER TABLE ONLY public."Role"
 
 
 --
+-- Name: SearchQueryStat SearchQueryStat_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."SearchQueryStat"
+    ADD CONSTRAINT "SearchQueryStat_pkey" PRIMARY KEY (id);
+
+
+--
 -- Name: SubCategory SubCategory_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1275,6 +1366,14 @@ ALTER TABLE ONLY public."SupportMessage"
 
 ALTER TABLE ONLY public."SupportTicket"
     ADD CONSTRAINT "SupportTicket_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: TariffFunnelEvent TariffFunnelEvent_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."TariffFunnelEvent"
+    ADD CONSTRAINT "TariffFunnelEvent_pkey" PRIMARY KEY (id);
 
 
 --
@@ -1430,6 +1529,20 @@ CREATE UNIQUE INDEX "Role_name_key" ON public."Role" USING btree (name);
 
 
 --
+-- Name: SearchQueryStat_createdAt_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "SearchQueryStat_createdAt_idx" ON public."SearchQueryStat" USING btree ("createdAt");
+
+
+--
+-- Name: SearchQueryStat_query_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "SearchQueryStat_query_idx" ON public."SearchQueryStat" USING btree (query);
+
+
+--
 -- Name: SubCategory_slug_categoryId_key; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1455,6 +1568,20 @@ CREATE INDEX "SubcategotyType_slug_idx" ON public."SubcategotyType" USING btree 
 --
 
 CREATE UNIQUE INDEX "SubcategotyType_slug_subcategoryId_key" ON public."SubcategotyType" USING btree (slug, "subcategoryId");
+
+
+--
+-- Name: TariffFunnelEvent_createdAt_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "TariffFunnelEvent_createdAt_idx" ON public."TariffFunnelEvent" USING btree ("createdAt");
+
+
+--
+-- Name: TariffFunnelEvent_step_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "TariffFunnelEvent_step_idx" ON public."TariffFunnelEvent" USING btree (step);
 
 
 --
@@ -1743,6 +1870,14 @@ ALTER TABLE ONLY public."Review"
 
 
 --
+-- Name: SearchQueryStat SearchQueryStat_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."SearchQueryStat"
+    ADD CONSTRAINT "SearchQueryStat_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON DELETE SET NULL;
+
+
+--
 -- Name: SubCategory SubCategory_categoryId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1788,6 +1923,30 @@ ALTER TABLE ONLY public."SupportTicket"
 
 ALTER TABLE ONLY public."SupportTicket"
     ADD CONSTRAINT "SupportTicket_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: TariffFunnelEvent TariffFunnelEvent_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."TariffFunnelEvent"
+    ADD CONSTRAINT "TariffFunnelEvent_productId_fkey" FOREIGN KEY ("productId") REFERENCES public."Product"(id) ON DELETE SET NULL;
+
+
+--
+-- Name: TariffFunnelEvent TariffFunnelEvent_promotionId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."TariffFunnelEvent"
+    ADD CONSTRAINT "TariffFunnelEvent_promotionId_fkey" FOREIGN KEY ("promotionId") REFERENCES public."Promotion"(id) ON DELETE SET NULL;
+
+
+--
+-- Name: TariffFunnelEvent TariffFunnelEvent_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."TariffFunnelEvent"
+    ADD CONSTRAINT "TariffFunnelEvent_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON DELETE SET NULL;
 
 
 --
