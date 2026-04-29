@@ -15,6 +15,7 @@ import (
 	"github.com/googollee/go-socket.io/engineio"
 
 	"med-vito/api-go/internal/domain"
+	"med-vito/api-go/internal/rbac"
 	"med-vito/api-go/internal/service"
 )
 
@@ -74,7 +75,8 @@ func supportModeratorFromCtx(c socketio.Conn) bool {
 	if sc == nil {
 		return false
 	}
-	return sc.RoleName == "moderator" || sc.RoleName == "admin"
+	rn := sc.RoleName
+	return rbac.HasMinRole(&rn, 70)
 }
 
 // RegisterSocketIO — один движок /socket.io: неймспейсы /chat и /support (как Nest).
@@ -306,7 +308,8 @@ func registerSupportNamespace(server *socketio.Server, auth *service.AuthService
 			c.Emit("error", map[string]interface{}{"message": "Нет авторизации"})
 			return
 		}
-		if sc.RoleName != "moderator" && sc.RoleName != "admin" {
+		rn := sc.RoleName
+		if !rbac.HasMinRole(&rn, 70) {
 			c.Emit("error", map[string]interface{}{"message": "Нет прав для изменения статуса тикета"})
 			return
 		}

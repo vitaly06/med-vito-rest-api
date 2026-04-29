@@ -8,19 +8,19 @@ import (
 
 	authmw "med-vito/api-go/internal/httpserver/middleware"
 	"med-vito/api-go/internal/domain"
+	"med-vito/api-go/internal/rbac"
 	"med-vito/api-go/internal/service"
 )
 
 func supportIsModerator(u *domain.UserEntity) bool {
-	if u == nil || u.RoleName == nil {
+	if u == nil {
 		return false
 	}
-	r := *u.RoleName
-	return r == "moderator" || r == "admin"
+	return rbac.HasMinRole(u.RoleName, 70)
 }
 
 func supportIsAdmin(u *domain.UserEntity) bool {
-	return u != nil && u.RoleName != nil && *u.RoleName == "admin"
+	return u != nil && rbac.HasMinRole(u.RoleName, 90)
 }
 
 func parseSupportPageLimit(c *fiber.Ctx) (page, limit int) {

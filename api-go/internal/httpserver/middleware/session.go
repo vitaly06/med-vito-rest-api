@@ -4,12 +4,12 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"med-vito/api-go/internal/domain"
+	"med-vito/api-go/internal/rbac"
 	"med-vito/api-go/internal/service"
 )
 
 const UserLocalsKey = "user"
 
-// RequireSession — как SessionAuthGuard: кука session_id, пользователь в Locals.
 func RequireSession(auth *service.AuthService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		sid := c.Cookies("session_id")
@@ -35,7 +35,7 @@ func RequireSession(auth *service.AuthService) fiber.Handler {
 		if u.IsBanned {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 				"statusCode": fiber.StatusForbidden,
-				"message":    "Ваш аккаунт заблокирован. Пожалуйста, обратитесь в поддержку",
+				"message":    "Ваш аккаунт заблокирован",
 			})
 		}
 		c.Locals(UserLocalsKey, u)
@@ -43,8 +43,7 @@ func RequireSession(auth *service.AuthService) fiber.Handler {
 	}
 }
 
-// RequireAdmin — как AdminSessionAuthGuard: роль admin.
-func RequireAdmin(auth *service.AuthService) fiber.Handler {
+func RequireRoleLevel(auth *service.AuthService, minLevel int, denyMessage string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		sid := c.Cookies("session_id")
 		if sid == "" {
@@ -66,16 +65,19 @@ func RequireAdmin(auth *service.AuthService) fiber.Handler {
 				"message":    "Сессия недействительна или истекла",
 			})
 		}
-		if u.RoleName == nil || *u.RoleName != "admin" {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"statusCode": fiber.StatusForbidden,
-				"message":    "Доступ запрещён",
-			})
-		}
 		if u.IsBanned {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 				"statusCode": fiber.StatusForbidden,
-				"message":    "Ваш аккаунт заблокирован. Пожалуйста, обратитесь в поддержку",
+				"message":    "Ваш аккаунт заблокирован",
+			})
+		}
+		if !rbac.HasMinRole(u.RoleName, minLevel) {
+			if denyMessage == "" {
+				denyMessage = "Доступ запрещен"
+			}
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"statusCode": fiber.StatusForbidden,
+				"message":    denyMessage,
 			})
 		}
 		c.Locals(UserLocalsKey, u)
@@ -83,7 +85,14 @@ func RequireAdmin(auth *service.AuthService) fiber.Handler {
 	}
 }
 
-// OptionalSession — как OptionalSessionAuthGuard.
+func RequireAdmin(auth *service.AuthService) fiber.Handler {
+	return RequireRoleLevel(auth, 90, "Доступ разрешен только для администраторов")
+}
+
+func RequireModerator(auth *service.AuthService) fiber.Handler {
+	return RequireRoleLevel(auth, 70, "Доступ разрешен только для модераторов и выше")
+}
+
 func OptionalSession(auth *service.AuthService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		sid := c.Cookies("session_id")
@@ -99,7 +108,6 @@ func OptionalSession(auth *service.AuthService) fiber.Handler {
 	}
 }
 
-// UserFromLocals — после RequireSession / RequireAdmin.
 func UserFromLocals(c *fiber.Ctx) *domain.UserEntity {
 	v := c.Locals(UserLocalsKey)
 	if v == nil {
@@ -108,3 +116,4 @@ func UserFromLocals(c *fiber.Ctx) *domain.UserEntity {
 	u, _ := v.(*domain.UserEntity)
 	return u
 }
+

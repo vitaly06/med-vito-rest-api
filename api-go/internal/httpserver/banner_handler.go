@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	authmw "med-vito/api-go/internal/httpserver/middleware"
+	"med-vito/api-go/internal/rbac"
 	"med-vito/api-go/internal/service"
 )
 
@@ -53,7 +54,7 @@ func RegisterBannerRoutes(app fiber.Router, ban *service.BannerService, auth *se
 		nav := firstFormValue(form.Value, "navigateToUrl")
 		name := firstFormValue(form.Value, "name")
 		me := authmw.UserFromLocals(c)
-		isAdmin := me.RoleName != nil && *me.RoleName == "admin"
+		isAdmin := rbac.HasMinRole(me.RoleName, 90)
 		out, err := ban.Create(c.UserContext(), me.ID, isAdmin, up, place, nav, name)
 		if err != nil {
 			return writeAppError(c, err)

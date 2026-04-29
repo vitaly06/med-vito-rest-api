@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"med-vito/api-go/internal/config"
+	"med-vito/api-go/internal/domain"
 	"med-vito/api-go/internal/repository"
 )
 
@@ -286,7 +287,13 @@ func (s *ModerationService) processProduct(ctx context.Context, product reposito
 }
 
 func (s *ModerationService) applyDecision(ctx context.Context, productID int32, state string, reason *string) error {
-	return s.repo.SetModerationState(ctx, productID, state, reason)
+	if err := s.repo.SetModerationState(ctx, productID, state, reason); err != nil {
+		return err
+	}
+	payload, _ := json.Marshal(map[string]any{"state": state, "reason": reason})
+	actorRole := "AI"
+	s.repo.InsertModerationAudit(ctx, nil, &actorRole, "product", int64(productID), "AI_MODERATION_DECISION", payload)
+	return nil
 }
 
 func (s *ModerationService) moderateText(ctx context.Context, name string, description *string, categoryName, subcategoryName string, price int32) (*TextModerationResult, error) {
@@ -580,6 +587,84 @@ func (s *ModerationAdminService) GetProduct(ctx context.Context, productID int32
 			"profileType": item.UserProfileType,
 		},
 		"fieldValues": fieldValues,
+	}, nil
+}
+
+func (s *ModerationAdminService) AddAppeal(ctx context.Context, userID, productID int32, reason string) error {
+	if strings.TrimSpace(reason) == "" {
+		return &AppError{400, "Причина апелляции обязательна"}
+	}
+	if err := s.repo.CreateAppeal(ctx, productID, userID, reason); err != nil {
+		return err
+	}
+	payload, _ := json.Marshal(map[string]any{"reason": reason})
+	uid := userID
+	role := "USER"
+	s.repo.InsertModerationAudit(ctx, &uid, &role, "appeal", int64(productID), "APPEAL_CREATED", payload)
+	return nil
+}
+
+func (s *ModerationAdminService) Appeals(ctx context.Context, me *domain.UserEntity, onlyMine bool) ([]repository.ModerationAppealRow, error) {
+	if onlyMine {
+		uid := me.ID
+		return s.repo.ListAppeals(ctx, &uid)
+	}
+	return s.repo.ListAppeals(ctx, nil)
+}
+
+func (s *ModerationAdminService) ReviewAppeal(ctx context.Context, me *domain.UserEntity, appealID int64, status string, comment *string) error {
+	status = strings.ToUpper(strings.TrimSpace(status))
+	if status != "APPROVED" && status != "REJECTED" {
+		return &AppError{400, "status должен быть APPROVED или REJECTED"}
+	}
+	if err := s.repo.ReviewAppeal(ctx, appealID, me.ID, status, comment); err != nil {
+		return err
+	}
+	payload, _ := json.Marshal(map[string]any{"status": status, "comment": comment})
+	role := ""
+	if me.RoleName != nil {
+		role = *me.RoleName
+	}
+	uid := me.ID
+	s.repo.InsertModerationAudit(ctx, &uid, &role, "appeal", appealID, "APPEAL_REVIEWED", payload)
+	return nil
+}
+
+func (s *ModerationAdminService) AuditLogs(ctx context.Context, limit int) ([]map[string]any, error) {
+	rows, err := s.repo.ListModerationAudit(ctx, limit)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]map[string]any, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, map[string]any{
+			"id":          r.ID,
+			"actorUserId": r.ActorUserID,
+			"actorRole":   r.ActorRole,
+			"targetType":  r.TargetType,
+			"targetId":    r.TargetID,
+			"action":      r.Action,
+			"payload":     json.RawMessage(r.Payload),
+			"createdAt":   r.CreatedAt,
+		})
+	}
+	return out, nil
+}
+
+func (s *ModerationAdminService) Summary(ctx context.Context, days int) (map[string]any, error) {
+	denied, approvedAI, appealsOpen, err := s.repo.ModerationSummary(ctx, days)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"days":         days,
+		"denied":       denied,
+		"approvedAI":   approvedAI,
+		"appealsOpen":  appealsOpen,
+		"topComplaints": []map[string]any{
+			{"type": "appeals_open", "count": appealsOpen},
+			{"type": "denied_ads", "count": denied},
+		},
 	}, nil
 }
 

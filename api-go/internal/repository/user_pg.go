@@ -495,3 +495,21 @@ func (r *UserPG) UpdateUserAdmin(ctx context.Context, userID int32, p AdminUserP
 	}
 	return nil
 }
+
+func (r *UserPG) SetUserRoleByName(ctx context.Context, userID int32, roleName string) error {
+	var roleID int32
+	if err := r.pool.QueryRow(ctx, `SELECT id FROM "Role" WHERE name = $1`, roleName).Scan(&roleID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		return err
+	}
+	tag, err := r.pool.Exec(ctx, `UPDATE "User" SET "roleId" = $2, "updatedAt" = NOW() WHERE id = $1`, userID, roleID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}

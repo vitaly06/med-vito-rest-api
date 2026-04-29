@@ -154,6 +154,24 @@ func RegisterUserRoutes(app fiber.Router, u *service.UserService, auth *service.
 		return c.JSON(out)
 	})
 
+	g.Put("/:id/role", adm, func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 32)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
+		}
+		var body struct {
+			Role string `json:"role"`
+		}
+		if err := c.BodyParser(&body); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректное тело"})
+		}
+		out, err := u.AdminSetUserRole(c.UserContext(), int32(id), body.Role)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
 	g.Delete("/:id", adm, func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 32)
 		if err != nil {

@@ -51,6 +51,13 @@ func NewAuthService(cfg config.Config, rdb *redis.Client, users *repository.User
 	}
 }
 
+func (s *AuthService) defaultUserRoleID(ctx context.Context) (int32, error) {
+	if id, err := s.users.RoleIDByName(ctx, "USER"); err == nil {
+		return id, nil
+	}
+	return s.users.RoleIDByName(ctx, "default")
+}
+
 type sessionPayload struct {
 	UserID      int32  `json:"userId"`
 	Email       string `json:"email"`
@@ -155,10 +162,10 @@ func (s *AuthService) VerifyMobileCode(ctx context.Context, code string) error {
 	if cached.Code != code {
 		return &AppError{400, "Неверный код подтверждения"}
 	}
-	roleID, err := s.users.RoleIDByName(ctx, "default")
+	roleID, err := s.defaultUserRoleID(ctx)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return &AppError{404, "Роль default не найдена"}
+			return &AppError{404, "Роль USER/default не найдена"}
 		}
 		return err
 	}
@@ -611,7 +618,7 @@ func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, maxID, email, p
 		fullName = "MAX User"
 	}
 
-	roleID, err := s.users.RoleIDByName(ctx, "default")
+	roleID, err := s.defaultUserRoleID(ctx)
 	if err != nil {
 		return nil, err
 	}

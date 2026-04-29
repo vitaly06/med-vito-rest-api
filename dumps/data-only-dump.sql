@@ -25,6 +25,12 @@ COPY public."Role" (id, name) FROM stdin;
 1	default
 2	moderator
 3	admin
+4	SUPERADMIN
+5	ADMIN
+6	SENIOR_MODERATOR
+7	USER_VERIFIED
+8	USER
+9	GUEST
 \.
 
 
@@ -621,6 +627,22 @@ COPY public."Message" (id, content, "senderId", "chatId", "isRead", "readAt", "c
 4	Hello world!	3235109	147	f	\N	2026-03-03 06:04:14.351	2026-03-03 06:04:14.351	\N
 6	как купить э??	6669460	150	f	\N	2026-03-27 10:24:38.713	2026-03-27 10:24:38.713	\N
 7	доставка будет?	6669460	150	f	\N	2026-03-27 10:24:49.388	2026-03-27 10:24:49.388	\N
+\.
+
+
+--
+-- Data for Name: ModerationAppeal; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public."ModerationAppeal" (id, "productId", "userId", reason, status, "reviewedByUserId", "reviewComment", "createdAt", "updatedAt") FROM stdin;
+\.
+
+
+--
+-- Data for Name: ModerationAuditLog; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public."ModerationAuditLog" (id, "actorUserId", "actorRole", "targetType", "targetId", action, payload, "createdAt") FROM stdin;
 \.
 
 
@@ -1426,6 +1448,7 @@ COPY public."TariffFunnelEvent" (id, "userId", step, "promotionId", "productId",
 COPY public."_GoSchemaMigration" (name, "appliedAt") FROM stdin;
 001_reservations.sql	2026-04-29 02:19:37.642
 002_paid_features.sql	2026-04-29 18:36:16.664
+003_rbac_and_moderation_audit.sql	2026-04-29 22:57:27.207
 \.
 
 
@@ -1499,6 +1522,20 @@ SELECT pg_catalog.setval('public."Message_id_seq"', 7, true);
 
 
 --
+-- Name: ModerationAppeal_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public."ModerationAppeal_id_seq"', 1, false);
+
+
+--
+-- Name: ModerationAuditLog_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public."ModerationAuditLog_id_seq"', 1, false);
+
+
+--
 -- Name: Payment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
@@ -1558,7 +1595,7 @@ SELECT pg_catalog.setval('public."Review_id_seq"', 4, true);
 -- Name: Role_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public."Role_id_seq"', 3, true);
+SELECT pg_catalog.setval('public."Role_id_seq"', 9, true);
 
 
 --

@@ -12,6 +12,7 @@ import (
 
 	"med-vito/api-go/internal/config"
 	mailpkg "med-vito/api-go/internal/pkg/mail"
+	"med-vito/api-go/internal/rbac"
 	"med-vito/api-go/internal/pkg/s3client"
 	"med-vito/api-go/internal/repository"
 )
@@ -377,6 +378,22 @@ func (s *UserService) AdminUpdateUser(ctx context.Context, userID int32, fullNam
 		return nil, err
 	}
 	return fiberMap{"message": "Данные пользователя успешно обновлены"}, nil
+}
+
+func (s *UserService) AdminSetUserRole(ctx context.Context, userID int32, role string) (fiberMap, error) {
+	role = strings.ToUpper(strings.TrimSpace(role))
+	switch role {
+	case rbac.RoleUser, rbac.RoleUserVerified, rbac.RoleSeniorModerator, rbac.RoleAdmin, rbac.RoleSuperAdmin:
+	default:
+		return nil, &AppError{400, "Недопустимая роль"}
+	}
+	if err := s.users.SetUserRoleByName(ctx, userID, role); err != nil {
+		if err == repository.ErrNotFound {
+			return nil, &AppError{404, "Пользователь или роль не найдены"}
+		}
+		return nil, err
+	}
+	return fiberMap{"message": "Роль пользователя обновлена", "role": role}, nil
 }
 
 func generateVerifyCode6() string {

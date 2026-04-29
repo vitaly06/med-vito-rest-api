@@ -370,6 +370,77 @@ ALTER SEQUENCE public."Message_id_seq" OWNED BY public."Message".id;
 
 
 --
+-- Name: ModerationAppeal; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."ModerationAppeal" (
+    id bigint NOT NULL,
+    "productId" integer NOT NULL,
+    "userId" integer NOT NULL,
+    reason text NOT NULL,
+    status text DEFAULT 'OPEN'::text NOT NULL,
+    "reviewedByUserId" integer,
+    "reviewComment" text,
+    "createdAt" timestamp(3) without time zone DEFAULT now() NOT NULL,
+    "updatedAt" timestamp(3) without time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: ModerationAppeal_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public."ModerationAppeal_id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: ModerationAppeal_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public."ModerationAppeal_id_seq" OWNED BY public."ModerationAppeal".id;
+
+
+--
+-- Name: ModerationAuditLog; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."ModerationAuditLog" (
+    id bigint NOT NULL,
+    "actorUserId" integer,
+    "actorRole" text,
+    "targetType" text NOT NULL,
+    "targetId" bigint NOT NULL,
+    action text NOT NULL,
+    payload jsonb,
+    "createdAt" timestamp(3) without time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: ModerationAuditLog_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public."ModerationAuditLog_id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: ModerationAuditLog_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public."ModerationAuditLog_id_seq" OWNED BY public."ModerationAuditLog".id;
+
+
+--
 -- Name: Payment; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1073,6 +1144,20 @@ ALTER TABLE ONLY public."Message" ALTER COLUMN id SET DEFAULT nextval('public."M
 
 
 --
+-- Name: ModerationAppeal id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ModerationAppeal" ALTER COLUMN id SET DEFAULT nextval('public."ModerationAppeal_id_seq"'::regclass);
+
+
+--
+-- Name: ModerationAuditLog id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ModerationAuditLog" ALTER COLUMN id SET DEFAULT nextval('public."ModerationAuditLog_id_seq"'::regclass);
+
+
+--
 -- Name: Payment id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -1238,6 +1323,22 @@ ALTER TABLE ONLY public."Log"
 
 ALTER TABLE ONLY public."Message"
     ADD CONSTRAINT "Message_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: ModerationAppeal ModerationAppeal_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ModerationAppeal"
+    ADD CONSTRAINT "ModerationAppeal_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: ModerationAuditLog ModerationAuditLog_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ModerationAuditLog"
+    ADD CONSTRAINT "ModerationAuditLog_pkey" PRIMARY KEY (id);
 
 
 --
@@ -1456,6 +1557,34 @@ CREATE UNIQUE INDEX "Chat_buyerId_sellerId_productId_key" ON public."Chat" USING
 --
 
 CREATE UNIQUE INDEX "FavoriteAction_userId_productId_key" ON public."FavoriteAction" USING btree ("userId", "productId");
+
+
+--
+-- Name: ModerationAppeal_product_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "ModerationAppeal_product_idx" ON public."ModerationAppeal" USING btree ("productId");
+
+
+--
+-- Name: ModerationAppeal_user_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "ModerationAppeal_user_idx" ON public."ModerationAppeal" USING btree ("userId");
+
+
+--
+-- Name: ModerationAuditLog_createdAt_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "ModerationAuditLog_createdAt_idx" ON public."ModerationAuditLog" USING btree ("createdAt");
+
+
+--
+-- Name: ModerationAuditLog_target_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "ModerationAuditLog_target_idx" ON public."ModerationAuditLog" USING btree ("targetType", "targetId");
 
 
 --
@@ -1707,6 +1836,38 @@ ALTER TABLE ONLY public."Message"
 
 ALTER TABLE ONLY public."Message"
     ADD CONSTRAINT "Message_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ModerationAppeal ModerationAppeal_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ModerationAppeal"
+    ADD CONSTRAINT "ModerationAppeal_productId_fkey" FOREIGN KEY ("productId") REFERENCES public."Product"(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ModerationAppeal ModerationAppeal_reviewedByUserId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ModerationAppeal"
+    ADD CONSTRAINT "ModerationAppeal_reviewedByUserId_fkey" FOREIGN KEY ("reviewedByUserId") REFERENCES public."User"(id) ON DELETE SET NULL;
+
+
+--
+-- Name: ModerationAppeal ModerationAppeal_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ModerationAppeal"
+    ADD CONSTRAINT "ModerationAppeal_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ModerationAuditLog ModerationAuditLog_actorUserId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ModerationAuditLog"
+    ADD CONSTRAINT "ModerationAuditLog_actorUserId_fkey" FOREIGN KEY ("actorUserId") REFERENCES public."User"(id) ON DELETE SET NULL;
 
 
 --
