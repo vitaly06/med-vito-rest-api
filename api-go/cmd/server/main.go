@@ -93,7 +93,7 @@ func main() {
 	moderationSvc := service.NewModerationService(cfg, prodRepo)
 	moderationAdminSvc := service.NewModerationAdminService(prodRepo)
 	revRepo := repository.NewReviewPG(pool)
-	revSvc := service.NewReviewService(revRepo)
+	revSvc := service.NewReviewService(revRepo, cfg)
 	chatRepo := repository.NewChatPG(pool)
 	chatSvc := service.NewChatService(chatRepo)
 	payRepo := repository.NewPaymentPG(pool)
@@ -145,6 +145,7 @@ func main() {
 		Reservation: reservationSvc,
 	})
 	moderationSvc.Start(ctx)
+	revSvc.StartAIModerationWorker(ctx)
 
 	addr := ":" + cfg.Port
 	log.Printf("Fiber %s — Socket.IO /socket.io namespaces /chat, /support; … /docs", addr)
