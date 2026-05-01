@@ -53,10 +53,12 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 
 	g.Post("/verify-mobile-code", func(c *fiber.Ctx) error {
 		code := c.Query("code")
-		if err := auth.VerifyMobileCode(c.UserContext(), code); err != nil {
+		out, sid, err := auth.VerifyMobileCode(c.UserContext(), code)
+		if err != nil {
 			return writeAppError(c, err)
 		}
-		return c.JSON(fiber.Map{"message": "Вы успешно зарегистрировались!"})
+		c.Cookie(sessionCookie(cfg, sid, 30*24*60*60))
+		return c.JSON(out)
 	})
 
 	g.Post("/sign-in", func(c *fiber.Ctx) error {
@@ -156,3 +158,4 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 		return c.JSON(fiber.Map{"message": "Пароль успешно изменён"})
 	})
 }
+

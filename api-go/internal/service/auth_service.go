@@ -147,41 +147,65 @@ func (s *AuthService) SignUp(ctx context.Context, where string, fullName, email,
 	return nil
 }
 
-func (s *AuthService) VerifyMobileCode(ctx context.Context, code string) error {
+func (s *AuthService) VerifyMobileCode(ctx context.Context, code string) (*signInResponse, string, error) {
 	raw, err := s.rdb.Get(ctx, verifyKeyPrefix+code).Bytes()
 	if err == redis.Nil || len(raw) == 0 {
-		return &AppError{400, "Код подтверждения не найден или истек"}
+		return nil, "", &AppError{400, "Код подтверждения не найден или истек"}
 	}
 	if err != nil {
-		return err
+		return nil, "", err
 	}
 	var cached signUpCache
 	if err := json.Unmarshal(raw, &cached); err != nil {
-		return err
+		return nil, "", err
 	}
 	if cached.Code != code {
-		return &AppError{400, "Неверный код подтверждения"}
+		return nil, "", &AppError{400, "Неверный код подтверждения"}
 	}
 	roleID, err := s.defaultUserRoleID(ctx)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return &AppError{404, "Роль USER/default не найдена"}
+			return nil, "", &AppError{404, "Роль USER/default не найдена"}
 		}
-		return err
+		return nil, "", err
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(cached.Data.Password), bcryptCost)
 	if err != nil {
-		return err
+		return nil, "", err
 	}
 	uid, err := s.users.GenerateUniqueUserID(ctx)
 	if err != nil {
-		return &AppError{500, err.Error()}
+		return nil, "", &AppError{500, err.Error()}
 	}
 	if err := s.users.InsertUser(ctx, uid, cached.Data.FullName, cached.Data.Email, cached.Data.PhoneNumber, string(hash), roleID); err != nil {
-		return err
+		return nil, "", err
 	}
 	_ = s.rdb.Del(ctx, verifyKeyPrefix+code)
-	return nil
+
+	u, err := s.users.FindUserByID(ctx, uid)
+	if err != nil {
+		return nil, "", err
+	}
+	sid := generateSessionID()
+	sp := sessionPayload{UserID: u.ID, Email: u.Email, ProfileType: u.ProfileType}
+	b, _ := json.Marshal(sp)
+	if err := s.rdb.Set(ctx, sessionKeyPrefix+sid, b, sessionTTL).Err(); err != nil {
+		return nil, "", err
+	}
+
+	var photo *string
+	if u.Photo != nil && *u.Photo != "" {
+		p := s.cfg.BaseURL + *u.Photo
+		photo = &p
+	}
+	out := &signInResponse{Message: "Вы успешно зарегистрировались!"}
+	out.User.ID = u.ID
+	out.User.Email = u.Email
+	out.User.FullName = u.FullName
+	out.User.PhoneNumber = u.PhoneNumber
+	out.User.ProfileType = u.ProfileType
+	out.User.Photo = photo
+	return out, sid, nil
 }
 
 func (s *AuthService) SignIn(ctx context.Context, login, password string) (*signInResponse, string, error) {
@@ -648,3 +672,4 @@ func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, maxID, email, p
 	}
 	return nil, &AppError{500, "Не удалось создать пользователя MAX"}
 }
+

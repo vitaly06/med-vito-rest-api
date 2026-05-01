@@ -1410,6 +1410,14 @@ COPY public."Review" (id, "reviewedById", text, rating, "reviewedUserId", "creat
 
 
 --
+-- Data for Name: ReviewAppeal; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public."ReviewAppeal" (id, "reviewId", "userId", reason, status, "moderatorId", "moderatorNote", "createdAt", "updatedAt") FROM stdin;
+\.
+
+
+--
 -- Data for Name: SearchQueryStat; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -1449,6 +1457,7 @@ COPY public."_GoSchemaMigration" (name, "appliedAt") FROM stdin;
 001_reservations.sql	2026-04-29 02:19:37.642
 002_paid_features.sql	2026-04-29 18:36:16.664
 003_rbac_and_moderation_audit.sql	2026-04-29 22:57:27.207
+004_review_moderation.sql	2026-04-30 12:42:40.745
 \.
 
 
@@ -1582,6 +1591,13 @@ SELECT pg_catalog.setval('public."ProductView_id_seq"', 733, true);
 --
 
 SELECT pg_catalog.setval('public."Promotion_id_seq"', 2, true);
+
+
+--
+-- Name: ReviewAppeal_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public."ReviewAppeal_id_seq"', 1, false);
 
 
 --

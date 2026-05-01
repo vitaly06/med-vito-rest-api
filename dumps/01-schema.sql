@@ -742,6 +742,42 @@ CREATE TABLE public."Review" (
 
 
 --
+-- Name: ReviewAppeal; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."ReviewAppeal" (
+    id bigint NOT NULL,
+    "reviewId" integer NOT NULL,
+    "userId" integer NOT NULL,
+    reason text NOT NULL,
+    status text DEFAULT 'OPEN'::text NOT NULL,
+    "moderatorId" integer,
+    "moderatorNote" text,
+    "createdAt" timestamp(3) without time zone DEFAULT now() NOT NULL,
+    "updatedAt" timestamp(3) without time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: ReviewAppeal_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public."ReviewAppeal_id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: ReviewAppeal_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public."ReviewAppeal_id_seq" OWNED BY public."ReviewAppeal".id;
+
+
+--
 -- Name: Review_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -1214,6 +1250,13 @@ ALTER TABLE ONLY public."Review" ALTER COLUMN id SET DEFAULT nextval('public."Re
 
 
 --
+-- Name: ReviewAppeal id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ReviewAppeal" ALTER COLUMN id SET DEFAULT nextval('public."ReviewAppeal_id_seq"'::regclass);
+
+
+--
 -- Name: Role id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -1411,6 +1454,14 @@ ALTER TABLE ONLY public."Promotion"
 
 ALTER TABLE ONLY public."ReservationUserPenalty"
     ADD CONSTRAINT "ReservationUserPenalty_pkey" PRIMARY KEY ("userId");
+
+
+--
+-- Name: ReviewAppeal ReviewAppeal_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ReviewAppeal"
+    ADD CONSTRAINT "ReviewAppeal_pkey" PRIMARY KEY (id);
 
 
 --
@@ -1641,6 +1692,20 @@ CREATE UNIQUE INDEX "ProductView_viewedById_productId_key" ON public."ProductVie
 --
 
 CREATE UNIQUE INDEX "Promotion_name_key" ON public."Promotion" USING btree (name);
+
+
+--
+-- Name: ReviewAppeal_review_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "ReviewAppeal_review_idx" ON public."ReviewAppeal" USING btree ("reviewId");
+
+
+--
+-- Name: ReviewAppeal_user_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "ReviewAppeal_user_idx" ON public."ReviewAppeal" USING btree ("userId");
 
 
 --
@@ -2012,6 +2077,30 @@ ALTER TABLE ONLY public."Product"
 
 ALTER TABLE ONLY public."ReservationUserPenalty"
     ADD CONSTRAINT "ReservationUserPenalty_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ReviewAppeal ReviewAppeal_moderatorId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ReviewAppeal"
+    ADD CONSTRAINT "ReviewAppeal_moderatorId_fkey" FOREIGN KEY ("moderatorId") REFERENCES public."User"(id) ON DELETE SET NULL;
+
+
+--
+-- Name: ReviewAppeal ReviewAppeal_reviewId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ReviewAppeal"
+    ADD CONSTRAINT "ReviewAppeal_reviewId_fkey" FOREIGN KEY ("reviewId") REFERENCES public."Review"(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ReviewAppeal ReviewAppeal_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ReviewAppeal"
+    ADD CONSTRAINT "ReviewAppeal_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON DELETE CASCADE;
 
 
 --
