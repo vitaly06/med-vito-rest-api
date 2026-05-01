@@ -1,4 +1,4 @@
-package service
+﻿package service
 
 import (
 	"context"
@@ -31,7 +31,6 @@ type CreateReservationRequest struct {
 type UpdateProductReservationSettingsRequest struct {
 	ProductID         int32 `json:"productId"`
 	AllowReservations bool  `json:"allowReservations"`
-	ReservationHours  int32 `json:"reservationHours"`
 }
 
 func (s *ReservationService) Create(ctx context.Context, buyerID int32, req CreateReservationRequest) (map[string]any, error) {
@@ -100,20 +99,7 @@ func (s *ReservationService) Create(ctx context.Context, buyerID int32, req Crea
 		return nil, &AppError{400, "Товар уже зарезервирован"}
 	}
 
-	hours := pr.ReservationHours
-	if hours <= 0 {
-		hours = int32(s.cfg.ReservationDefaultHours)
-	}
-	if req.Hours != nil {
-		hours = *req.Hours
-	}
-	maxHours := s.cfg.ReservationMaxHours
-	if maxHours <= 0 {
-		maxHours = 72
-	}
-	if hours < 1 || int(hours) > maxHours {
-		return nil, &AppError{400, "Срок резерва должен быть от 1 до 72 часов"}
-	}
+	hours := int32(24)
 	note := normalizeStringPtr(req.Note)
 	row, err := s.repo.CreateReservation(ctx, req.ProductID, buyerID, pr.SellerID, hours, note, now)
 	if err != nil {
@@ -180,18 +166,35 @@ func (s *ReservationService) CancelBySeller(ctx context.Context, userID int32, r
 	return s.format(row), nil
 }
 
-func (s *ReservationService) Extend(ctx context.Context, userID int32, reservationID int64) (map[string]any, error) {
-	if err := s.repo.ExtendByBuyer(ctx, reservationID, userID); err != nil {
+func (s *ReservationService) Cancel(ctx context.Context, userID int32, reservationID int64, sellerReason *string) (map[string]any, error) {
+	row, err := s.repo.FindParticipantReservation(ctx, reservationID, userID)
+	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, &AppError{400, "Продлить можно только один раз для активного резерва"}
+			return nil, &AppError{404, "Резерв не найден"}
 		}
 		return nil, err
 	}
-	row, err := s.repo.GetByID(ctx, reservationID)
-	if err != nil {
-		return nil, err
+	if row.Status != "ACTIVE" {
+		return nil, &AppError{400, "Отменить можно только активный резерв"}
 	}
-	return s.format(row), nil
+	if row.BuyerID == userID {
+		return s.CancelByBuyer(ctx, userID, reservationID)
+	}
+	reason := "Отмена продавцом"
+	if sellerReason != nil && strings.TrimSpace(*sellerReason) != "" {
+		reason = strings.TrimSpace(*sellerReason)
+	}
+	if row.SellerID == userID {
+		return s.CancelBySeller(ctx, userID, reservationID, reason)
+	}
+	return nil, &AppError{403, "Нет доступа к этому резерву"}
+}
+
+func (s *ReservationService) Extend(ctx context.Context, userID int32, reservationID int64) (map[string]any, error) {
+	_ = ctx
+	_ = userID
+	_ = reservationID
+	return nil, &AppError{400, "Продление резерва отключено: срок всегда 24 часа"}
 }
 
 func (s *ReservationService) StartWorker(ctx context.Context) {
@@ -221,10 +224,7 @@ func (s *ReservationService) UpdateProductSettings(ctx context.Context, sellerID
 	if req.ProductID <= 0 {
 		return &AppError{400, "Нужен productId"}
 	}
-	if req.ReservationHours < 1 || req.ReservationHours > 72 {
-		return &AppError{400, "Срок резерва должен быть от 1 до 72 часов"}
-	}
-	if err := s.repo.UpdateProductReserveSettings(ctx, req.ProductID, sellerID, req.AllowReservations, req.ReservationHours); err != nil {
+	if err := s.repo.UpdateProductReserveSettings(ctx, req.ProductID, sellerID, req.AllowReservations, 24); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return &AppError{404, "Товар не найден или не принадлежит продавцу"}
 		}
@@ -287,3 +287,4 @@ func (s *ReservationService) sendReserveEmail(toEmail, productName, buyerName st
 		s.cfg.SMTPFrom, toEmail, "Новый резерв товара", body, s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure,
 	)
 }
+

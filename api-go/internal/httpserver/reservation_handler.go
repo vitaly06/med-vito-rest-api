@@ -79,6 +79,23 @@ func RegisterReservationRoutes(app fiber.Router, reservations *service.Reservati
 		return c.JSON(out)
 	})
 
+	g.Post("/:id/cancel", sess, func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
+		}
+		var body struct {
+			Reason *string `json:"reason"`
+		}
+		_ = c.BodyParser(&body)
+		me := authmw.UserFromLocals(c)
+		out, err := reservations.Cancel(c.UserContext(), me.ID, id, body.Reason)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
 	g.Post("/:id/extend", sess, func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 		if err != nil {
