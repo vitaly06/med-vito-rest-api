@@ -187,6 +187,108 @@ func (r *ProductPG) CreateProductTx(ctx context.Context, productID, userID int32
 	return tx.Commit(ctx)
 }
 
+func (r *ProductPG) CreateDraftTx(ctx context.Context, productID, userID int32, name string, price int32, state, description, address string, video *string,
+	images []string, categoryID, subCategoryID int32, typeID *int32, fieldValues map[int32]string,
+) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	var typeVal any
+	if typeID != nil {
+		typeVal = *typeID
+	} else {
+		typeVal = nil
+	}
+	descPtr := nullIfEmpty(description)
+	_, err = tx.Exec(ctx, `
+		INSERT INTO "Product" (id, name, price, state, description, address, "videoUrl", images, "isHide", "moderateState", "categoryId", "subCategoryId", "typeId", "userId", "createdAt", "updatedAt")
+		VALUES ($1,$2,$3,$4::"ProductState",$5,$6,$7,$8::text[], true, 'DRAFT'::"ProductModerate",$9,$10,$11,$12,NOW(),NOW())`,
+		productID, name, price, state, descPtr, address, video, images, categoryID, subCategoryID, typeVal, userID)
+	if err != nil {
+		return err
+	}
+	for fid, val := range fieldValues {
+		_, err = tx.Exec(ctx, `INSERT INTO "ProductFieldValue" ("fieldId", "productId", value) VALUES ($1,$2,$3)`, fid, productID, val)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
+}
+
+func (r *ProductPG) PublishDraftTx(ctx context.Context, productID, userID int32) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	var one int
+	err = tx.QueryRow(ctx, `SELECT 1 FROM "Product" WHERE id = $1 AND "userId" = $2 AND "moderateState" = 'DRAFT'::"ProductModerate" FOR UPDATE`, productID, userID).Scan(&one)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+
+	var freeLimit, usedAds int32
+	var lastReset time.Time
+	var balance, bonus float64
+	err = tx.QueryRow(ctx, `
+		SELECT "freeAdsLimit", "usedFreeAds", "lastAdLimitReset", "balance", "bonusBalance"
+		FROM "User" WHERE id = $1 FOR UPDATE`, userID).Scan(&freeLimit, &usedAds, &lastReset, &balance, &bonus)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+
+	now := time.Now().UTC()
+	lr := lastReset.UTC()
+	if now.Month() != lr.Month() || now.Year() != lr.Year() {
+		usedAds = 0
+		_, err = tx.Exec(ctx, `UPDATE "User" SET "usedFreeAds" = 0, "lastAdLimitReset" = $2, "updatedAt" = NOW() WHERE id = $1`, userID, now)
+		if err != nil {
+			return err
+		}
+	}
+	if usedAds >= freeLimit {
+		total := balance + bonus
+		if total < float64(AdListingCost) {
+			return ErrInsufficientFunds
+		}
+		rem := float64(AdListingCost)
+		bonusDeduct := bonus
+		if bonusDeduct > rem {
+			bonusDeduct = rem
+		}
+		rem -= bonusDeduct
+		balDeduct := rem
+		_, err = tx.Exec(ctx, `
+			UPDATE "User" SET "bonusBalance" = "bonusBalance" - $2, "balance" = "balance" - $3, "updatedAt" = NOW() WHERE id = $1`,
+			userID, bonusDeduct, balDeduct)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err = tx.Exec(ctx, `UPDATE "User" SET "usedFreeAds" = "usedFreeAds" + 1, "updatedAt" = NOW() WHERE id = $1`, userID)
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = tx.Exec(ctx, `UPDATE "Product" SET "moderateState" = 'MODERATE'::"ProductModerate", "isHide" = false, "updatedAt" = NOW() WHERE id = $1`, productID)
+	if err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
 func nullIfEmpty(s string) *string {
 	if strings.TrimSpace(s) == "" {
 		return nil

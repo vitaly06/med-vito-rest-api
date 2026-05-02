@@ -240,51 +240,50 @@ func (s *AuthService) SignIn(ctx context.Context, login, password string) (*sign
 	return out, sid, nil
 }
 
-func (s *AuthService) MaxAuthURL(state string) (string, error) {
-	if strings.TrimSpace(s.cfg.MaxOAuthClientID) == "" {
-		return "", &AppError{500, "MAX OAuth не настроен: MAX_OAUTH_CLIENT_ID"}
+func (s *AuthService) VKAuthURL(state string) (string, error) {
+	if strings.TrimSpace(s.cfg.VkOAuthClientID) == "" {
+		return "", &AppError{500, "VK OAuth не настроен: VK_OAUTH_CLIENT_ID"}
 	}
-	if strings.TrimSpace(s.cfg.MaxOAuthRedirectURI) == "" {
-		return "", &AppError{500, "MAX OAuth не настроен: MAX_OAUTH_REDIRECT_URI"}
+	if strings.TrimSpace(s.cfg.VkOAuthRedirectURI) == "" {
+		return "", &AppError{500, "VK OAuth не настроен: VK_OAUTH_REDIRECT_URI"}
 	}
 	q := url.Values{}
-	q.Set("client_id", s.cfg.MaxOAuthClientID)
+	q.Set("client_id", s.cfg.VkOAuthClientID)
 	q.Set("response_type", "code")
-	q.Set("redirect_uri", s.cfg.MaxOAuthRedirectURI)
-	if strings.TrimSpace(s.cfg.MaxOAuthScope) != "" {
-		q.Set("scope", s.cfg.MaxOAuthScope)
+	q.Set("redirect_uri", s.cfg.VkOAuthRedirectURI)
+	q.Set("v", "5.131")
+	if strings.TrimSpace(s.cfg.VkOAuthScope) != "" {
+		q.Set("scope", s.cfg.VkOAuthScope)
 	}
 	if strings.TrimSpace(state) != "" {
 		q.Set("state", state)
 	}
-	return s.cfg.MaxOAuthAuthorizeURL + "?" + q.Encode(), nil
+	return s.cfg.VkOAuthAuthorizeURL + "?" + q.Encode(), nil
 }
 
-func (s *AuthService) SignInWithMAX(ctx context.Context, code string) (*signInResponse, string, error) {
+func (s *AuthService) SignInWithVK(ctx context.Context, code string) (*signInResponse, string, error) {
 	code = strings.TrimSpace(code)
 	if code == "" {
 		return nil, "", &AppError{400, "Нужен code"}
 	}
-	if strings.TrimSpace(s.cfg.MaxOAuthClientID) == "" ||
-		strings.TrimSpace(s.cfg.MaxOAuthClientSecret) == "" ||
-		strings.TrimSpace(s.cfg.MaxOAuthRedirectURI) == "" ||
-		strings.TrimSpace(s.cfg.MaxOAuthTokenURL) == "" ||
-		strings.TrimSpace(s.cfg.MaxOAuthUserInfoURL) == "" {
-		return nil, "", &AppError{500, "MAX OAuth не настроен в .env"}
+	if strings.TrimSpace(s.cfg.VkOAuthClientID) == "" ||
+		strings.TrimSpace(s.cfg.VkOAuthClientSecret) == "" ||
+		strings.TrimSpace(s.cfg.VkOAuthRedirectURI) == "" ||
+		strings.TrimSpace(s.cfg.VkOAuthTokenURL) == "" ||
+		strings.TrimSpace(s.cfg.VkOAuthUserInfoURL) == "" {
+		return nil, "", &AppError{500, "VK OAuth не настроен в .env"}
 	}
 
-	form := url.Values{}
-	form.Set("grant_type", "authorization_code")
-	form.Set("client_id", s.cfg.MaxOAuthClientID)
-	form.Set("client_secret", s.cfg.MaxOAuthClientSecret)
-	form.Set("redirect_uri", s.cfg.MaxOAuthRedirectURI)
-	form.Set("code", code)
+	tokenQ := url.Values{}
+	tokenQ.Set("client_id", s.cfg.VkOAuthClientID)
+	tokenQ.Set("client_secret", s.cfg.VkOAuthClientSecret)
+	tokenQ.Set("redirect_uri", s.cfg.VkOAuthRedirectURI)
+	tokenQ.Set("code", code)
 
-	tokenReq, err := http.NewRequestWithContext(ctx, http.MethodPost, s.cfg.MaxOAuthTokenURL, strings.NewReader(form.Encode()))
+	tokenReq, err := http.NewRequestWithContext(ctx, http.MethodGet, s.cfg.VkOAuthTokenURL+"?"+tokenQ.Encode(), nil)
 	if err != nil {
 		return nil, "", err
 	}
-	tokenReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	tokenRes, err := s.client.Do(tokenReq)
 	if err != nil {
 		return nil, "", err
@@ -295,23 +294,32 @@ func (s *AuthService) SignInWithMAX(ctx context.Context, code string) (*signInRe
 		return nil, "", err
 	}
 	if tokenRes.StatusCode < 200 || tokenRes.StatusCode >= 300 {
-		return nil, "", &AppError{401, "MAX OAuth token error: " + truncateForErr(string(tokenBody))}
+		return nil, "", &AppError{401, "VK OAuth token error: " + truncateForErr(string(tokenBody))}
 	}
 	var tokenPayload struct {
 		AccessToken string `json:"access_token"`
+		UserID      int64  `json:"user_id"`
+		Email       string `json:"email"`
+		Error       string `json:"error"`
 	}
 	if err := json.Unmarshal(tokenBody, &tokenPayload); err != nil {
 		return nil, "", err
 	}
+	if strings.TrimSpace(tokenPayload.Error) != "" {
+		return nil, "", &AppError{401, "VK OAuth token error: " + tokenPayload.Error}
+	}
 	if strings.TrimSpace(tokenPayload.AccessToken) == "" {
-		return nil, "", &AppError{401, "MAX OAuth: пустой access_token"}
+		return nil, "", &AppError{401, "VK OAuth: пустой access_token"}
 	}
 
-	userReq, err := http.NewRequestWithContext(ctx, http.MethodGet, s.cfg.MaxOAuthUserInfoURL, nil)
+	userQ := url.Values{}
+	userQ.Set("access_token", tokenPayload.AccessToken)
+	userQ.Set("v", "5.131")
+	userQ.Set("fields", "photo_200,screen_name")
+	userReq, err := http.NewRequestWithContext(ctx, http.MethodGet, s.cfg.VkOAuthUserInfoURL+"?"+userQ.Encode(), nil)
 	if err != nil {
 		return nil, "", err
 	}
-	userReq.Header.Set("Authorization", "Bearer "+tokenPayload.AccessToken)
 	userRes, err := s.client.Do(userReq)
 	if err != nil {
 		return nil, "", err
@@ -322,22 +330,35 @@ func (s *AuthService) SignInWithMAX(ctx context.Context, code string) (*signInRe
 		return nil, "", err
 	}
 	if userRes.StatusCode < 200 || userRes.StatusCode >= 300 {
-		return nil, "", &AppError{401, "MAX OAuth userinfo error: " + truncateForErr(string(userBody))}
+		return nil, "", &AppError{401, "VK OAuth userinfo error: " + truncateForErr(string(userBody))}
 	}
-	var raw map[string]any
-	if err := json.Unmarshal(userBody, &raw); err != nil {
+	var userPayload struct {
+		Response []struct {
+			ID        int64  `json:"id"`
+			FirstName string `json:"first_name"`
+			LastName  string `json:"last_name"`
+		} `json:"response"`
+		Error any `json:"error"`
+	}
+	if err := json.Unmarshal(userBody, &userPayload); err != nil {
 		return nil, "", err
 	}
-
-	maxID := firstString(raw, "sub", "id", "user_id")
-	email := strings.ToLower(strings.TrimSpace(firstString(raw, "email")))
-	phone := strings.TrimSpace(firstString(raw, "phone_number", "phone", "phoneNumber"))
-	fullName := strings.TrimSpace(firstString(raw, "name", "full_name", "display_name"))
-	if fullName == "" {
-		fullName = "MAX User"
+	if userPayload.Error != nil {
+		return nil, "", &AppError{401, "VK OAuth userinfo error"}
 	}
 
-	user, err := s.findOrCreateOAuthUser(ctx, maxID, email, phone, fullName)
+	vkID := strconv.FormatInt(tokenPayload.UserID, 10)
+	fullName := "VK User"
+	if len(userPayload.Response) > 0 {
+		vkID = strconv.FormatInt(userPayload.Response[0].ID, 10)
+		first := strings.TrimSpace(userPayload.Response[0].FirstName)
+		last := strings.TrimSpace(userPayload.Response[0].LastName)
+		if strings.TrimSpace(first+" "+last) != "" {
+			fullName = strings.TrimSpace(first + " " + last)
+		}
+	}
+
+	user, err := s.findOrCreateOAuthUser(ctx, "vk", vkID, strings.ToLower(strings.TrimSpace(tokenPayload.Email)), "", fullName)
 	if err != nil {
 		return nil, "", err
 	}
@@ -354,7 +375,7 @@ func (s *AuthService) SignInWithMAX(ctx context.Context, code string) (*signInRe
 		p := s.cfg.BaseURL + *user.Photo
 		photo = &p
 	}
-	out := &signInResponse{Message: "Вы успешно авторизовались через MAX!"}
+	out := &signInResponse{Message: "Вы успешно авторизовались через VK!"}
 	out.User.ID = user.ID
 	out.User.Email = user.Email
 	out.User.FullName = user.FullName
@@ -595,25 +616,7 @@ func truncateForErr(s string) string {
 	return s[:max] + "…"
 }
 
-func firstString(m map[string]any, keys ...string) string {
-	for _, k := range keys {
-		v, ok := m[k]
-		if !ok || v == nil {
-			continue
-		}
-		switch t := v.(type) {
-		case string:
-			if strings.TrimSpace(t) != "" {
-				return strings.TrimSpace(t)
-			}
-		case float64:
-			return strconv.FormatInt(int64(t), 10)
-		}
-	}
-	return ""
-}
-
-func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, maxID, email, phone, fullName string) (*domain.UserEntity, error) {
+func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, provider, externalID, email, phone, fullName string) (*domain.UserEntity, error) {
 	if email != "" {
 		if u, err := s.users.FindUserByEmail(ctx, email); err == nil {
 			return u, nil
@@ -629,17 +632,21 @@ func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, maxID, email, p
 		}
 	}
 
-	if maxID == "" {
-		maxID = generateSessionID()[:12]
+	providerSlug := strings.ToLower(strings.TrimSpace(provider))
+	if providerSlug == "" {
+		providerSlug = "oauth"
+	}
+	if externalID == "" {
+		externalID = generateSessionID()[:12]
 	}
 	if email == "" {
-		email = "max_" + maxID + "@oauth.local"
+		email = providerSlug + "_" + externalID + "@oauth.local"
 	}
 	if phone == "" {
-		phone = "MAX_" + maxID
+		phone = strings.ToUpper(providerSlug) + "_" + externalID
 	}
 	if fullName == "" {
-		fullName = "MAX User"
+		fullName = strings.ToUpper(providerSlug) + " User"
 	}
 
 	roleID, err := s.defaultUserRoleID(ctx)
@@ -659,8 +666,8 @@ func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, maxID, email, p
 		candidateEmail := email
 		candidatePhone := phone
 		if i > 0 {
-			candidateEmail = fmt.Sprintf("max_%s_%d@oauth.local", maxID, i)
-			candidatePhone = fmt.Sprintf("MAX_%s_%d", maxID, i)
+			candidateEmail = fmt.Sprintf("%s_%s_%d@oauth.local", providerSlug, externalID, i)
+			candidatePhone = fmt.Sprintf("%s_%s_%d", strings.ToUpper(providerSlug), externalID, i)
 		}
 		if err := s.users.InsertUser(ctx, uid, fullName, candidateEmail, candidatePhone, string(hash), roleID); err != nil {
 			if strings.Contains(strings.ToLower(err.Error()), "duplicate key") {
@@ -672,4 +679,3 @@ func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, maxID, email, p
 	}
 	return nil, &AppError{500, "Не удалось создать пользователя MAX"}
 }
-

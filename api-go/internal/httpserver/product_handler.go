@@ -125,6 +125,23 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 		return c.Status(fiber.StatusCreated).JSON(out)
 	})
 
+	g.Post("/create-draft", sess, func(c *fiber.Ctx) error {
+		me := authmw.UserFromLocals(c)
+		files, err := collectImageFiles(c, "images", 8)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Файлы: " + err.Error()})
+		}
+		out, err := p.CreateDraft(c.UserContext(), me.ID,
+			c.FormValue("name"), c.FormValue("price"), c.FormValue("state"),
+			c.FormValue("description"), c.FormValue("address"),
+			c.FormValue("categoryId"), c.FormValue("subcategoryId"), c.FormValue("typeId"),
+			c.FormValue("fieldValues"), c.FormValue("videoUrl"), files)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.Status(fiber.StatusCreated).JSON(out)
+	})
+
 	g.Get("/available-filters", func(c *fiber.Ctx) error {
 		cs := nonemptyPtr(c.Query("categorySlug"))
 		ss := nonemptyPtr(c.Query("subCategorySlug"))
@@ -184,12 +201,38 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 		return c.JSON(out)
 	})
 
-	g.Get("/user-products/:id", func(c *fiber.Ctx) error {
+	g.Get("/user-products/:id", opt, func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 32)
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
 		}
-		out, err := p.ProductsByUserID(c.UserContext(), int32(id))
+		var viewer *int32
+		if u := authmw.UserFromLocals(c); u != nil {
+			viewer = &u.ID
+		}
+		out, err := p.ProductsByUserID(c.UserContext(), viewer, int32(id))
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
+	g.Get("/my-drafts", sess, func(c *fiber.Ctx) error {
+		me := authmw.UserFromLocals(c)
+		out, err := p.MyDrafts(c.UserContext(), me.ID)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
+	g.Post("/publish-draft/:id", sess, func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 32)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
+		}
+		me := authmw.UserFromLocals(c)
+		out, err := p.PublishDraft(c.UserContext(), int32(id), me.ID)
 		if err != nil {
 			return writeAppError(c, err)
 		}

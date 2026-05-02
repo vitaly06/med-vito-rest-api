@@ -13,13 +13,13 @@ import (
 func (s *ProductService) DeleteProduct(ctx context.Context, productID, userID int32) (map[string]any, error) {
 	uid, imgs, err := s.prod.GetProductOwnerAndImages(ctx, productID)
 	if errors.Is(err, repository.ErrNotFound) {
-		return nil, &AppError{400, "Товар для удаления не найден"}
+		return nil, &AppError{400, "РўРѕРІР°СЂ РґР»СЏ СѓРґР°Р»РµРЅРёСЏ РЅРµ РЅР°Р№РґРµРЅ"}
 	}
 	if err != nil {
 		return nil, err
 	}
 	if uid != userID {
-		return nil, &AppError{403, "Вы не можете удалить чужой товар"}
+		return nil, &AppError{403, "Р’С‹ РЅРµ РјРѕР¶РµС‚Рµ СѓРґР°Р»РёС‚СЊ С‡СѓР¶РѕР№ С‚РѕРІР°СЂ"}
 	}
 	if s.s3 != nil {
 		for _, u := range imgs {
@@ -29,22 +29,22 @@ func (s *ProductService) DeleteProduct(ctx context.Context, productID, userID in
 	if err := s.prod.DeleteProductByID(ctx, productID); err != nil {
 		return nil, err
 	}
-	return map[string]any{"message": "Товар успешно удалён"}, nil
+	return map[string]any{"message": "РўРѕРІР°СЂ СѓСЃРїРµС€РЅРѕ СѓРґР°Р»С‘РЅ"}, nil
 }
 
 func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID int32, name, priceStr, state, description, address, videoStr, fieldJSON string, files []UploadedFile) (map[string]any, error) {
 	if s.s3 == nil && len(files) > 0 {
-		return nil, &AppError{500, "S3 не настроен"}
+		return nil, &AppError{500, "S3 РЅРµ РЅР°СЃС‚СЂРѕРµРЅ"}
 	}
 	uid, typeID, existingImages, err := s.prod.ProductWithTypeForUpdate(ctx, productID)
 	if errors.Is(err, repository.ErrNotFound) {
-		return nil, &AppError{400, "Товар не найден"}
+		return nil, &AppError{400, "РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ"}
 	}
 	if err != nil {
 		return nil, err
 	}
 	if uid != userID {
-		return nil, &AppError{403, "Вы не можете редактировать чужой товар"}
+		return nil, &AppError{403, "Р’С‹ РЅРµ РјРѕР¶РµС‚Рµ СЂРµРґР°РєС‚РёСЂРѕРІР°С‚СЊ С‡СѓР¶РѕР№ С‚РѕРІР°СЂ"}
 	}
 	fvMap, err := parseFieldValuesMap(fieldJSON)
 	if err != nil {
@@ -66,7 +66,7 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 				return nil, err
 			}
 			if len(badNames) > 0 {
-				return nil, &AppError{400, fmt.Sprintf("Поля %s не принадлежат типу этого товара", strings.Join(badNames, ", "))}
+				return nil, &AppError{400, fmt.Sprintf("РџРѕР»СЏ %s РЅРµ РїСЂРёРЅР°РґР»РµР¶Р°С‚ С‚РёРїСѓ СЌС‚РѕРіРѕ С‚РѕРІР°СЂР°", strings.Join(badNames, ", "))}
 			}
 		}
 	}
@@ -80,7 +80,7 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 	if strings.TrimSpace(priceStr) != "" {
 		p, err := strconv.Atoi(strings.TrimSpace(priceStr))
 		if err != nil || p < 1 {
-			return nil, &AppError{400, "Некорректная цена"}
+			return nil, &AppError{400, "РќРµРєРѕСЂСЂРµРєС‚РЅР°СЏ С†РµРЅР°"}
 		}
 		pp := int32(p)
 		pricePtr = &pp
@@ -105,7 +105,7 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 	for _, f := range files {
 		u, err := s.s3.Upload(ctx, "products", f.Name, f.ContentType, f.Body)
 		if err != nil {
-			return nil, &AppError{400, "Ошибка загрузки в S3: " + err.Error()}
+			return nil, &AppError{400, "РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РІ S3: " + err.Error()}
 		}
 		newImages = append(newImages, u)
 	}
@@ -116,9 +116,9 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 
 	if err := s.prod.UpdateProductPartial(ctx, productID, namePtr, pricePtr, statePtr, descPtr, addrPtr, vidPtr, imgsArg); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, &AppError{400, "Товар не найден"}
+			return nil, &AppError{400, "РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ"}
 		}
-		return nil, &AppError{400, "Ошибка при обновлении: " + err.Error()}
+		return nil, &AppError{400, "РћС€РёР±РєР° РїСЂРё РѕР±РЅРѕРІР»РµРЅРёРё: " + err.Error()}
 	}
 	for k, v := range fvMap {
 		fid64, err := strconv.ParseInt(k, 10, 32)
@@ -133,14 +133,14 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"message": "Товар успешно обновлён", "product": prod}, nil
+	return map[string]any{"message": "РўРѕРІР°СЂ СѓСЃРїРµС€РЅРѕ РѕР±РЅРѕРІР»С‘РЅ", "product": prod}, nil
 }
 
 func (s *ProductService) AvailableFilters(ctx context.Context, catSlug, subSlug, typeSlug *string) (map[string]any, error) {
 	return s.prod.BuildAvailableFilters(ctx, catSlug, subSlug, typeSlug)
 }
 
-// ProductSearchQuery — query-параметры поиска.
+// ProductSearchQuery вЂ” query-РїР°СЂР°РјРµС‚СЂС‹ РїРѕРёСЃРєР°.
 type ProductSearchQuery struct {
 	Search, CategorySlug, SubCategorySlug, TypeSlug *string
 	MinPrice, MaxPrice                              *int32
@@ -186,39 +186,39 @@ func (s *ProductService) FindAll(ctx context.Context, viewer *int32, q ProductSe
 	}
 
 	sp := repository.ProductSearchParams{SortBy: q.SortBy, Page: q.Page, Limit: q.Limit}
-		if q.Search != nil {
-			sp.Search = q.Search
+	if q.Search != nil {
+		sp.Search = q.Search
+	}
+	if q.CategorySlug != nil && *q.CategorySlug != "" {
+		id, err := s.prod.CategoryIDBySlug(ctx, *q.CategorySlug)
+		if err != nil {
+			return nil, err
 		}
-		if q.CategorySlug != nil && *q.CategorySlug != "" {
-			id, err := s.prod.CategoryIDBySlug(ctx, *q.CategorySlug)
-			if err != nil {
-				return nil, err
-			}
-			sp.CategoryID = id
+		sp.CategoryID = id
+	}
+	if q.SubCategorySlug != nil && *q.SubCategorySlug != "" {
+		id, err := s.prod.SubCategoryIDBySlug(ctx, *q.SubCategorySlug)
+		if err != nil {
+			return nil, err
 		}
-		if q.SubCategorySlug != nil && *q.SubCategorySlug != "" {
-			id, err := s.prod.SubCategoryIDBySlug(ctx, *q.SubCategorySlug)
-			if err != nil {
-				return nil, err
-			}
-			sp.SubCategoryID = id
+		sp.SubCategoryID = id
+	}
+	if q.TypeSlug != nil && *q.TypeSlug != "" {
+		id, err := s.prod.TypeIDBySlug(ctx, *q.TypeSlug)
+		if err != nil {
+			return nil, err
 		}
-		if q.TypeSlug != nil && *q.TypeSlug != "" {
-			id, err := s.prod.TypeIDBySlug(ctx, *q.TypeSlug)
-			if err != nil {
-				return nil, err
-			}
-			sp.TypeID = id
+		sp.TypeID = id
+	}
+	sp.MinPrice, sp.MaxPrice = q.MinPrice, q.MaxPrice
+	sp.State, sp.Region, sp.ProfileType = q.State, q.Region, q.ProfileType
+	if q.FieldValuesJSON != nil && strings.TrimSpace(*q.FieldValuesJSON) != "" {
+		m, err := parseFieldValuesMap(*q.FieldValuesJSON)
+		if err != nil {
+			return nil, &AppError{400, err.Error()}
 		}
-		sp.MinPrice, sp.MaxPrice = q.MinPrice, q.MaxPrice
-		sp.State, sp.Region, sp.ProfileType = q.State, q.Region, q.ProfileType
-		if q.FieldValuesJSON != nil && strings.TrimSpace(*q.FieldValuesJSON) != "" {
-			m, err := parseFieldValuesMap(*q.FieldValuesJSON)
-			if err != nil {
-				return nil, &AppError{400, err.Error()}
-			}
-			sp.FieldValues = m
-		}
+		sp.FieldValues = m
+	}
 	rows, err := s.prod.SearchProducts(ctx, sp)
 	if err != nil {
 		return nil, err
@@ -275,13 +275,13 @@ func (s *ProductService) RecommendedBySubcategory(ctx context.Context, viewer *i
 	return s.mapListWithFavorites(ctx, rows, viewer)
 }
 
-func (s *ProductService) ProductsByUserID(ctx context.Context, userID int32) ([]map[string]any, error) {
+func (s *ProductService) ProductsByUserID(ctx context.Context, viewer *int32, userID int32) ([]map[string]any, error) {
 	ok, err := s.prod.UserExists(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 	if !ok {
-		return nil, &AppError{400, "Пользователь не найден"}
+		return nil, &AppError{400, "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ"}
 	}
 	rows, err := s.prod.ListProductsByUser(ctx, userID)
 	if err != nil {
@@ -289,6 +289,9 @@ func (s *ProductService) ProductsByUserID(ctx context.Context, userID int32) ([]
 	}
 	out := make([]map[string]any, 0, len(rows))
 	for _, pr := range rows {
+		if pr.ModerateState != nil && *pr.ModerateState == "DRAFT" && (viewer == nil || *viewer != userID) {
+			continue
+		}
 		fav, err := s.prod.IsFavorite(ctx, userID, pr.ID)
 		if err != nil {
 			return nil, err
@@ -297,6 +300,31 @@ func (s *ProductService) ProductsByUserID(ctx context.Context, userID int32) ([]
 		out = append(out, s.formatListItem(pr, fav, hasPromo, pr.PromotionLevel))
 	}
 	return out, nil
+}
+
+func (s *ProductService) MyDrafts(ctx context.Context, userID int32) ([]map[string]any, error) {
+	rows, err := s.prod.ListDraftProductsByUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]map[string]any, 0, len(rows))
+	for _, pr := range rows {
+		out = append(out, s.formatListItem(pr, false, pr.PromotionLevel > 0, pr.PromotionLevel))
+	}
+	return out, nil
+}
+
+func (s *ProductService) PublishDraft(ctx context.Context, productID, userID int32) (map[string]any, error) {
+	if err := s.prod.PublishDraftTx(ctx, productID, userID); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, &AppError{404, "Р§РµСЂРЅРѕРІРёРє РЅРµ РЅР°Р№РґРµРЅ"}
+		}
+		if errors.Is(err, repository.ErrInsufficientFunds) {
+			return nil, &AppError{400, fmt.Sprintf("РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ СЃСЂРµРґСЃС‚РІ РґР»СЏ РїСѓР±Р»РёРєР°С†РёРё. РўСЂРµР±СѓРµС‚СЃСЏ %d СЂСѓР±.", repository.AdListingCost)}
+		}
+		return nil, err
+	}
+	return map[string]any{"message": "Р§РµСЂРЅРѕРІРёРє РѕРїСѓР±Р»РёРєРѕРІР°РЅ Рё РѕС‚РїСЂР°РІР»РµРЅ РЅР° РјРѕРґРµСЂР°С†РёСЋ"}, nil
 }
 
 func (s *ProductService) AddFavorite(ctx context.Context, userID, productID int32) (map[string]any, error) {
@@ -320,22 +348,21 @@ func (s *ProductService) AddFavorite(ctx context.Context, userID, productID int3
 	s.prod.InsertFavoriteAction(ctx, userID, productID)
 	return map[string]any{"message": "Товар успешно добавлен в избранное"}, nil
 }
-
 func (s *ProductService) RemoveFavorite(ctx context.Context, userID, productID int32) (map[string]any, error) {
 	ok, err := s.prod.ProductExists(ctx, productID)
 	if err != nil {
 		return nil, err
 	}
 	if !ok {
-		return nil, &AppError{400, "Товар не найден"}
+		return nil, &AppError{400, "РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ"}
 	}
 	if err := s.prod.RemoveFavorite(ctx, userID, productID); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, &AppError{400, "Товар не в избранном"}
+			return nil, &AppError{400, "РўРѕРІР°СЂ РЅРµ РІ РёР·Р±СЂР°РЅРЅРѕРј"}
 		}
 		return nil, err
 	}
-	return map[string]any{"message": "Товар успешно удалён из избранного"}, nil
+	return map[string]any{"message": "РўРѕРІР°СЂ СѓСЃРїРµС€РЅРѕ СѓРґР°Р»С‘РЅ РёР· РёР·Р±СЂР°РЅРЅРѕРіРѕ"}, nil
 }
 
 func (s *ProductService) MyFavorites(ctx context.Context, userID int32) ([]map[string]any, error) {
@@ -353,10 +380,13 @@ func (s *ProductService) MyFavorites(ctx context.Context, userID int32) ([]map[s
 func (s *ProductService) GetProductCard(ctx context.Context, productID int32, viewer *int32) (map[string]any, error) {
 	card, err := s.prod.GetProductCard(ctx, productID)
 	if errors.Is(err, repository.ErrNotFound) {
-		return nil, &AppError{400, "Товар не найден"}
+		return nil, &AppError{400, "РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ"}
 	}
 	if err != nil {
 		return nil, err
+	}
+	if card.ModerateState == "DRAFT" && (viewer == nil || *viewer != card.UserID) {
+		return nil, &AppError{404, "РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ"}
 	}
 	if viewer != nil && *viewer != card.UserID {
 		s.prod.UpsertProductView(ctx, *viewer, productID)
@@ -376,7 +406,7 @@ func (s *ProductService) GetProductCard(ctx context.Context, productID int32, vi
 	return map[string]any{
 		"id": card.ID, "name": card.Name, "description": card.Description, "price": card.Price,
 		"isHide": card.IsHide, "images": card.Images, "address": card.Address, "userId": card.UserID, "videoUrl": card.VideoURL,
-		"category": map[string]any{"id": card.CategoryID, "name": card.CategoryName, "slug": card.CategorySlug},
+		"category":    map[string]any{"id": card.CategoryID, "name": card.CategoryName, "slug": card.CategorySlug},
 		"subCategory": map[string]any{"id": card.SubCatID, "name": card.SubCatName, "slug": card.SubCatSlug},
 		"type": func() map[string]any {
 			if card.TypeID == nil {
@@ -384,43 +414,43 @@ func (s *ProductService) GetProductCard(ctx context.Context, productID int32, vi
 			}
 			return map[string]any{"id": *card.TypeID, "name": card.TypeName, "slug": card.TypeSlug}
 		}(),
-		"fieldValues":  fvArr,
-		"isFavorited":  fav,
-		"seller":       seller,
+		"fieldValues": fvArr,
+		"isFavorited": fav,
+		"seller":      seller,
 	}, nil
 }
 
 func (s *ProductService) ToggleProduct(ctx context.Context, productID, userID int32) (map[string]any, error) {
 	uid, _, err := s.prod.GetProductOwnerAndImages(ctx, productID)
 	if errors.Is(err, repository.ErrNotFound) {
-		return nil, &AppError{404, "Товар не надйен"}
+		return nil, &AppError{404, "РўРѕРІР°СЂ РЅРµ РЅР°РґР№РµРЅ"}
 	}
 	if err != nil {
 		return nil, err
 	}
 	if uid != userID {
-		return nil, &AppError{403, "Вы не можете редактировать не свой товар"}
+		return nil, &AppError{403, "Р’С‹ РЅРµ РјРѕР¶РµС‚Рµ СЂРµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РЅРµ СЃРІРѕР№ С‚РѕРІР°СЂ"}
 	}
 	if err := s.prod.ToggleProductHide(ctx, productID); err != nil {
 		return nil, err
 	}
-	return map[string]any{"message": "Статус активности товара сменен"}, nil
+	return map[string]any{"message": "РЎС‚Р°С‚СѓСЃ Р°РєС‚РёРІРЅРѕСЃС‚Рё С‚РѕРІР°СЂР° СЃРјРµРЅРµРЅ"}, nil
 }
 
 func (s *ProductService) ModerateProduct(ctx context.Context, productID int32, status, reason string) error {
 	st := strings.TrimSpace(strings.ToUpper(status))
 	if st != "APPROVED" && st != "DENIDED" {
-		return &AppError{400, "Неверный статус модерации. Доступные статуты: APPROVED, DENIDED"}
+		return &AppError{400, "РќРµРІРµСЂРЅС‹Р№ СЃС‚Р°С‚СѓСЃ РјРѕРґРµСЂР°С†РёРё. Р”РѕСЃС‚СѓРїРЅС‹Рµ СЃС‚Р°С‚СѓС‚С‹: APPROVED, DENIDED"}
 	}
 	name, sellerID, err := s.prod.GetProductNameAndSeller(ctx, productID)
 	if errors.Is(err, repository.ErrNotFound) {
-		return &AppError{404, "Товар для модерации не найден"}
+		return &AppError{404, "РўРѕРІР°СЂ РґР»СЏ РјРѕРґРµСЂР°С†РёРё РЅРµ РЅР°Р№РґРµРЅ"}
 	}
 	if err != nil {
 		return err
 	}
 	if st == "DENIDED" && strings.TrimSpace(reason) == "" {
-		return &AppError{400, "Необходимо указать причину отказа в модерации"}
+		return &AppError{400, "РќРµРѕР±С…РѕРґРёРјРѕ СѓРєР°Р·Р°С‚СЊ РїСЂРёС‡РёРЅСѓ РѕС‚РєР°Р·Р° РІ РјРѕРґРµСЂР°С†РёРё"}
 	}
 	var rptr *string
 	if st == "DENIDED" {
@@ -452,7 +482,7 @@ func (s *ProductService) ModerateProduct(ctx context.Context, productID int32, s
 		if err != nil {
 			return nil
 		}
-		msg := fmt.Sprintf("❌ Ваш товар \"%s\" был отклонен модерацией.\n\nПричина отказа: %s", name, *rptr)
+		msg := fmt.Sprintf("вќЊ Р’Р°С€ С‚РѕРІР°СЂ \"%s\" Р±С‹Р» РѕС‚РєР»РѕРЅРµРЅ РјРѕРґРµСЂР°С†РёРµР№.\n\nРџСЂРёС‡РёРЅР° РѕС‚РєР°Р·Р°: %s", name, *rptr)
 		mid, err := s.prod.InsertChatMessage(ctx, cid, *adminID, msg, productID)
 		if err != nil {
 			return nil
@@ -493,17 +523,17 @@ func (s *ProductService) AllPromotedProducts(ctx context.Context) ([]map[string]
 func (s *ProductService) TogglePromotion(ctx context.Context, promotionID int32) (map[string]any, error) {
 	pid, pName, promoName, active, start, end, err := s.prod.TogglePromotionActive(ctx, promotionID)
 	if errors.Is(err, repository.ErrNotFound) {
-		return nil, &AppError{404, "Продвижение не найдено"}
+		return nil, &AppError{404, "РџСЂРѕРґРІРёР¶РµРЅРёРµ РЅРµ РЅР°Р№РґРµРЅРѕ"}
 	}
 	if err != nil {
 		return nil, err
 	}
-	msg := "отключено"
+	msg := "РѕС‚РєР»СЋС‡РµРЅРѕ"
 	if active {
-		msg = "включено"
+		msg = "РІРєР»СЋС‡РµРЅРѕ"
 	}
 	return map[string]any{
-		"message": fmt.Sprintf("Продвижение %s", msg),
+		"message": fmt.Sprintf("РџСЂРѕРґРІРёР¶РµРЅРёРµ %s", msg),
 		"promotion": map[string]any{
 			"id": promotionID, "productId": pid, "productName": pName, "promotionType": promoName,
 			"isActive": active, "startDate": start, "endDate": end,

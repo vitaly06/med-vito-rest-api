@@ -159,6 +159,18 @@ func (r *ProductPG) ListProductsByUser(ctx context.Context, userID int32) ([]Pro
 	return scanProductListRows(rows)
 }
 
+func (r *ProductPG) ListDraftProductsByUser(ctx context.Context, userID int32) ([]ProductListRow, error) {
+	q := fmt.Sprintf(`SELECT %s %s
+		WHERE p."userId" = $1 AND p."moderateState" = 'DRAFT'::"ProductModerate"
+		ORDER BY p."createdAt" DESC`, productListSelect, productListFrom)
+	rows, err := r.pool.Query(ctx, q, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanProductListRows(rows)
+}
+
 func (r *ProductPG) ListFavoriteProducts(ctx context.Context, userID int32) ([]ProductListRow, error) {
 	q := fmt.Sprintf(`SELECT %s %s
 		INNER JOIN "_UserFavorites" uf ON uf."A" = p.id AND uf."B" = $1
@@ -404,30 +416,31 @@ func parseInt32(s string) (int32, bool) {
 }
 
 type ProductCardDB struct {
-	ID           int32
-	Name         string
-	Description  *string
-	Price        int32
-	IsHide       bool
-	Images       []string
-	Address      string
-	UserID       int32
-	VideoURL     *string
-	CategoryID   int32
-	CategoryName string
-	CategorySlug string
-	SubCatID     int32
-	SubCatName   string
-	SubCatSlug   string
-	TypeID       *int32
-	TypeName     *string
-	TypeSlug     *string
-	FieldPairs   []struct{ FieldName, Value string }
+	ID            int32
+	Name          string
+	Description   *string
+	Price         int32
+	IsHide        bool
+	Images        []string
+	Address       string
+	UserID        int32
+	VideoURL      *string
+	CategoryID    int32
+	CategoryName  string
+	CategorySlug  string
+	SubCatID      int32
+	SubCatName    string
+	SubCatSlug    string
+	TypeID        *int32
+	TypeName      *string
+	TypeSlug      *string
+	ModerateState string
+	FieldPairs    []struct{ FieldName, Value string }
 }
 
 func (r *ProductPG) GetProductCard(ctx context.Context, productID int32) (*ProductCardDB, error) {
 	const q = `
-		SELECT p.id, p.name, p.description, p.price, p."isHide", p.images, p.address, p."userId", p."videoUrl",
+		SELECT p.id, p.name, p.description, p.price, p."isHide", p.images, p.address, p."userId", p."videoUrl", p."moderateState"::text,
 			c.id, c.name, c.slug, sc.id, sc.name, sc.slug, t.id, t.name, t.slug
 		FROM "Product" p
 		JOIN "Category" c ON c.id = p."categoryId"
@@ -438,7 +451,7 @@ func (r *ProductPG) GetProductCard(ctx context.Context, productID int32) (*Produ
 	var typeID *int32
 	var typeName, typeSlug *string
 	err := r.pool.QueryRow(ctx, q, productID).Scan(
-		&card.ID, &card.Name, &card.Description, &card.Price, &card.IsHide, &card.Images, &card.Address, &card.UserID, &card.VideoURL,
+		&card.ID, &card.Name, &card.Description, &card.Price, &card.IsHide, &card.Images, &card.Address, &card.UserID, &card.VideoURL, &card.ModerateState,
 		&card.CategoryID, &card.CategoryName, &card.CategorySlug,
 		&card.SubCatID, &card.SubCatName, &card.SubCatSlug,
 		&typeID, &typeName, &typeSlug,

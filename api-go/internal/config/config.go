@@ -51,13 +51,13 @@ type Config struct {
 	CDEKClientSecret string
 	CDEKAPIBase      string
 
-	MaxOAuthClientID     string
-	MaxOAuthClientSecret string
-	MaxOAuthRedirectURI  string
-	MaxOAuthAuthorizeURL string
-	MaxOAuthTokenURL     string
-	MaxOAuthUserInfoURL  string
-	MaxOAuthScope        string
+	VkOAuthClientID     string
+	VkOAuthClientSecret string
+	VkOAuthRedirectURI  string
+	VkOAuthAuthorizeURL string
+	VkOAuthTokenURL     string
+	VkOAuthUserInfoURL  string
+	VkOAuthScope        string
 
 	DealPlatformFeePercent int
 	DealPayoutDelayDays    int
@@ -163,21 +163,21 @@ func Load() Config {
 			resBlockDays = n
 		}
 	}
-	maxAuthorize := strings.TrimSpace(os.Getenv("MAX_OAUTH_AUTHORIZE_URL"))
-	if maxAuthorize == "" {
-		maxAuthorize = "https://id.max.ru/oauth2/authorize"
+	vkAuthorize := strings.TrimSpace(os.Getenv("VK_OAUTH_AUTHORIZE_URL"))
+	if vkAuthorize == "" {
+		vkAuthorize = "https://oauth.vk.com/authorize"
 	}
-	maxToken := strings.TrimSpace(os.Getenv("MAX_OAUTH_TOKEN_URL"))
-	if maxToken == "" {
-		maxToken = "https://id.max.ru/oauth2/token"
+	vkToken := strings.TrimSpace(os.Getenv("VK_OAUTH_TOKEN_URL"))
+	if vkToken == "" {
+		vkToken = "https://oauth.vk.com/access_token"
 	}
-	maxUserinfo := strings.TrimSpace(os.Getenv("MAX_OAUTH_USERINFO_URL"))
-	if maxUserinfo == "" {
-		maxUserinfo = "https://id.max.ru/oauth2/userinfo"
+	vkUserinfo := strings.TrimSpace(os.Getenv("VK_OAUTH_USERINFO_URL"))
+	if vkUserinfo == "" {
+		vkUserinfo = "https://api.vk.com/method/users.get"
 	}
-	maxScope := strings.TrimSpace(os.Getenv("MAX_OAUTH_SCOPE"))
-	if maxScope == "" {
-		maxScope = "openid profile email phone"
+	vkScope := strings.TrimSpace(os.Getenv("VK_OAUTH_SCOPE"))
+	if vkScope == "" {
+		vkScope = "email"
 	}
 
 	return Config{
@@ -224,13 +224,13 @@ func Load() Config {
 		CDEKClientSecret: strings.TrimSpace(os.Getenv("CDEK_CLIENT_SECRET")),
 		CDEKAPIBase:      cdekBase,
 
-		MaxOAuthClientID:     strings.TrimSpace(os.Getenv("MAX_OAUTH_CLIENT_ID")),
-		MaxOAuthClientSecret: strings.TrimSpace(os.Getenv("MAX_OAUTH_CLIENT_SECRET")),
-		MaxOAuthRedirectURI:  strings.TrimSpace(os.Getenv("MAX_OAUTH_REDIRECT_URI")),
-		MaxOAuthAuthorizeURL: maxAuthorize,
-		MaxOAuthTokenURL:     maxToken,
-		MaxOAuthUserInfoURL:  maxUserinfo,
-		MaxOAuthScope:        maxScope,
+		VkOAuthClientID:     strings.TrimSpace(os.Getenv("VK_OAUTH_CLIENT_ID")),
+		VkOAuthClientSecret: strings.TrimSpace(os.Getenv("VK_OAUTH_CLIENT_SECRET")),
+		VkOAuthRedirectURI:  strings.TrimSpace(os.Getenv("VK_OAUTH_REDIRECT_URI")),
+		VkOAuthAuthorizeURL: vkAuthorize,
+		VkOAuthTokenURL:     vkToken,
+		VkOAuthUserInfoURL:  vkUserinfo,
+		VkOAuthScope:        vkScope,
 
 		DealPlatformFeePercent: feePercent,
 		DealPayoutDelayDays:    payoutDelay,

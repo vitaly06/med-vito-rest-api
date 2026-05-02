@@ -48,7 +48,8 @@ CREATE TYPE public."ProductModerate" AS ENUM (
     'MODERATE',
     'APPROVED',
     'DENIDED',
-    'AI_REVIEWED'
+    'AI_REVIEWED',
+    'DRAFT'
 );
 
 

@@ -248,6 +248,78 @@ func (s *ProductService) CreateProduct(ctx context.Context, userID int32, name, 
 }
 
 // UploadedFile — один файл из multipart (images).
+func (s *ProductService) CreateDraft(ctx context.Context, userID int32, name, priceStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr string, files []UploadedFile) (map[string]any, error) {
+	if s.s3 == nil {
+		return nil, &AppError{500, "S3 не настроен"}
+	}
+	if strings.TrimSpace(address) == "" || strings.TrimSpace(name) == "" || strings.TrimSpace(state) == "" {
+		return nil, &AppError{400, "Для черновика обязательны: name, state, address"}
+	}
+	price, err := strconv.Atoi(strings.TrimSpace(priceStr))
+	if err != nil || price < 1 {
+		return nil, &AppError{400, "Цена должна быть числом больше 0"}
+	}
+	catID, err := strconv.ParseInt(strings.TrimSpace(categoryStr), 10, 32)
+	if err != nil {
+		return nil, &AppError{400, "Некорректный categoryId"}
+	}
+	subID, err := strconv.ParseInt(strings.TrimSpace(subStr), 10, 32)
+	if err != nil {
+		return nil, &AppError{400, "Некорректный subcategoryId"}
+	}
+	ok, err := s.prod.SubCategoryBelongsToCategory(ctx, int32(catID), int32(subID))
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, &AppError{400, "Подкатегория не принадлежит категории"}
+	}
+	var typePtr *int32
+	if strings.TrimSpace(typeStr) != "" {
+		tid64, err := strconv.ParseInt(strings.TrimSpace(typeStr), 10, 32)
+		if err != nil {
+			return nil, &AppError{400, "Некорректный typeId"}
+		}
+		t := int32(tid64)
+		typePtr = &t
+	}
+	fvMap, err := parseFieldValuesMap(fieldJSON)
+	if err != nil {
+		return nil, &AppError{400, err.Error()}
+	}
+	var urls []string
+	for _, f := range files {
+		u, err := s.s3.Upload(ctx, "products", f.Name, f.ContentType, f.Body)
+		if err != nil {
+			return nil, &AppError{400, "Ошибка загрузки в S3: " + err.Error()}
+		}
+		urls = append(urls, u)
+	}
+	pid, err := s.prod.GenerateUniqueProductID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	intMap := make(map[int32]string)
+	for k, v := range fvMap {
+		if id64, err := strconv.ParseInt(k, 10, 32); err == nil {
+			intMap[int32(id64)] = v
+		}
+	}
+	var vptr *string
+	if strings.TrimSpace(videoStr) != "" {
+		v := strings.TrimSpace(videoStr)
+		vptr = &v
+	}
+	if err := s.prod.CreateDraftTx(ctx, pid, userID, name, int32(price), state, description, address, vptr, urls, int32(catID), int32(subID), typePtr, intMap); err != nil {
+		return nil, err
+	}
+	prod, err := s.prod.LoadProductWithRelations(ctx, pid)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"message": "Черновик сохранен", "product": prod}, nil
+}
+
 type UploadedFile struct {
 	Name        string
 	ContentType string
