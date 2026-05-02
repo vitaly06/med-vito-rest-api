@@ -118,7 +118,10 @@ func main() {
 	if raw != "" {
 		parts := strings.Split(raw, ",")
 		for i := range parts {
-			parts[i] = strings.TrimSpace(parts[i])
+			v := strings.TrimSpace(parts[i])
+			v = strings.Trim(v, `"'`)
+			v = strings.TrimRight(v, "/")
+			parts[i] = v
 		}
 		origins = strings.Join(parts, ",")
 	}

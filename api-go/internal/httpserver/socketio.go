@@ -97,26 +97,39 @@ func RegisterSocketIO(app *fiber.App, corsOrigins string, auth *service.AuthServ
 }
 
 func socketIOCORSChecker(corsOrigins string) func(*http.Request) (http.Header, error) {
+	allowed := make(map[string]struct{})
+	for _, o := range strings.Split(corsOrigins, ",") {
+		n := normalizeOrigin(o)
+		if n != "" {
+			allowed[n] = struct{}{}
+		}
+	}
+
 	return func(r *http.Request) (http.Header, error) {
 		h := http.Header{}
-		origin := r.Header.Get("Origin")
+		originRaw := r.Header.Get("Origin")
+		origin := normalizeOrigin(originRaw)
 		if origin == "" {
 			return h, nil
 		}
 		if corsOrigins == "" {
-			h.Set("Access-Control-Allow-Origin", origin)
+			h.Set("Access-Control-Allow-Origin", originRaw)
 			h.Set("Access-Control-Allow-Credentials", "true")
 			return h, nil
 		}
-		for _, o := range strings.Split(corsOrigins, ",") {
-			if strings.TrimSpace(o) == origin {
-				h.Set("Access-Control-Allow-Origin", origin)
-				h.Set("Access-Control-Allow-Credentials", "true")
-				break
-			}
+		if _, ok := allowed[origin]; ok {
+			h.Set("Access-Control-Allow-Origin", originRaw)
+			h.Set("Access-Control-Allow-Credentials", "true")
 		}
 		return h, nil
 	}
+}
+
+func normalizeOrigin(v string) string {
+	v = strings.TrimSpace(v)
+	v = strings.Trim(v, `"'`)
+	v = strings.TrimRight(v, "/")
+	return v
 }
 
 func registerChatNamespace(server *socketio.Server, auth *service.AuthService, chat *service.ChatService) {
