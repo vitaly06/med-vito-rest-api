@@ -290,8 +290,9 @@ func (s *DealService) formatDeals(deals []repository.DealRow) []map[string]any {
 
 func (s *DealService) formatDeal(deal repository.DealRow) map[string]any {
 	return map[string]any{
-		"id":     deal.ID,
-		"status": deal.Status,
+		"id":          deal.ID,
+		"status":      localizeDealStatus(deal.Status),
+		"statusCode":  deal.Status,
 		"product": map[string]any{
 			"id":     deal.ProductID,
 			"name":   deal.ProductName,
