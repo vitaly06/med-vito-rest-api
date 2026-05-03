@@ -101,7 +101,7 @@ func main() {
 	cdekSvc := service.NewCDEKService(cfg)
 	reservationRepo := repository.NewReservationPG(pool)
 	dealRepo := repository.NewDealPG(pool)
-	dealSvc := service.NewDealService(cfg, dealRepo, paySvc, reservationRepo)
+	dealSvc := service.NewDealService(cfg, dealRepo, chatRepo, paySvc, reservationRepo)
 	dealSvc.StartPayoutWorker(ctx)
 	reservationSvc := service.NewReservationService(cfg, reservationRepo, userRepo)
 	reservationSvc.StartWorker(ctx)

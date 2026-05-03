@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -14,12 +15,13 @@ import (
 type DealService struct {
 	cfg     config.Config
 	repo    *repository.DealPG
+	chat    *repository.ChatPG
 	payment *PaymentService
 	reserve *repository.ReservationPG
 }
 
-func NewDealService(cfg config.Config, repo *repository.DealPG, payment *PaymentService, reserve *repository.ReservationPG) *DealService {
-	return &DealService{cfg: cfg, repo: repo, payment: payment, reserve: reserve}
+func NewDealService(cfg config.Config, repo *repository.DealPG, chat *repository.ChatPG, payment *PaymentService, reserve *repository.ReservationPG) *DealService {
+	return &DealService{cfg: cfg, repo: repo, chat: chat, payment: payment, reserve: reserve}
 }
 
 type CreateDealRequest struct {
@@ -35,23 +37,23 @@ type CreateDealRequest struct {
 
 func (s *DealService) CreateDeal(ctx context.Context, buyerID int32, req CreateDealRequest) (map[string]any, error) {
 	if req.ProductID <= 0 {
-		return nil, &AppError{400, "Нужен productId"}
+		return nil, &AppError{400, "РќСѓР¶РµРЅ productId"}
 	}
 	product, err := s.repo.ProductInfo(ctx, req.ProductID)
 	if errors.Is(err, repository.ErrNotFound) {
-		return nil, &AppError{404, "Товар не найден"}
+		return nil, &AppError{404, "РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ"}
 	}
 	if err != nil {
 		return nil, err
 	}
 	if product.UserID == buyerID {
-		return nil, &AppError{400, "Нельзя создать сделку на свой товар"}
+		return nil, &AppError{400, "РќРµР»СЊР·СЏ СЃРѕР·РґР°С‚СЊ СЃРґРµР»РєСѓ РЅР° СЃРІРѕР№ С‚РѕРІР°СЂ"}
 	}
 	if !product.Approved || product.IsHide {
-		return nil, &AppError{400, "Товар недоступен для безопасной сделки"}
+		return nil, &AppError{400, "РўРѕРІР°СЂ РЅРµРґРѕСЃС‚СѓРїРµРЅ РґР»СЏ Р±РµР·РѕРїР°СЃРЅРѕР№ СЃРґРµР»РєРё"}
 	}
 	if req.DeliveryCost < 0 {
-		return nil, &AppError{400, "Стоимость доставки не может быть отрицательной"}
+		return nil, &AppError{400, "РЎС‚РѕРёРјРѕСЃС‚СЊ РґРѕСЃС‚Р°РІРєРё РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РѕС‚СЂРёС†Р°С‚РµР»СЊРЅРѕР№"}
 	}
 
 	feePercent := s.cfg.DealPlatformFeePercent
@@ -84,6 +86,7 @@ func (s *DealService) CreateDeal(ctx context.Context, buyerID int32, req CreateD
 	if s.reserve != nil {
 		_ = s.reserve.MarkDealCreated(ctx, deal.ProductID, buyerID)
 	}
+	s.notifyOrderInChat(ctx, *deal)
 	return s.formatDeal(*deal), nil
 }
 
@@ -93,12 +96,12 @@ func (s *DealService) PayDeal(ctx context.Context, buyerID, dealID int32) (map[s
 		return nil, err
 	}
 	if deal.Status != "CREATED" {
-		return nil, &AppError{400, "Оплатить можно только созданную сделку"}
+		return nil, &AppError{400, "РћРїР»Р°С‚РёС‚СЊ РјРѕР¶РЅРѕ С‚РѕР»СЊРєРѕ СЃРѕР·РґР°РЅРЅСѓСЋ СЃРґРµР»РєСѓ"}
 	}
 	if deal.PaymentID != nil && deal.PaymentURL != nil {
 		return map[string]any{"deal": s.formatDeal(*deal), "paymentId": *deal.PaymentID, "paymentUrl": *deal.PaymentURL, "orderId": deal.OrderID}, nil
 	}
-	paymentID, paymentURL, orderID, err := s.payment.CreateDealPayment(ctx, buyerID, deal.ID, float64(deal.TotalAmount), "Безопасная сделка: "+deal.ProductName)
+	paymentID, paymentURL, orderID, err := s.payment.CreateDealPayment(ctx, buyerID, deal.ID, float64(deal.TotalAmount), "Р‘РµР·РѕРїР°СЃРЅР°СЏ СЃРґРµР»РєР°: "+deal.ProductName)
 	if err != nil {
 		return nil, err
 	}
@@ -118,10 +121,10 @@ func (s *DealService) MarkShipped(ctx context.Context, sellerID, dealID int32) (
 		return nil, err
 	}
 	if deal.Status != "PAID" {
-		return nil, &AppError{400, "Отправку можно подтвердить только после оплаты"}
+		return nil, &AppError{400, "РћС‚РїСЂР°РІРєСѓ РјРѕР¶РЅРѕ РїРѕРґС‚РІРµСЂРґРёС‚СЊ С‚РѕР»СЊРєРѕ РїРѕСЃР»Рµ РѕРїР»Р°С‚С‹"}
 	}
 	if err := s.repo.SetStatus(ctx, dealID, []string{"PAID"}, "SHIPPED", "shippedAt"); err != nil {
-		return nil, &AppError{400, "Не удалось подтвердить отправку"}
+		return nil, &AppError{400, "РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕРґС‚РІРµСЂРґРёС‚СЊ РѕС‚РїСЂР°РІРєСѓ"}
 	}
 	return s.GetDeal(ctx, sellerID, dealID)
 }
@@ -132,7 +135,7 @@ func (s *DealService) ConfirmDelivery(ctx context.Context, buyerID, dealID int32
 		return nil, err
 	}
 	if deal.Status != "SHIPPED" {
-		return nil, &AppError{400, "Получение можно подтвердить только после отправки"}
+		return nil, &AppError{400, "РџРѕР»СѓС‡РµРЅРёРµ РјРѕР¶РЅРѕ РїРѕРґС‚РІРµСЂРґРёС‚СЊ С‚РѕР»СЊРєРѕ РїРѕСЃР»Рµ РѕС‚РїСЂР°РІРєРё"}
 	}
 	delay := s.cfg.DealPayoutDelayDays
 	if delay < 0 {
@@ -140,36 +143,39 @@ func (s *DealService) ConfirmDelivery(ctx context.Context, buyerID, dealID int32
 	}
 	payoutAt := time.Now().AddDate(0, 0, delay)
 	if err := s.repo.MarkDelivered(ctx, dealID, payoutAt); err != nil {
-		return nil, &AppError{400, "Не удалось подтвердить получение"}
+		return nil, &AppError{400, "РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕРґС‚РІРµСЂРґРёС‚СЊ РїРѕР»СѓС‡РµРЅРёРµ"}
 	}
 	return s.GetDeal(ctx, buyerID, dealID)
 }
 
 func (s *DealService) OpenDispute(ctx context.Context, userID, dealID int32, reason string) (map[string]any, error) {
 	if strings.TrimSpace(reason) == "" {
-		return nil, &AppError{400, "Нужно указать причину спора"}
+		return nil, &AppError{400, "РќСѓР¶РЅРѕ СѓРєР°Р·Р°С‚СЊ РїСЂРёС‡РёРЅСѓ СЃРїРѕСЂР°"}
 	}
 	if _, err := s.getUserDeal(ctx, dealID, userID, "participant"); err != nil {
 		return nil, err
 	}
 	if err := s.repo.OpenDispute(ctx, dealID, strings.TrimSpace(reason)); err != nil {
-		return nil, &AppError{400, "Не удалось открыть спор"}
+		return nil, &AppError{400, "РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РєСЂС‹С‚СЊ СЃРїРѕСЂ"}
 	}
 	return s.GetDeal(ctx, userID, dealID)
 }
 
-func (s *DealService) CancelDeal(ctx context.Context, buyerID, dealID int32) (map[string]any, error) {
-	deal, err := s.getUserDeal(ctx, dealID, buyerID, "buyer")
+func (s *DealService) CancelDeal(ctx context.Context, userID, dealID int32) (map[string]any, error) {
+	deal, err := s.getUserDeal(ctx, dealID, userID, "participant")
 	if err != nil {
 		return nil, err
 	}
-	if deal.Status != "CREATED" {
-		return nil, &AppError{400, "Отменить можно только неоплаченную сделку"}
+	if deal.Status != "CREATED" && deal.Status != "PAID" {
+		return nil, &AppError{400, "Отменить можно только до оформления доставки"}
 	}
-	if err := s.repo.SetStatus(ctx, dealID, []string{"CREATED"}, "CANCELLED", "cancelledAt"); err != nil {
+	if deal.CDEKOrderUUID != nil || deal.CDEKTrackNumber != nil {
+		return nil, &AppError{400, "Доставка уже оформлена, отмена недоступна"}
+	}
+	if err := s.repo.SetStatus(ctx, dealID, []string{"CREATED", "PAID"}, "CANCELLED", "cancelledAt"); err != nil {
 		return nil, &AppError{400, "Не удалось отменить сделку"}
 	}
-	return s.GetDeal(ctx, buyerID, dealID)
+	return s.GetDeal(ctx, userID, dealID)
 }
 
 func (s *DealService) GetDeal(ctx context.Context, userID, dealID int32) (map[string]any, error) {
@@ -258,7 +264,7 @@ func (s *DealService) StartPayoutWorker(ctx context.Context) {
 func (s *DealService) getUserDeal(ctx context.Context, dealID, userID int32, role string) (*repository.DealRow, error) {
 	deal, err := s.repo.FindByID(ctx, dealID)
 	if errors.Is(err, repository.ErrNotFound) {
-		return nil, &AppError{404, "Сделка не найдена"}
+		return nil, &AppError{404, "РЎРґРµР»РєР° РЅРµ РЅР°Р№РґРµРЅР°"}
 	}
 	if err != nil {
 		return nil, err
@@ -266,15 +272,15 @@ func (s *DealService) getUserDeal(ctx context.Context, dealID, userID int32, rol
 	switch role {
 	case "buyer":
 		if deal.BuyerID != userID {
-			return nil, &AppError{403, "Это не ваша покупка"}
+			return nil, &AppError{403, "Р­С‚Рѕ РЅРµ РІР°С€Р° РїРѕРєСѓРїРєР°"}
 		}
 	case "seller":
 		if deal.SellerID != userID {
-			return nil, &AppError{403, "Это не ваша продажа"}
+			return nil, &AppError{403, "Р­С‚Рѕ РЅРµ РІР°С€Р° РїСЂРѕРґР°Р¶Р°"}
 		}
 	default:
 		if deal.BuyerID != userID && deal.SellerID != userID {
-			return nil, &AppError{403, "Вы не участник сделки"}
+			return nil, &AppError{403, "Р’С‹ РЅРµ СѓС‡Р°СЃС‚РЅРёРє СЃРґРµР»РєРё"}
 		}
 	}
 	return deal, nil
@@ -290,9 +296,9 @@ func (s *DealService) formatDeals(deals []repository.DealRow) []map[string]any {
 
 func (s *DealService) formatDeal(deal repository.DealRow) map[string]any {
 	return map[string]any{
-		"id":          deal.ID,
-		"status":      localizeDealStatus(deal.Status),
-		"statusCode":  deal.Status,
+		"id":         deal.ID,
+		"status":     localizeDealStatus(deal.Status),
+		"statusCode": deal.Status,
 		"product": map[string]any{
 			"id":     deal.ProductID,
 			"name":   deal.ProductName,
@@ -341,6 +347,34 @@ func formatDealCDEK(deal repository.DealRow) map[string]any {
 		"orderUuid":    deal.CDEKOrderUUID,
 		"trackNumber":  deal.CDEKTrackNumber,
 	}
+}
+
+func (s *DealService) notifyOrderInChat(ctx context.Context, deal repository.DealRow) {
+	if s.chat == nil {
+		return
+	}
+	chat, err := s.chat.FindChatByProductParticipants(ctx, deal.ProductID, deal.BuyerID, deal.SellerID)
+	if err != nil {
+		return
+	}
+	var chatID int32
+	if chat == nil {
+		chatID, err = s.chat.InsertProductChat(ctx, deal.ProductID, deal.BuyerID, deal.SellerID)
+		if err != nil {
+			return
+		}
+	} else {
+		chatID = chat.ID
+	}
+	content := fmt.Sprintf(
+		"Оформлен заказ по товару \"%s\". Сумма: %d ₽ (товар: %d ₽, доставка: %d ₽). Номер сделки: #%d.",
+		deal.ProductName,
+		deal.TotalAmount,
+		deal.ProductAmount,
+		deal.DeliveryCost,
+		deal.ID,
+	)
+	_, _, _, _, _, _ = s.chat.InsertChatMessage(ctx, chatID, deal.BuyerID, content)
 }
 
 func normalizeStringPtr(v *string) *string {
