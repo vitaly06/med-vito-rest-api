@@ -115,7 +115,7 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Файлы: " + err.Error()})
 		}
 		out, err := p.CreateProduct(c.UserContext(), me.ID,
-			c.FormValue("name"), c.FormValue("price"), c.FormValue("state"),
+			c.FormValue("name"), c.FormValue("price"), c.FormValue("quantity"), c.FormValue("state"),
 			c.FormValue("description"), c.FormValue("address"),
 			c.FormValue("categoryId"), c.FormValue("subcategoryId"), c.FormValue("typeId"),
 			c.FormValue("fieldValues"), c.FormValue("videoUrl"), files)
@@ -132,7 +132,7 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Файлы: " + err.Error()})
 		}
 		out, err := p.CreateDraft(c.UserContext(), me.ID,
-			c.FormValue("name"), c.FormValue("price"), c.FormValue("state"),
+			c.FormValue("name"), c.FormValue("price"), c.FormValue("quantity"), c.FormValue("state"),
 			c.FormValue("description"), c.FormValue("address"),
 			c.FormValue("categoryId"), c.FormValue("subcategoryId"), c.FormValue("typeId"),
 			c.FormValue("fieldValues"), c.FormValue("videoUrl"), files)
@@ -368,7 +368,7 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Файлы: " + err.Error()})
 		}
 		out, err := p.UpdateProduct(c.UserContext(), int32(id), me.ID,
-			c.FormValue("name"), c.FormValue("price"), c.FormValue("state"),
+			c.FormValue("name"), c.FormValue("price"), c.FormValue("quantity"), c.FormValue("state"),
 			c.FormValue("description"), c.FormValue("address"), c.FormValue("videoUrl"),
 			c.FormValue("fieldValues"), files)
 		if err != nil {

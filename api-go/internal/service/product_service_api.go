@@ -32,7 +32,7 @@ func (s *ProductService) DeleteProduct(ctx context.Context, productID, userID in
 	return map[string]any{"message": "РўРѕРІР°СЂ СѓСЃРїРµС€РЅРѕ СѓРґР°Р»С‘РЅ"}, nil
 }
 
-func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID int32, name, priceStr, state, description, address, videoStr, fieldJSON string, files []UploadedFile) (map[string]any, error) {
+func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID int32, name, priceStr, quantityStr, state, description, address, videoStr, fieldJSON string, files []UploadedFile) (map[string]any, error) {
 	if s.s3 == nil && len(files) > 0 {
 		return nil, &AppError{500, "S3 РЅРµ РЅР°СЃС‚СЂРѕРµРЅ"}
 	}
@@ -72,6 +72,7 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 	}
 
 	var namePtr, statePtr, descPtr, addrPtr, vidPtr *string
+	var quantityPtr *int32
 	var pricePtr *int32
 	if strings.TrimSpace(name) != "" {
 		v := strings.TrimSpace(name)
@@ -88,6 +89,14 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 	if strings.TrimSpace(state) != "" {
 		v := strings.TrimSpace(state)
 		statePtr = &v
+	}
+	if strings.TrimSpace(quantityStr) != "" {
+		q, err := strconv.Atoi(strings.TrimSpace(quantityStr))
+		if err != nil || q < 1 {
+			return nil, &AppError{400, "Количество должно быть целым числом больше 0"}
+		}
+		qq := int32(q)
+		quantityPtr = &qq
 	}
 	if description != "" {
 		descPtr = &description
@@ -114,7 +123,7 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 		imgsArg = append(append([]string{}, existingImages...), newImages...)
 	}
 
-	if err := s.prod.UpdateProductPartial(ctx, productID, namePtr, pricePtr, statePtr, descPtr, addrPtr, vidPtr, imgsArg); err != nil {
+	if err := s.prod.UpdateProductPartial(ctx, productID, namePtr, pricePtr, quantityPtr, statePtr, descPtr, addrPtr, vidPtr, imgsArg); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, &AppError{400, "РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ"}
 		}
@@ -404,7 +413,7 @@ func (s *ProductService) GetProductCard(ctx context.Context, productID int32, vi
 		return nil, err
 	}
 	return map[string]any{
-		"id": card.ID, "name": card.Name, "description": card.Description, "price": card.Price,
+		"id": card.ID, "name": card.Name, "description": card.Description, "price": card.Price, "quantity": card.Quantity,
 		"isHide": card.IsHide, "images": card.Images, "address": card.Address, "userId": card.UserID, "videoUrl": card.VideoURL,
 		"category":    map[string]any{"id": card.CategoryID, "name": card.CategoryName, "slug": card.CategorySlug},
 		"subCategory": map[string]any{"id": card.SubCatID, "name": card.SubCatName, "slug": card.SubCatSlug},

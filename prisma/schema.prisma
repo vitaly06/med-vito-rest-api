@@ -145,6 +145,7 @@
     id          Int          @id
     name        String
     price       Int
+    quantity    Int          @default(1)
     state       ProductState
     description String?
     address     String

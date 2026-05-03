@@ -18,6 +18,7 @@ type ProductListRow struct {
 	CreatedAt       time.Time
 	IsHide          bool
 	Price           int32
+	Quantity        int32
 	UserID          int32
 	VideoURL        *string
 	CategoryID      int32
@@ -39,7 +40,7 @@ type ProductListRow struct {
 }
 
 const productListSelect = `
-	p.id, p.images, p.name, p.address, p."createdAt", p."isHide", p.price, p."userId", p."videoUrl",
+	p.id, p.images, p.name, p.address, p."createdAt", p."isHide", p.price, p.quantity, p."userId", p."videoUrl",
 	c.id, c.name, c.slug,
 	sc.id, sc.name, sc.slug,
 	t.id, t.name, t.slug,
@@ -78,7 +79,7 @@ func (r *ProductPG) scanProductListRow(row pgx.Row) (*ProductListRow, error) {
 	var typeName, typeSlug *string
 	var mod *string
 	err := row.Scan(
-		&pr.ID, &pr.Images, &pr.Name, &pr.Address, &pr.CreatedAt, &pr.IsHide, &pr.Price, &pr.UserID, &pr.VideoURL,
+		&pr.ID, &pr.Images, &pr.Name, &pr.Address, &pr.CreatedAt, &pr.IsHide, &pr.Price, &pr.Quantity, &pr.UserID, &pr.VideoURL,
 		&pr.CategoryID, &pr.CategoryName, &pr.CategorySlug,
 		&pr.SubCategoryID, &pr.SubCategoryName, &pr.SubCategorySlug,
 		&typeID, &typeName, &typeSlug,
@@ -121,7 +122,7 @@ func scanProductListRows(rows pgx.Rows) ([]ProductListRow, error) {
 		var typeName, typeSlug *string
 		var mod *string
 		err := rows.Scan(
-			&pr.ID, &pr.Images, &pr.Name, &pr.Address, &pr.CreatedAt, &pr.IsHide, &pr.Price, &pr.UserID, &pr.VideoURL,
+			&pr.ID, &pr.Images, &pr.Name, &pr.Address, &pr.CreatedAt, &pr.IsHide, &pr.Price, &pr.Quantity, &pr.UserID, &pr.VideoURL,
 			&pr.CategoryID, &pr.CategoryName, &pr.CategorySlug,
 			&pr.SubCategoryID, &pr.SubCategoryName, &pr.SubCategorySlug,
 			&typeID, &typeName, &typeSlug,
@@ -420,6 +421,7 @@ type ProductCardDB struct {
 	Name          string
 	Description   *string
 	Price         int32
+	Quantity      int32
 	IsHide        bool
 	Images        []string
 	Address       string
@@ -440,7 +442,7 @@ type ProductCardDB struct {
 
 func (r *ProductPG) GetProductCard(ctx context.Context, productID int32) (*ProductCardDB, error) {
 	const q = `
-		SELECT p.id, p.name, p.description, p.price, p."isHide", p.images, p.address, p."userId", p."videoUrl", p."moderateState"::text,
+		SELECT p.id, p.name, p.description, p.price, p.quantity, p."isHide", p.images, p.address, p."userId", p."videoUrl", p."moderateState"::text,
 			c.id, c.name, c.slug, sc.id, sc.name, sc.slug, t.id, t.name, t.slug
 		FROM "Product" p
 		JOIN "Category" c ON c.id = p."categoryId"
@@ -451,7 +453,7 @@ func (r *ProductPG) GetProductCard(ctx context.Context, productID int32) (*Produ
 	var typeID *int32
 	var typeName, typeSlug *string
 	err := r.pool.QueryRow(ctx, q, productID).Scan(
-		&card.ID, &card.Name, &card.Description, &card.Price, &card.IsHide, &card.Images, &card.Address, &card.UserID, &card.VideoURL, &card.ModerateState,
+		&card.ID, &card.Name, &card.Description, &card.Price, &card.Quantity, &card.IsHide, &card.Images, &card.Address, &card.UserID, &card.VideoURL, &card.ModerateState,
 		&card.CategoryID, &card.CategoryName, &card.CategorySlug,
 		&card.SubCatID, &card.SubCatName, &card.SubCatSlug,
 		&typeID, &typeName, &typeSlug,
@@ -498,7 +500,7 @@ func (r *ProductPG) LoadProductWithRelations(ctx context.Context, productID int3
 		fv = append(fv, map[string]any{p.FieldName: p.Value})
 	}
 	out := map[string]any{
-		"id": card.ID, "name": card.Name, "description": card.Description, "price": card.Price,
+		"id": card.ID, "name": card.Name, "description": card.Description, "price": card.Price, "quantity": card.Quantity,
 		"state":       nil,
 		"images":      card.Images,
 		"address":     card.Address,

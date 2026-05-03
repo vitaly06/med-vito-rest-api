@@ -52,6 +52,7 @@ func (s *ProductService) formatListItem(pr repository.ProductListRow, isFav bool
 		"address":         pr.Address,
 		"createdAt":       formatProductDate(pr.CreatedAt),
 		"price":           pr.Price,
+		"quantity":        pr.Quantity,
 		"userId":          pr.UserID,
 		"videoUrl":        pr.VideoURL,
 		"isFavorited":     isFav,
@@ -149,7 +150,7 @@ func (s *ProductService) mapListWithFavorites(ctx context.Context, rows []reposi
 }
 
 // CreateProduct — multipart + S3; fieldValues JSON map.
-func (s *ProductService) CreateProduct(ctx context.Context, userID int32, name, priceStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr string, files []UploadedFile) (map[string]any, error) {
+func (s *ProductService) CreateProduct(ctx context.Context, userID int32, name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr string, files []UploadedFile) (map[string]any, error) {
 	if s.s3 == nil {
 		return nil, &AppError{500, "S3 не настроен"}
 	}
@@ -230,7 +231,15 @@ func (s *ProductService) CreateProduct(ctx context.Context, userID int32, name, 
 		v := strings.TrimSpace(videoStr)
 		vptr = &v
 	}
-	err = s.prod.CreateProductTx(ctx, pid, userID, name, int32(price), state, description, address, vptr, urls, int32(catID), int32(subID), typePtr, intMap)
+	quantity := int32(1)
+	if strings.TrimSpace(quantityStr) != "" {
+		q, err := strconv.Atoi(strings.TrimSpace(quantityStr))
+		if err != nil || q < 1 {
+			return nil, &AppError{400, "Количество должно быть целым числом больше 0"}
+		}
+		quantity = int32(q)
+	}
+	err = s.prod.CreateProductTx(ctx, pid, userID, name, int32(price), quantity, state, description, address, vptr, urls, int32(catID), int32(subID), typePtr, intMap)
 	if errors.Is(err, repository.ErrNotFound) {
 		return nil, &AppError{400, "Пользователь не найден"}
 	}
@@ -248,7 +257,7 @@ func (s *ProductService) CreateProduct(ctx context.Context, userID int32, name, 
 }
 
 // UploadedFile — один файл из multipart (images).
-func (s *ProductService) CreateDraft(ctx context.Context, userID int32, name, priceStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr string, files []UploadedFile) (map[string]any, error) {
+func (s *ProductService) CreateDraft(ctx context.Context, userID int32, name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr string, files []UploadedFile) (map[string]any, error) {
 	if s.s3 == nil {
 		return nil, &AppError{500, "S3 не настроен"}
 	}
@@ -310,7 +319,15 @@ func (s *ProductService) CreateDraft(ctx context.Context, userID int32, name, pr
 		v := strings.TrimSpace(videoStr)
 		vptr = &v
 	}
-	if err := s.prod.CreateDraftTx(ctx, pid, userID, name, int32(price), state, description, address, vptr, urls, int32(catID), int32(subID), typePtr, intMap); err != nil {
+	quantity := int32(1)
+	if strings.TrimSpace(quantityStr) != "" {
+		q, err := strconv.Atoi(strings.TrimSpace(quantityStr))
+		if err != nil || q < 1 {
+			return nil, &AppError{400, "Количество должно быть целым числом больше 0"}
+		}
+		quantity = int32(q)
+	}
+	if err := s.prod.CreateDraftTx(ctx, pid, userID, name, int32(price), quantity, state, description, address, vptr, urls, int32(catID), int32(subID), typePtr, intMap); err != nil {
 		return nil, err
 	}
 	prod, err := s.prod.LoadProductWithRelations(ctx, pid)

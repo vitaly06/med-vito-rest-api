@@ -105,7 +105,7 @@ func (r *ProductPG) TypeFieldsBelongToType(ctx context.Context, typeID int32, fi
 }
 
 // CreateProductTx — списание/лимит + вставка товара и fieldValues в одной транзакции.
-func (r *ProductPG) CreateProductTx(ctx context.Context, productID, userID int32, name string, price int32, state, description, address string, video *string,
+func (r *ProductPG) CreateProductTx(ctx context.Context, productID, userID int32, name string, price int32, quantity int32, state, description, address string, video *string,
 	images []string, categoryID, subCategoryID int32, typeID *int32, fieldValues map[int32]string,
 ) error {
 	tx, err := r.pool.Begin(ctx)
@@ -170,9 +170,9 @@ func (r *ProductPG) CreateProductTx(ctx context.Context, productID, userID int32
 	}
 	descPtr := nullIfEmpty(description)
 	_, err = tx.Exec(ctx, `
-		INSERT INTO "Product" (id, name, price, state, description, address, "videoUrl", images, "isHide", "moderateState", "categoryId", "subCategoryId", "typeId", "userId", "createdAt", "updatedAt")
-		VALUES ($1,$2,$3,$4::"ProductState",$5,$6,$7,$8::text[], false, 'MODERATE'::"ProductModerate",$9,$10,$11,$12,NOW(),NOW())`,
-		productID, name, price, state, descPtr, address, video, images, categoryID, subCategoryID, typeVal, userID)
+		INSERT INTO "Product" (id, name, price, quantity, state, description, address, "videoUrl", images, "isHide", "moderateState", "categoryId", "subCategoryId", "typeId", "userId", "createdAt", "updatedAt")
+		VALUES ($1,$2,$3,$4,$5::"ProductState",$6,$7,$8,$9::text[], false, 'MODERATE'::"ProductModerate",$10,$11,$12,$13,NOW(),NOW())`,
+		productID, name, price, quantity, state, descPtr, address, video, images, categoryID, subCategoryID, typeVal, userID)
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func (r *ProductPG) CreateProductTx(ctx context.Context, productID, userID int32
 	return tx.Commit(ctx)
 }
 
-func (r *ProductPG) CreateDraftTx(ctx context.Context, productID, userID int32, name string, price int32, state, description, address string, video *string,
+func (r *ProductPG) CreateDraftTx(ctx context.Context, productID, userID int32, name string, price int32, quantity int32, state, description, address string, video *string,
 	images []string, categoryID, subCategoryID int32, typeID *int32, fieldValues map[int32]string,
 ) error {
 	tx, err := r.pool.Begin(ctx)
@@ -204,9 +204,9 @@ func (r *ProductPG) CreateDraftTx(ctx context.Context, productID, userID int32, 
 	}
 	descPtr := nullIfEmpty(description)
 	_, err = tx.Exec(ctx, `
-		INSERT INTO "Product" (id, name, price, state, description, address, "videoUrl", images, "isHide", "moderateState", "categoryId", "subCategoryId", "typeId", "userId", "createdAt", "updatedAt")
-		VALUES ($1,$2,$3,$4::"ProductState",$5,$6,$7,$8::text[], true, 'DRAFT'::"ProductModerate",$9,$10,$11,$12,NOW(),NOW())`,
-		productID, name, price, state, descPtr, address, video, images, categoryID, subCategoryID, typeVal, userID)
+		INSERT INTO "Product" (id, name, price, quantity, state, description, address, "videoUrl", images, "isHide", "moderateState", "categoryId", "subCategoryId", "typeId", "userId", "createdAt", "updatedAt")
+		VALUES ($1,$2,$3,$4,$5::"ProductState",$6,$7,$8,$9::text[], true, 'DRAFT'::"ProductModerate",$10,$11,$12,$13,NOW(),NOW())`,
+		productID, name, price, quantity, state, descPtr, address, video, images, categoryID, subCategoryID, typeVal, userID)
 	if err != nil {
 		return err
 	}
@@ -326,7 +326,7 @@ func (r *ProductPG) ProductWithTypeForUpdate(ctx context.Context, productID int3
 	return userID, typeID, images, err
 }
 
-func (r *ProductPG) UpdateProductPartial(ctx context.Context, productID int32, name *string, price *int32, state *string, description *string, address *string, video *string, images []string) error {
+func (r *ProductPG) UpdateProductPartial(ctx context.Context, productID int32, name *string, price *int32, quantity *int32, state *string, description *string, address *string, video *string, images []string) error {
 	var sets []string
 	var args []any
 	n := 1
@@ -338,6 +338,11 @@ func (r *ProductPG) UpdateProductPartial(ctx context.Context, productID int32, n
 	if price != nil {
 		sets = append(sets, fmt.Sprintf(`price = $%d`, n))
 		args = append(args, *price)
+		n++
+	}
+	if quantity != nil {
+		sets = append(sets, fmt.Sprintf(`quantity = $%d`, n))
+		args = append(args, *quantity)
 		n++
 	}
 	if state != nil {
