@@ -35,6 +35,11 @@ type CreateDealRequest struct {
 	CDEKToPVZ      *string `json:"cdekToPvzCode"`
 }
 
+type MarkShippedRequest struct {
+	CDEKOrderUUID   *string `json:"cdekOrderUuid"`
+	CDEKTrackNumber *string `json:"cdekTrackNumber"`
+}
+
 func (s *DealService) CreateDeal(ctx context.Context, buyerID int32, req CreateDealRequest) (map[string]any, error) {
 	if req.ProductID <= 0 {
 		return nil, &AppError{400, "РќСѓР¶РµРЅ productId"}
@@ -115,13 +120,25 @@ func (s *DealService) PayDeal(ctx context.Context, buyerID, dealID int32) (map[s
 	return map[string]any{"deal": s.formatDeal(*updated), "paymentId": paymentID, "paymentUrl": paymentURL, "orderId": orderID}, nil
 }
 
-func (s *DealService) MarkShipped(ctx context.Context, sellerID, dealID int32) (map[string]any, error) {
+func (s *DealService) MarkShipped(ctx context.Context, sellerID, dealID int32, req MarkShippedRequest) (map[string]any, error) {
 	deal, err := s.getUserDeal(ctx, dealID, sellerID, "seller")
 	if err != nil {
 		return nil, err
 	}
 	if deal.Status != "PAID" {
 		return nil, &AppError{400, "РћС‚РїСЂР°РІРєСѓ РјРѕР¶РЅРѕ РїРѕРґС‚РІРµСЂРґРёС‚СЊ С‚РѕР»СЊРєРѕ РїРѕСЃР»Рµ РѕРїР»Р°С‚С‹"}
+	}
+	orderUUID := normalizeStringPtr(req.CDEKOrderUUID)
+	trackNumber := normalizeStringPtr(req.CDEKTrackNumber)
+	if deal.CDEKToPVZ != nil {
+		if trackNumber == nil {
+			return nil, &AppError{400, "Для доставки в ПВЗ нужен трек-номер"}
+		}
+	}
+	if orderUUID != nil || trackNumber != nil {
+		if err := s.repo.SetCDEKShipment(ctx, dealID, orderUUID, trackNumber); err != nil {
+			return nil, err
+		}
 	}
 	if err := s.repo.SetStatus(ctx, dealID, []string{"PAID"}, "SHIPPED", "shippedAt"); err != nil {
 		return nil, &AppError{400, "РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕРґС‚РІРµСЂРґРёС‚СЊ РѕС‚РїСЂР°РІРєСѓ"}

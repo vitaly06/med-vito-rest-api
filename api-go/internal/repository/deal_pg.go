@@ -143,6 +143,16 @@ func (r *DealPG) SetStatus(ctx context.Context, dealID int32, fromStatuses []str
 	return nil
 }
 
+func (r *DealPG) SetCDEKShipment(ctx context.Context, dealID int32, orderUUID, trackNumber *string) error {
+	_, err := r.pool.Exec(ctx, `
+		UPDATE "ProductDeal"
+		SET "cdekOrderUuid" = COALESCE($2, "cdekOrderUuid"),
+		    "cdekTrackNumber" = COALESCE($3, "cdekTrackNumber"),
+		    "updatedAt" = NOW()
+		WHERE id = $1`, dealID, orderUUID, trackNumber)
+	return err
+}
+
 func (r *DealPG) MarkDelivered(ctx context.Context, dealID int32, payoutAt time.Time) error {
 	tag, err := r.pool.Exec(ctx, `
 		UPDATE "ProductDeal"

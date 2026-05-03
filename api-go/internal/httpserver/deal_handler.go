@@ -84,8 +84,14 @@ func RegisterDealRoutes(app fiber.Router, deals *service.DealService, auth *serv
 		if err != nil {
 			return err
 		}
+		var body service.MarkShippedRequest
+		if len(c.Body()) > 0 {
+			if err := c.BodyParser(&body); err != nil {
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректное тело"})
+			}
+		}
 		me := authmw.UserFromLocals(c)
-		out, err := deals.MarkShipped(c.UserContext(), me.ID, id)
+		out, err := deals.MarkShipped(c.UserContext(), me.ID, id, body)
 		if err != nil {
 			return writeAppError(c, err)
 		}
