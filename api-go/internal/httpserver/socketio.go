@@ -106,22 +106,18 @@ func socketIOCORSChecker(corsOrigins string) func(*http.Request) (http.Header, e
 	}
 
 	return func(r *http.Request) (http.Header, error) {
-		h := http.Header{}
 		originRaw := r.Header.Get("Origin")
 		origin := normalizeOrigin(originRaw)
 		if origin == "" {
-			return h, nil
+			return nil, nil
 		}
 		if corsOrigins == "" {
-			h.Set("Access-Control-Allow-Origin", originRaw)
-			h.Set("Access-Control-Allow-Credentials", "true")
-			return h, nil
+			return nil, nil
 		}
 		if _, ok := allowed[origin]; ok {
-			h.Set("Access-Control-Allow-Origin", originRaw)
-			h.Set("Access-Control-Allow-Credentials", "true")
+			return nil, nil
 		}
-		return h, nil
+		return nil, fmt.Errorf("origin not allowed: %s", originRaw)
 	}
 }
 
