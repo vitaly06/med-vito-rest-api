@@ -595,7 +595,9 @@ CREATE TABLE public."Product" (
     "moderateState" public."ProductModerate" DEFAULT 'MODERATE'::public."ProductModerate" NOT NULL,
     "moderationRejectionReason" text,
     "allowReservations" boolean DEFAULT true NOT NULL,
-    "reservationHours" integer DEFAULT 24 NOT NULL
+    "reservationHours" integer DEFAULT 24 NOT NULL,
+    quantity integer DEFAULT 1 NOT NULL,
+    CONSTRAINT "Product_quantity_chk" CHECK ((quantity > 0))
 );
 
 

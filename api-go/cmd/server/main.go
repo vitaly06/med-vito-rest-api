@@ -16,6 +16,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -35,7 +36,7 @@ import (
 )
 
 func main() {
-	_ = godotenv.Load("../.env")
+	loadEnvFiles()
 
 	cfg := config.Load()
 	if cfg.DatabaseURL == "" {
@@ -163,4 +164,49 @@ func main() {
 	if err := app.Listen(addr); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func loadEnvFiles() {
+	seen := map[string]struct{}{}
+	candidates := make([]string, 0, 16)
+
+	addChain := func(base string) {
+		if strings.TrimSpace(base) == "" {
+			return
+		}
+		base = filepath.Clean(base)
+		dir := base
+		for i := 0; i < 6; i++ {
+			candidates = append(candidates, filepath.Join(dir, ".env"))
+			parent := filepath.Dir(dir)
+			if parent == dir {
+				break
+			}
+			dir = parent
+		}
+	}
+
+	if wd, err := os.Getwd(); err == nil {
+		addChain(wd)
+	}
+	if exe, err := os.Executable(); err == nil {
+		addChain(filepath.Dir(exe))
+	}
+
+	paths := make([]string, 0, len(candidates))
+	for _, p := range candidates {
+		cp := filepath.Clean(p)
+		if _, ok := seen[cp]; ok {
+			continue
+		}
+		if _, err := os.Stat(cp); err != nil {
+			continue
+		}
+		seen[cp] = struct{}{}
+		paths = append(paths, cp)
+	}
+	if len(paths) == 0 {
+		return
+	}
+	_ = godotenv.Overload(paths...)
 }
