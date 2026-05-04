@@ -66,7 +66,7 @@ func (r *ChatPG) scanChatFull(row pgx.Row) (*ChatFullRow, error) {
 
 const chatFullSelect = `
 	c.id, c."productId", c."buyerId", c."sellerId", c."isModerationChat", c."lastMessageAt", c."createdAt",
-	p.id, p.name, p.images, p.price, p.description,
+	p.id, p.name, COALESCE(p.images, ARRAY[]::text[]), p.price, p.description,
 	b."fullName", b."phoneNumber", s."fullName", s."phoneNumber"`
 
 const chatFullJoins = `
@@ -121,7 +121,7 @@ type ChatListRow struct {
 func (r *ChatPG) ListChatsForUser(ctx context.Context, userID int32) ([]ChatListRow, error) {
 	q := `
 		SELECT c.id, c."productId", c."buyerId", c."sellerId", c."isModerationChat", c."lastMessageAt", c."createdAt",
-			p.id, p.name, p.images, p.price, p.description,
+			p.id, p.name, COALESCE(p.images, ARRAY[]::text[]), p.price, p.description,
 			b."fullName", b."phoneNumber", s."fullName", s."phoneNumber",
 			c."unreadCountBuyer", c."unreadCountSeller",
 			m.id, m.content, m."createdAt", m."senderId", m."isRead"
@@ -194,7 +194,7 @@ func (r *ChatPG) ListMessagesPage(ctx context.Context, chatID int32, limit, offs
 	}
 	q := `
 		SELECT m.id, m.content, m."senderId", u."fullName", m."isRead", m."readAt", m."createdAt",
-			rp.id, rp.name, rp.images, rp.price, rp."moderateState"::text
+			rp.id, rp.name, COALESCE(rp.images, ARRAY[]::text[]), rp.price, rp."moderateState"::text
 		FROM "Message" m
 		JOIN "User" u ON u.id = m."senderId"
 		LEFT JOIN "Product" rp ON rp.id = m."relatedProductId"
