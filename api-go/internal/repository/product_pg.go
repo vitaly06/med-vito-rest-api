@@ -54,6 +54,21 @@ func (r *ProductPG) SubCategoryBelongsToCategory(ctx context.Context, categoryID
 	return err == nil, err
 }
 
+// FirstCategoryWithSubcategory — минимальная пара для черновика, когда категории с фронта нет или битые.
+func (r *ProductPG) FirstCategoryWithSubcategory(ctx context.Context) (categoryID, subCategoryID int32, err error) {
+	const q = `
+		SELECT c.id, s.id
+		FROM "Category" c
+		INNER JOIN "SubCategory" s ON s."categoryId" = c.id
+		ORDER BY c.id ASC, s.id ASC
+		LIMIT 1`
+	err = r.pool.QueryRow(ctx, q).Scan(&categoryID, &subCategoryID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, 0, fmt.Errorf("в базе нет категорий с подкатегориями")
+	}
+	return categoryID, subCategoryID, err
+}
+
 func (r *ProductPG) ValidateTypeFieldIDs(ctx context.Context, fieldIDs []int32) error {
 	if len(fieldIDs) == 0 {
 		return nil
@@ -316,14 +331,14 @@ func (r *ProductPG) DeleteProductByID(ctx context.Context, productID int32) erro
 	return nil
 }
 
-// ProductWithTypeForUpdate — для PATCH: typeId, images, userId.
-func (r *ProductPG) ProductWithTypeForUpdate(ctx context.Context, productID int32) (userID int32, typeID *int32, images []string, err error) {
-	const q = `SELECT "userId", "typeId", images FROM "Product" WHERE id = $1`
-	err = r.pool.QueryRow(ctx, q, productID).Scan(&userID, &typeID, &images)
+// ProductWithTypeForUpdate — для PATCH: typeId, images, userId, moderateState (черновик — мягкая валидация).
+func (r *ProductPG) ProductWithTypeForUpdate(ctx context.Context, productID int32) (userID int32, typeID *int32, images []string, moderateState string, err error) {
+	const q = `SELECT "userId", "typeId", images, COALESCE("moderateState"::text, '') FROM "Product" WHERE id = $1`
+	err = r.pool.QueryRow(ctx, q, productID).Scan(&userID, &typeID, &images, &moderateState)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return 0, nil, nil, ErrNotFound
+		return 0, nil, nil, "", ErrNotFound
 	}
-	return userID, typeID, images, err
+	return userID, typeID, images, moderateState, err
 }
 
 func (r *ProductPG) UpdateProductPartial(ctx context.Context, productID int32, name *string, price *int32, quantity *int32, state *string, description *string, address *string, video *string, images []string) error {

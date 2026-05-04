@@ -36,7 +36,7 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 	if s.s3 == nil && len(files) > 0 {
 		return nil, &AppError{500, "S3 РЅРµ РЅР°СЃС‚СЂРѕРµРЅ"}
 	}
-	uid, typeID, existingImages, err := s.prod.ProductWithTypeForUpdate(ctx, productID)
+	uid, typeID, existingImages, modState, err := s.prod.ProductWithTypeForUpdate(ctx, productID)
 	if errors.Is(err, repository.ErrNotFound) {
 		return nil, &AppError{400, "РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ"}
 	}
@@ -46,9 +46,13 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 	if uid != userID {
 		return nil, &AppError{403, "Р’С‹ РЅРµ РјРѕР¶РµС‚Рµ СЂРµРґР°РєС‚РёСЂРѕРІР°С‚СЊ С‡СѓР¶РѕР№ С‚РѕРІР°СЂ"}
 	}
+	isDraft := modState == "DRAFT"
 	fvMap, err := parseFieldValuesMap(fieldJSON)
 	if err != nil {
-		return nil, &AppError{400, err.Error()}
+		if !isDraft {
+			return nil, &AppError{400, err.Error()}
+		}
+		fvMap = map[string]string{}
 	}
 	var fieldIDs []int32
 	for k := range fvMap {
@@ -56,7 +60,7 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 			fieldIDs = append(fieldIDs, int32(id64))
 		}
 	}
-	if len(fieldIDs) > 0 {
+	if len(fieldIDs) > 0 && !isDraft {
 		if err := s.prod.ValidateTypeFieldIDs(ctx, fieldIDs); err != nil {
 			return nil, &AppError{400, err.Error()}
 		}
@@ -81,22 +85,35 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 	if strings.TrimSpace(priceStr) != "" {
 		p, err := strconv.Atoi(strings.TrimSpace(priceStr))
 		if err != nil || p < 1 {
-			return nil, &AppError{400, "РќРµРєРѕСЂСЂРµРєС‚РЅР°СЏ С†РµРЅР°"}
+			if !isDraft {
+				return nil, &AppError{400, "РќРµРєРѕСЂСЂРµРєС‚РЅР°СЏ С†РµРЅР°"}
+			}
+		} else {
+			pp := int32(p)
+			pricePtr = &pp
 		}
-		pp := int32(p)
-		pricePtr = &pp
 	}
 	if strings.TrimSpace(state) != "" {
-		v := strings.TrimSpace(state)
-		statePtr = &v
+		if isDraft {
+			v := strings.TrimSpace(strings.ToUpper(state))
+			if v == "NEW" || v == "USED" {
+				statePtr = &v
+			}
+		} else {
+			v := strings.TrimSpace(state)
+			statePtr = &v
+		}
 	}
 	if strings.TrimSpace(quantityStr) != "" {
 		q, err := strconv.Atoi(strings.TrimSpace(quantityStr))
 		if err != nil || q < 1 {
-			return nil, &AppError{400, "Количество должно быть целым числом больше 0"}
+			if !isDraft {
+				return nil, &AppError{400, "Количество должно быть целым числом больше 0"}
+			}
+		} else {
+			qq := int32(q)
+			quantityPtr = &qq
 		}
-		qq := int32(q)
-		quantityPtr = &qq
 	}
 	if description != "" {
 		descPtr = &description

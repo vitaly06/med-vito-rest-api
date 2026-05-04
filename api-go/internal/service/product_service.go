@@ -258,44 +258,64 @@ func (s *ProductService) CreateProduct(ctx context.Context, userID int32, name, 
 
 // UploadedFile — один файл из multipart (images).
 func (s *ProductService) CreateDraft(ctx context.Context, userID int32, name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr string, files []UploadedFile) (map[string]any, error) {
-	if s.s3 == nil {
+	// Черновик: без жёсткой валидации; в БД подставляем дефолты. S3 нужен только если реально грузим файлы.
+	if len(files) > 0 && s.s3 == nil {
 		return nil, &AppError{500, "S3 не настроен"}
 	}
-	if strings.TrimSpace(address) == "" || strings.TrimSpace(name) == "" || strings.TrimSpace(state) == "" {
-		return nil, &AppError{400, "Для черновика обязательны: name, state, address"}
+
+	name = strings.TrimSpace(name)
+	if name == "" {
+		name = "Черновик"
 	}
-	price, err := strconv.Atoi(strings.TrimSpace(priceStr))
-	if err != nil || price < 1 {
-		return nil, &AppError{400, "Цена должна быть числом больше 0"}
+	address = strings.TrimSpace(address)
+	if address == "" {
+		address = "—"
 	}
-	catID, err := strconv.ParseInt(strings.TrimSpace(categoryStr), 10, 32)
-	if err != nil {
-		return nil, &AppError{400, "Некорректный categoryId"}
+	state = strings.TrimSpace(strings.ToUpper(state))
+	if state != "NEW" && state != "USED" {
+		state = "NEW"
 	}
-	subID, err := strconv.ParseInt(strings.TrimSpace(subStr), 10, 32)
-	if err != nil {
-		return nil, &AppError{400, "Некорректный subcategoryId"}
+
+	price := 1
+	if p := strings.TrimSpace(priceStr); p != "" {
+		if n, err := strconv.Atoi(p); err == nil && n >= 1 {
+			price = n
+		}
 	}
-	ok, err := s.prod.SubCategoryBelongsToCategory(ctx, int32(catID), int32(subID))
-	if err != nil {
-		return nil, err
+
+	catID64, errCat := strconv.ParseInt(strings.TrimSpace(categoryStr), 10, 32)
+	subID64, errSub := strconv.ParseInt(strings.TrimSpace(subStr), 10, 32)
+	var catID, subID int32
+	if errCat == nil && errSub == nil {
+		ok, err := s.prod.SubCategoryBelongsToCategory(ctx, int32(catID64), int32(subID64))
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			catID, subID = int32(catID64), int32(subID64)
+		}
 	}
-	if !ok {
-		return nil, &AppError{400, "Подкатегория не принадлежит категории"}
+	if catID == 0 || subID == 0 {
+		dc, ds, err := s.prod.FirstCategoryWithSubcategory(ctx)
+		if err != nil {
+			return nil, err
+		}
+		catID, subID = dc, ds
 	}
+
 	var typePtr *int32
 	if strings.TrimSpace(typeStr) != "" {
-		tid64, err := strconv.ParseInt(strings.TrimSpace(typeStr), 10, 32)
-		if err != nil {
-			return nil, &AppError{400, "Некорректный typeId"}
+		if tid64, err := strconv.ParseInt(strings.TrimSpace(typeStr), 10, 32); err == nil {
+			t := int32(tid64)
+			typePtr = &t
 		}
-		t := int32(tid64)
-		typePtr = &t
 	}
+
 	fvMap, err := parseFieldValuesMap(fieldJSON)
 	if err != nil {
-		return nil, &AppError{400, err.Error()}
+		fvMap = map[string]string{}
 	}
+
 	var urls []string
 	for _, f := range files {
 		u, err := s.s3.Upload(ctx, "products", f.Name, f.ContentType, f.Body)
@@ -321,13 +341,11 @@ func (s *ProductService) CreateDraft(ctx context.Context, userID int32, name, pr
 	}
 	quantity := int32(1)
 	if strings.TrimSpace(quantityStr) != "" {
-		q, err := strconv.Atoi(strings.TrimSpace(quantityStr))
-		if err != nil || q < 1 {
-			return nil, &AppError{400, "Количество должно быть целым числом больше 0"}
+		if q, err := strconv.Atoi(strings.TrimSpace(quantityStr)); err == nil && q >= 1 {
+			quantity = int32(q)
 		}
-		quantity = int32(q)
 	}
-	if err := s.prod.CreateDraftTx(ctx, pid, userID, name, int32(price), quantity, state, description, address, vptr, urls, int32(catID), int32(subID), typePtr, intMap); err != nil {
+	if err := s.prod.CreateDraftTx(ctx, pid, userID, name, int32(price), quantity, state, description, address, vptr, urls, catID, subID, typePtr, intMap); err != nil {
 		return nil, err
 	}
 	prod, err := s.prod.LoadProductWithRelations(ctx, pid)

@@ -1,7 +1,10 @@
 package httpserver
 
 import (
+	"bytes"
+	"encoding/json"
 	"io"
+	"mime/multipart"
 	"strconv"
 	"strings"
 
@@ -10,6 +13,170 @@ import (
 	authmw "med-vito/api-go/internal/httpserver/middleware"
 	"med-vito/api-go/internal/service"
 )
+
+const maxProductImages = 8
+
+func multipartFirst(form *multipart.Form, keys ...string) string {
+	for _, k := range keys {
+		if form == nil || form.Value == nil {
+			continue
+		}
+		if vs := form.Value[k]; len(vs) > 0 && strings.TrimSpace(vs[0]) != "" {
+			return vs[0]
+		}
+	}
+	return ""
+}
+
+func readImageFilesFromMultipart(form *multipart.Form, field string, max int) ([]service.UploadedFile, error) {
+	if form == nil {
+		return nil, nil
+	}
+	fhs := form.File[field]
+	if len(fhs) > max {
+		fhs = fhs[:max]
+	}
+	var out []service.UploadedFile
+	for _, fh := range fhs {
+		f, err := fh.Open()
+		if err != nil {
+			return nil, err
+		}
+		b, err := io.ReadAll(f)
+		_ = f.Close()
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, service.UploadedFile{
+			Name:        fh.Filename,
+			ContentType: fh.Header.Get("Content-Type"),
+			Body:        b,
+		})
+	}
+	return out, nil
+}
+
+// parseCreateDraftInputs — multipart | JSON | urlencoded; без MultipartForm для не-multipart (иначе 400).
+func parseCreateDraftInputs(c *fiber.Ctx) (
+	name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr string,
+	files []service.UploadedFile,
+	err error,
+) {
+	ct := strings.ToLower(c.Get("Content-Type"))
+	if strings.HasPrefix(ct, "multipart/form-data") {
+		form, err := c.MultipartForm()
+		if err != nil {
+			return "", "", "", "", "", "", "", "", "", "", "", nil, err
+		}
+		name = multipartFirst(form, "name")
+		priceStr = multipartFirst(form, "price")
+		quantityStr = multipartFirst(form, "quantity")
+		state = multipartFirst(form, "state")
+		description = multipartFirst(form, "description")
+		address = multipartFirst(form, "address")
+		categoryStr = multipartFirst(form, "categoryId")
+		subStr = multipartFirst(form, "subcategoryId", "subCategoryId")
+		typeStr = multipartFirst(form, "typeId")
+		fieldJSON = multipartFirst(form, "fieldValues")
+		videoStr = multipartFirst(form, "videoUrl")
+		files, err = readImageFilesFromMultipart(form, "images", maxProductImages)
+		return name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr, files, err
+	}
+	if strings.Contains(ct, "application/json") {
+		raw := bytes.TrimSpace(c.Body())
+		if len(raw) == 0 {
+			return "", "", "", "", "", "", "", "", "", "", "", nil, nil
+		}
+		var b struct {
+			Name          string          `json:"name"`
+			Price         string          `json:"price"`
+			Quantity      string          `json:"quantity"`
+			State         string          `json:"state"`
+			Description   string          `json:"description"`
+			Address       string          `json:"address"`
+			CategoryID    string          `json:"categoryId"`
+			SubcategoryID string          `json:"subcategoryId"`
+			TypeID        string          `json:"typeId"`
+			FieldValues   json.RawMessage `json:"fieldValues"`
+			VideoURL      string          `json:"videoUrl"`
+		}
+		if err := json.Unmarshal(raw, &b); err != nil {
+			return "", "", "", "", "", "", "", "", "", "", "", nil, err
+		}
+		fv := strings.TrimSpace(string(b.FieldValues))
+		return b.Name, b.Price, b.Quantity, b.State, b.Description, b.Address, b.CategoryID, b.SubcategoryID, b.TypeID, fv, b.VideoURL, nil, nil
+	}
+	name = c.FormValue("name")
+	priceStr = c.FormValue("price")
+	quantityStr = c.FormValue("quantity")
+	state = c.FormValue("state")
+	description = c.FormValue("description")
+	address = c.FormValue("address")
+	categoryStr = c.FormValue("categoryId")
+	subStr = c.FormValue("subcategoryId")
+	if subStr == "" {
+		subStr = c.FormValue("subCategoryId")
+	}
+	typeStr = c.FormValue("typeId")
+	fieldJSON = c.FormValue("fieldValues")
+	videoStr = c.FormValue("videoUrl")
+	return name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr, nil, nil
+}
+
+// parseUpdateProductInputs — как parseCreateDraftInputs, но без категорий (PATCH товар).
+func parseUpdateProductInputs(c *fiber.Ctx) (
+	name, priceStr, quantityStr, state, description, address, videoStr, fieldJSON string,
+	files []service.UploadedFile,
+	err error,
+) {
+	ct := strings.ToLower(c.Get("Content-Type"))
+	if strings.HasPrefix(ct, "multipart/form-data") {
+		form, err := c.MultipartForm()
+		if err != nil {
+			return "", "", "", "", "", "", "", "", nil, err
+		}
+		name = multipartFirst(form, "name")
+		priceStr = multipartFirst(form, "price")
+		quantityStr = multipartFirst(form, "quantity")
+		state = multipartFirst(form, "state")
+		description = multipartFirst(form, "description")
+		address = multipartFirst(form, "address")
+		videoStr = multipartFirst(form, "videoUrl")
+		fieldJSON = multipartFirst(form, "fieldValues")
+		files, err = readImageFilesFromMultipart(form, "images", maxProductImages)
+		return name, priceStr, quantityStr, state, description, address, videoStr, fieldJSON, files, err
+	}
+	if strings.Contains(ct, "application/json") {
+		raw := bytes.TrimSpace(c.Body())
+		if len(raw) == 0 {
+			return "", "", "", "", "", "", "", "", nil, nil
+		}
+		var b struct {
+			Name        string          `json:"name"`
+			Price       string          `json:"price"`
+			Quantity    string          `json:"quantity"`
+			State       string          `json:"state"`
+			Description string          `json:"description"`
+			Address     string          `json:"address"`
+			VideoURL    string          `json:"videoUrl"`
+			FieldValues json.RawMessage `json:"fieldValues"`
+		}
+		if err := json.Unmarshal(raw, &b); err != nil {
+			return "", "", "", "", "", "", "", "", nil, err
+		}
+		fv := strings.TrimSpace(string(b.FieldValues))
+		return b.Name, b.Price, b.Quantity, b.State, b.Description, b.Address, b.VideoURL, fv, nil, nil
+	}
+	name = c.FormValue("name")
+	priceStr = c.FormValue("price")
+	quantityStr = c.FormValue("quantity")
+	state = c.FormValue("state")
+	description = c.FormValue("description")
+	address = c.FormValue("address")
+	videoStr = c.FormValue("videoUrl")
+	fieldJSON = c.FormValue("fieldValues")
+	return name, priceStr, quantityStr, state, description, address, videoStr, fieldJSON, nil, nil
+}
 
 func collectImageFiles(c *fiber.Ctx, field string, max int) ([]service.UploadedFile, error) {
 	form, err := c.MultipartForm()
@@ -127,15 +294,12 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 
 	g.Post("/create-draft", sess, func(c *fiber.Ctx) error {
 		me := authmw.UserFromLocals(c)
-		files, err := collectImageFiles(c, "images", 8)
+		name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr, files, err := parseCreateDraftInputs(c)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Файлы: " + err.Error()})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Черновик: " + err.Error()})
 		}
 		out, err := p.CreateDraft(c.UserContext(), me.ID,
-			c.FormValue("name"), c.FormValue("price"), c.FormValue("quantity"), c.FormValue("state"),
-			c.FormValue("description"), c.FormValue("address"),
-			c.FormValue("categoryId"), c.FormValue("subcategoryId"), c.FormValue("typeId"),
-			c.FormValue("fieldValues"), c.FormValue("videoUrl"), files)
+			name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr, files)
 		if err != nil {
 			return writeAppError(c, err)
 		}
@@ -363,14 +527,12 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
 		}
 		me := authmw.UserFromLocals(c)
-		files, err := collectImageFiles(c, "images", 8)
+		name, priceStr, quantityStr, state, description, address, videoStr, fieldJSON, files, err := parseUpdateProductInputs(c)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Файлы: " + err.Error()})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Товар: " + err.Error()})
 		}
 		out, err := p.UpdateProduct(c.UserContext(), int32(id), me.ID,
-			c.FormValue("name"), c.FormValue("price"), c.FormValue("quantity"), c.FormValue("state"),
-			c.FormValue("description"), c.FormValue("address"), c.FormValue("videoUrl"),
-			c.FormValue("fieldValues"), files)
+			name, priceStr, quantityStr, state, description, address, videoStr, fieldJSON, files)
 		if err != nil {
 			return writeAppError(c, err)
 		}
