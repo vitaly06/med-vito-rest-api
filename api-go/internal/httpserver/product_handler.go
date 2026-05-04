@@ -16,6 +16,27 @@ import (
 
 const maxProductImages = 8
 
+func scalarToString(v any) string {
+	switch x := v.(type) {
+	case nil:
+		return ""
+	case string:
+		return x
+	case float64:
+		if x == float64(int64(x)) {
+			return strconv.FormatInt(int64(x), 10)
+		}
+		return strconv.FormatFloat(x, 'f', -1, 64)
+	case bool:
+		if x {
+			return "true"
+		}
+		return "false"
+	default:
+		return ""
+	}
+}
+
 func multipartFirst(form *multipart.Form, keys ...string) string {
 	for _, k := range keys {
 		if form == nil || form.Value == nil {
@@ -87,24 +108,33 @@ func parseCreateDraftInputs(c *fiber.Ctx) (
 		if len(raw) == 0 {
 			return "", "", "", "", "", "", "", "", "", "", "", nil, nil
 		}
-		var b struct {
-			Name          string          `json:"name"`
-			Price         string          `json:"price"`
-			Quantity      string          `json:"quantity"`
-			State         string          `json:"state"`
-			Description   string          `json:"description"`
-			Address       string          `json:"address"`
-			CategoryID    string          `json:"categoryId"`
-			SubcategoryID string          `json:"subcategoryId"`
-			TypeID        string          `json:"typeId"`
-			FieldValues   json.RawMessage `json:"fieldValues"`
-			VideoURL      string          `json:"videoUrl"`
-		}
-		if err := json.Unmarshal(raw, &b); err != nil {
+		var body map[string]any
+		if err := json.Unmarshal(raw, &body); err != nil {
 			return "", "", "", "", "", "", "", "", "", "", "", nil, err
 		}
-		fv := strings.TrimSpace(string(b.FieldValues))
-		return b.Name, b.Price, b.Quantity, b.State, b.Description, b.Address, b.CategoryID, b.SubcategoryID, b.TypeID, fv, b.VideoURL, nil, nil
+		fv := ""
+		if fvRaw, ok := body["fieldValues"]; ok {
+			if b, err := json.Marshal(fvRaw); err == nil {
+				fv = strings.TrimSpace(string(b))
+			}
+		}
+		sub := scalarToString(body["subcategoryId"])
+		if sub == "" {
+			sub = scalarToString(body["subCategoryId"])
+		}
+		return scalarToString(body["name"]),
+			scalarToString(body["price"]),
+			scalarToString(body["quantity"]),
+			scalarToString(body["state"]),
+			scalarToString(body["description"]),
+			scalarToString(body["address"]),
+			scalarToString(body["categoryId"]),
+			sub,
+			scalarToString(body["typeId"]),
+			fv,
+			scalarToString(body["videoUrl"]),
+			nil,
+			nil
 	}
 	name = c.FormValue("name")
 	priceStr = c.FormValue("price")
@@ -151,21 +181,26 @@ func parseUpdateProductInputs(c *fiber.Ctx) (
 		if len(raw) == 0 {
 			return "", "", "", "", "", "", "", "", nil, nil
 		}
-		var b struct {
-			Name        string          `json:"name"`
-			Price       string          `json:"price"`
-			Quantity    string          `json:"quantity"`
-			State       string          `json:"state"`
-			Description string          `json:"description"`
-			Address     string          `json:"address"`
-			VideoURL    string          `json:"videoUrl"`
-			FieldValues json.RawMessage `json:"fieldValues"`
-		}
-		if err := json.Unmarshal(raw, &b); err != nil {
+		var body map[string]any
+		if err := json.Unmarshal(raw, &body); err != nil {
 			return "", "", "", "", "", "", "", "", nil, err
 		}
-		fv := strings.TrimSpace(string(b.FieldValues))
-		return b.Name, b.Price, b.Quantity, b.State, b.Description, b.Address, b.VideoURL, fv, nil, nil
+		fv := ""
+		if fvRaw, ok := body["fieldValues"]; ok {
+			if b, err := json.Marshal(fvRaw); err == nil {
+				fv = strings.TrimSpace(string(b))
+			}
+		}
+		return scalarToString(body["name"]),
+			scalarToString(body["price"]),
+			scalarToString(body["quantity"]),
+			scalarToString(body["state"]),
+			scalarToString(body["description"]),
+			scalarToString(body["address"]),
+			scalarToString(body["videoUrl"]),
+			fv,
+			nil,
+			nil
 	}
 	name = c.FormValue("name")
 	priceStr = c.FormValue("price")
