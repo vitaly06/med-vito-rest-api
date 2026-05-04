@@ -312,15 +312,31 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 
 	g.Post("/create", sess, func(c *fiber.Ctx) error {
 		me := authmw.UserFromLocals(c)
-		files, err := collectImageFiles(c, "images", 8)
+		name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr, files, err := parseCreateDraftInputs(c)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Файлы: " + err.Error()})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Тело: " + err.Error()})
 		}
-		out, err := p.CreateProduct(c.UserContext(), me.ID,
-			c.FormValue("name"), c.FormValue("price"), c.FormValue("quantity"), c.FormValue("state"),
-			c.FormValue("description"), c.FormValue("address"),
-			c.FormValue("categoryId"), c.FormValue("subcategoryId"), c.FormValue("typeId"),
-			c.FormValue("fieldValues"), c.FormValue("videoUrl"), files)
+
+		isComplete := strings.TrimSpace(name) != "" &&
+			strings.TrimSpace(address) != "" &&
+			strings.TrimSpace(state) != "" &&
+			strings.TrimSpace(priceStr) != "" &&
+			strings.TrimSpace(categoryStr) != "" &&
+			strings.TrimSpace(subStr) != ""
+
+		if isComplete {
+			out, err := p.CreateProduct(c.UserContext(), me.ID,
+				name, priceStr, quantityStr, state, description, address,
+				categoryStr, subStr, typeStr, fieldJSON, videoStr, files)
+			if err == nil {
+				return c.Status(fiber.StatusCreated).JSON(out)
+			}
+		}
+
+		// Для UX: если форма неполная или create вернул валидацию, сохраняем как черновик вместо 400.
+		out, err := p.CreateDraft(c.UserContext(), me.ID,
+			name, priceStr, quantityStr, state, description, address,
+			categoryStr, subStr, typeStr, fieldJSON, videoStr, files)
 		if err != nil {
 			return writeAppError(c, err)
 		}
