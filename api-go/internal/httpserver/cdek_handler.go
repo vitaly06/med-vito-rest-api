@@ -1,4 +1,4 @@
-﻿package httpserver
+package httpserver
 
 import (
 	"strconv"
@@ -49,5 +49,16 @@ func RegisterCDEKRoutes(app fiber.Router, cdek *service.CDEKService) {
 		}
 		return c.JSON(out)
 	})
-}
 
+	g.Post("/tariffs", func(c *fiber.Ctx) error {
+		var body service.CDEKTariffsRequest
+		if err := c.BodyParser(&body); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректное тело"})
+		}
+		out, err := cdek.Tariffs(c.UserContext(), body)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+}

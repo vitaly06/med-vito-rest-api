@@ -96,6 +96,15 @@ type CDEKCalculateRequest struct {
 	Height       int `json:"height"`
 }
 
+type CDEKTariffsRequest struct {
+	FromCityCode int `json:"fromCityCode"`
+	ToCityCode   int `json:"toCityCode"`
+	Weight       int `json:"weight"`
+	Length       int `json:"length"`
+	Width        int `json:"width"`
+	Height       int `json:"height"`
+}
+
 func (s *CDEKService) Calculate(ctx context.Context, req CDEKCalculateRequest) (map[string]any, error) {
 	if req.TariffCode <= 0 || req.FromCityCode <= 0 || req.ToCityCode <= 0 {
 		return nil, &AppError{400, "РќСѓР¶РЅС‹ tariffCode, fromCityCode Рё toCityCode"}
@@ -134,6 +143,41 @@ func (s *CDEKService) Calculate(ctx context.Context, req CDEKCalculateRequest) (
 		return nil, err
 	}
 	return out, nil
+}
+
+func (s *CDEKService) Tariffs(ctx context.Context, req CDEKTariffsRequest) ([]map[string]any, error) {
+	if req.FromCityCode <= 0 || req.ToCityCode <= 0 {
+		return nil, &AppError{400, "Нужны fromCityCode и toCityCode"}
+	}
+	if req.Weight <= 0 {
+		req.Weight = 1000
+	}
+	if req.Length <= 0 {
+		req.Length = 20
+	}
+	if req.Width <= 0 {
+		req.Width = 20
+	}
+	if req.Height <= 0 {
+		req.Height = 20
+	}
+	payload := map[string]any{
+		"from_location": map[string]any{"code": req.FromCityCode},
+		"to_location":   map[string]any{"code": req.ToCityCode},
+		"packages": []map[string]any{
+			{
+				"weight": req.Weight,
+				"length": req.Length,
+				"width":  req.Width,
+				"height": req.Height,
+			},
+		},
+	}
+	var raw any
+	if err := s.postJSON(ctx, "/calculator/tarifflist", payload, &raw); err != nil {
+		return nil, err
+	}
+	return normalizeTariffList(raw), nil
 }
 
 func (s *CDEKService) getJSON(ctx context.Context, path string, target any) error {
@@ -265,4 +309,66 @@ func transliterateRU(s string) string {
 	lower := strings.ToLower(s)
 	latin := replacer.Replace(lower)
 	return strings.Join(strings.Fields(latin), " ")
+}
+
+func normalizeTariffList(raw any) []map[string]any {
+	switch t := raw.(type) {
+	case []any:
+		out := make([]map[string]any, 0, len(t))
+		for _, item := range t {
+			if m, ok := item.(map[string]any); ok {
+				out = append(out, normalizeTariffItem(m))
+			}
+		}
+		return out
+	case map[string]any:
+		for _, key := range []string{"tariff_codes", "tariffs", "list"} {
+			if arr, ok := t[key].([]any); ok {
+				out := make([]map[string]any, 0, len(arr))
+				for _, item := range arr {
+					if m, ok := item.(map[string]any); ok {
+						out = append(out, normalizeTariffItem(m))
+					}
+				}
+				return out
+			}
+		}
+		return []map[string]any{normalizeTariffItem(t)}
+	default:
+		return []map[string]any{}
+	}
+}
+
+func normalizeTariffItem(in map[string]any) map[string]any {
+	out := map[string]any{}
+	if v, ok := in["tariff_code"]; ok {
+		out["tariffCode"] = v
+	} else if v, ok := in["code"]; ok {
+		out["tariffCode"] = v
+	}
+	if v, ok := in["tariff_name"]; ok {
+		out["tariffName"] = v
+	} else if v, ok := in["name"]; ok {
+		out["tariffName"] = v
+	}
+	if v, ok := in["delivery_mode"]; ok {
+		out["deliveryMode"] = v
+	}
+	if v, ok := in["from_door"]; ok {
+		out["fromDoor"] = v
+	}
+	if v, ok := in["to_door"]; ok {
+		out["toDoor"] = v
+	}
+	if v, ok := in["period_min"]; ok {
+		out["periodMin"] = v
+	}
+	if v, ok := in["period_max"]; ok {
+		out["periodMax"] = v
+	}
+	if v, ok := in["total_sum"]; ok {
+		out["totalSum"] = v
+	}
+	out["raw"] = in
+	return out
 }
