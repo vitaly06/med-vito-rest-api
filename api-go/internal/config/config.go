@@ -58,6 +58,7 @@ type Config struct {
 	VkOAuthTokenURL     string
 	VkOAuthUserInfoURL  string
 	VkOAuthScope        string
+	VkIDEnabled         bool
 
 	DealPlatformFeePercent int
 	DealPayoutDelayDays    int
@@ -179,6 +180,8 @@ func Load() Config {
 	if vkScope == "" {
 		vkScope = "email"
 	}
+	vkIDEnabled := strings.ToLower(strings.TrimSpace(os.Getenv("VK_ID_ENABLED")))
+	vkIDMode := vkIDEnabled == "1" || vkIDEnabled == "true" || vkIDEnabled == "yes"
 
 	return Config{
 		Port:        p,
@@ -231,6 +234,7 @@ func Load() Config {
 		VkOAuthTokenURL:     vkToken,
 		VkOAuthUserInfoURL:  vkUserinfo,
 		VkOAuthScope:        vkScope,
+		VkIDEnabled:         vkIDMode,
 
 		DealPlatformFeePercent: feePercent,
 		DealPayoutDelayDays:    payoutDelay,

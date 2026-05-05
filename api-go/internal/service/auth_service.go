@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -33,6 +35,8 @@ const (
 	sessionKeyPrefix = "session:"
 	verifyKeyPrefix  = "verify-phone:"
 	forgotKeyPrefix  = "forgot-password:"
+	vkidPKCEPrefix   = "vkid-pkce:"
+	vkidPKCETTL      = 10 * time.Minute
 )
 
 type AuthService struct {
@@ -251,17 +255,25 @@ func (s *AuthService) VKAuthURL(state string) (string, error) {
 	q.Set("client_id", s.cfg.VkOAuthClientID)
 	q.Set("response_type", "code")
 	q.Set("redirect_uri", s.cfg.VkOAuthRedirectURI)
-	q.Set("v", "5.131")
+	if strings.TrimSpace(state) == "" {
+		state = generateSessionID()
+	}
+	if s.cfg.VkIDEnabled {
+		verifier := generatePKCEVerifier()
+		if err := s.rdb.Set(context.Background(), vkidPKCEPrefix+state, verifier, vkidPKCETTL).Err(); err != nil {
+			return "", err
+		}
+		q.Set("code_challenge", pkceS256(verifier))
+		q.Set("code_challenge_method", "S256")
+	}
 	if strings.TrimSpace(s.cfg.VkOAuthScope) != "" {
 		q.Set("scope", s.cfg.VkOAuthScope)
 	}
-	if strings.TrimSpace(state) != "" {
-		q.Set("state", state)
-	}
+	q.Set("state", state)
 	return s.cfg.VkOAuthAuthorizeURL + "?" + q.Encode(), nil
 }
 
-func (s *AuthService) SignInWithVK(ctx context.Context, code string) (*signInResponse, string, error) {
+func (s *AuthService) SignInWithVK(ctx context.Context, code, state string) (*signInResponse, string, error) {
 	code = strings.TrimSpace(code)
 	if code == "" {
 		return nil, "", &AppError{400, "Нужен code"}
@@ -275,15 +287,34 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code string) (*signInRes
 	}
 
 	tokenQ := url.Values{}
+	tokenQ.Set("grant_type", "authorization_code")
 	tokenQ.Set("client_id", s.cfg.VkOAuthClientID)
-	tokenQ.Set("client_secret", s.cfg.VkOAuthClientSecret)
 	tokenQ.Set("redirect_uri", s.cfg.VkOAuthRedirectURI)
 	tokenQ.Set("code", code)
+	if s.cfg.VkIDEnabled {
+		state = strings.TrimSpace(state)
+		if state == "" {
+			return nil, "", &AppError{400, "Нужен state для VK ID"}
+		}
+		verifier, err := s.rdb.Get(ctx, vkidPKCEPrefix+state).Result()
+		if err == redis.Nil || strings.TrimSpace(verifier) == "" {
+			return nil, "", &AppError{401, "VK ID: истекла сессия авторизации"}
+		}
+		if err != nil {
+			return nil, "", err
+		}
+		tokenQ.Set("code_verifier", verifier)
+		_ = s.rdb.Del(ctx, vkidPKCEPrefix+state)
+	}
+	if strings.TrimSpace(s.cfg.VkOAuthClientSecret) != "" {
+		tokenQ.Set("client_secret", s.cfg.VkOAuthClientSecret)
+	}
 
-	tokenReq, err := http.NewRequestWithContext(ctx, http.MethodGet, s.cfg.VkOAuthTokenURL+"?"+tokenQ.Encode(), nil)
+	tokenReq, err := http.NewRequestWithContext(ctx, http.MethodPost, s.cfg.VkOAuthTokenURL, strings.NewReader(tokenQ.Encode()))
 	if err != nil {
 		return nil, "", err
 	}
+	tokenReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	tokenRes, err := s.client.Do(tokenReq)
 	if err != nil {
 		return nil, "", err
@@ -313,13 +344,20 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code string) (*signInRes
 	}
 
 	userQ := url.Values{}
-	userQ.Set("access_token", tokenPayload.AccessToken)
-	userQ.Set("v", "5.131")
-	userQ.Set("fields", "photo_200,screen_name")
-	userReq, err := http.NewRequestWithContext(ctx, http.MethodGet, s.cfg.VkOAuthUserInfoURL+"?"+userQ.Encode(), nil)
+	if !s.cfg.VkIDEnabled {
+		userQ.Set("access_token", tokenPayload.AccessToken)
+		userQ.Set("v", "5.131")
+		userQ.Set("fields", "photo_200,screen_name")
+	}
+	userURL := s.cfg.VkOAuthUserInfoURL
+	if enc := userQ.Encode(); enc != "" {
+		userURL += "?" + enc
+	}
+	userReq, err := http.NewRequestWithContext(ctx, http.MethodGet, userURL, nil)
 	if err != nil {
 		return nil, "", err
 	}
+	userReq.Header.Set("Authorization", "Bearer "+tokenPayload.AccessToken)
 	userRes, err := s.client.Do(userReq)
 	if err != nil {
 		return nil, "", err
@@ -332,33 +370,16 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code string) (*signInRes
 	if userRes.StatusCode < 200 || userRes.StatusCode >= 300 {
 		return nil, "", &AppError{401, "VK OAuth userinfo error: " + truncateForErr(string(userBody))}
 	}
-	var userPayload struct {
-		Response []struct {
-			ID        int64  `json:"id"`
-			FirstName string `json:"first_name"`
-			LastName  string `json:"last_name"`
-		} `json:"response"`
-		Error any `json:"error"`
-	}
-	if err := json.Unmarshal(userBody, &userPayload); err != nil {
+	vkID, fullName, emailFromProfile, err := parseVKUserInfo(userBody, tokenPayload.UserID)
+	if err != nil {
 		return nil, "", err
 	}
-	if userPayload.Error != nil {
-		return nil, "", &AppError{401, "VK OAuth userinfo error"}
+	email := strings.ToLower(strings.TrimSpace(tokenPayload.Email))
+	if email == "" {
+		email = strings.ToLower(strings.TrimSpace(emailFromProfile))
 	}
 
-	vkID := strconv.FormatInt(tokenPayload.UserID, 10)
-	fullName := "VK User"
-	if len(userPayload.Response) > 0 {
-		vkID = strconv.FormatInt(userPayload.Response[0].ID, 10)
-		first := strings.TrimSpace(userPayload.Response[0].FirstName)
-		last := strings.TrimSpace(userPayload.Response[0].LastName)
-		if strings.TrimSpace(first+" "+last) != "" {
-			fullName = strings.TrimSpace(first + " " + last)
-		}
-	}
-
-	user, err := s.findOrCreateOAuthUser(ctx, "vk", vkID, strings.ToLower(strings.TrimSpace(tokenPayload.Email)), "", fullName)
+	user, err := s.findOrCreateOAuthUser(ctx, "vk", vkID, email, "", fullName)
 	if err != nil {
 		return nil, "", err
 	}
@@ -556,6 +577,17 @@ func generateSessionID() string {
 	return hex.EncodeToString(b)
 }
 
+func generatePKCEVerifier() string {
+	b := make([]byte, 48)
+	_, _ = rand.Read(b)
+	return base64.RawURLEncoding.EncodeToString(b)
+}
+
+func pkceS256(verifier string) string {
+	sum := sha256.Sum256([]byte(verifier))
+	return base64.RawURLEncoding.EncodeToString(sum[:])
+}
+
 func (s *AuthService) httpGETJSON(ctx context.Context, u string, out any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
@@ -678,4 +710,52 @@ func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, provider, exter
 		return s.users.FindUserByID(ctx, uid)
 	}
 	return nil, &AppError{500, "Не удалось создать пользователя MAX"}
+}
+
+func parseVKUserInfo(body []byte, fallbackID int64) (id, fullName, email string, err error) {
+	var legacy struct {
+		Response []struct {
+			ID        int64  `json:"id"`
+			FirstName string `json:"first_name"`
+			LastName  string `json:"last_name"`
+		} `json:"response"`
+		Error any `json:"error"`
+	}
+	if e := json.Unmarshal(body, &legacy); e == nil && legacy.Error == nil && len(legacy.Response) > 0 {
+		id = strconv.FormatInt(legacy.Response[0].ID, 10)
+		first := strings.TrimSpace(legacy.Response[0].FirstName)
+		last := strings.TrimSpace(legacy.Response[0].LastName)
+		fullName = strings.TrimSpace(first + " " + last)
+		if fullName == "" {
+			fullName = "VK User"
+		}
+		return id, fullName, "", nil
+	}
+
+	var vkid struct {
+		Sub       string `json:"sub"`
+		Email     string `json:"email"`
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Name      string `json:"name"`
+	}
+	if e := json.Unmarshal(body, &vkid); e == nil {
+		id = strings.TrimSpace(vkid.Sub)
+		if id == "" && fallbackID > 0 {
+			id = strconv.FormatInt(fallbackID, 10)
+		}
+		fullName = strings.TrimSpace(vkid.Name)
+		if fullName == "" {
+			fullName = strings.TrimSpace(strings.TrimSpace(vkid.FirstName) + " " + strings.TrimSpace(vkid.LastName))
+		}
+		if fullName == "" {
+			fullName = "VK User"
+		}
+		return id, fullName, strings.TrimSpace(vkid.Email), nil
+	}
+
+	if fallbackID > 0 {
+		return strconv.FormatInt(fallbackID, 10), "VK User", "", nil
+	}
+	return "", "", "", &AppError{401, "VK OAuth userinfo parse error"}
 }

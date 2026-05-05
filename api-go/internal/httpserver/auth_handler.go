@@ -87,12 +87,13 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 
 	g.Post("/vk/sign-in", func(c *fiber.Ctx) error {
 		var body struct {
-			Code string `json:"code"`
+			Code  string `json:"code"`
+			State string `json:"state"`
 		}
 		if err := c.BodyParser(&body); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "РќРµРєРѕСЂСЂРµРєС‚РЅРѕРµ С‚РµР»Рѕ"})
 		}
-		out, sid, err := auth.SignInWithVK(c.UserContext(), body.Code)
+		out, sid, err := auth.SignInWithVK(c.UserContext(), body.Code, body.State)
 		if err != nil {
 			return writeAppError(c, err)
 		}
