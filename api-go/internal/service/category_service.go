@@ -69,17 +69,17 @@ func (s *CategoryService) CreateCategory(ctx context.Context, name string, slugO
 }
 
 func (s *CategoryService) UpdateCategory(ctx context.Context, id int32, name string, slugOpt *string) (*domain.UpdateCategoryResponse, error) {
-	if slug.IsBlankOrSpace(name) {
-		return nil, &AppError{400, "Название категории обязательно для заполнения"}
-	}
-	name = strings.TrimSpace(name)
-
 	cur, err := s.repo.FindCategoryByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, &AppError{404, "Категория с таким id не найдена"}
 		}
 		return nil, err
+	}
+
+	name = strings.TrimSpace(name)
+	if name == "" {
+		name = cur.Name
 	}
 
 	var newSlug *string
