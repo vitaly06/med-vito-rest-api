@@ -136,11 +136,32 @@ func normalizeOrigin(v string) string {
 func registerChatNamespace(server *socketio.Server, auth *service.AuthService, chat *service.ChatService) {
 	server.OnConnect(chatIONamespace, func(c socketio.Conn) error {
 		ctx := context.Background()
-		u, err := auth.SocketUserFromCookie(ctx, c.RemoteHeader().Get("Cookie"))
+		origin := c.RemoteHeader().Get("Origin")
+		cookieHeader := c.RemoteHeader().Get("Cookie")
+		socketURL := c.URL()
+		socketQuery := (&socketURL).Query()
+		u, err := auth.SocketUserFromCookie(ctx, cookieHeader)
+		// Фолбэк для клиентов, которые не отправляют cookie в handshake, но могут передать sid в query.
 		if err != nil || u == nil {
+			sid := strings.TrimSpace(socketQuery.Get("session_id"))
+			if sid == "" {
+				sid = strings.TrimSpace(socketQuery.Get("sid"))
+			}
+			if sid != "" {
+				u2, err2 := auth.UserFromSession(ctx, sid)
+				if err2 == nil && u2 != nil {
+					u = u2
+					err = nil
+				}
+			}
+		}
+		if err != nil || u == nil {
+			log.Printf("Socket.IO /chat unauthorized: origin=%q hasCookie=%t url=%q err=%v",
+				origin, cookieHeader != "", (&socketURL).String(), err)
 			_ = c.Close()
 			return fmt.Errorf("unauthorized")
 		}
+		log.Printf("Socket.IO /chat connected: user=%d origin=%q hasCookie=%t", u.ID, origin, cookieHeader != "")
 		c.SetContext(socketCtxFromUser(u))
 		c.Join(fmt.Sprintf("user_%d", u.ID))
 		return nil
