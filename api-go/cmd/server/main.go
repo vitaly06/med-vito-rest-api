@@ -1,6 +1,7 @@
 // @title Med Vito REST API (Go)
 // @version 1.0
 // @description REST API (Go/Fiber). Документация и Try it out: GET /docs/index.html. Для цепочки slug в path используй %2F (например elektronika%2Ftelefony).
+// @description **Сессия в Swagger:** кнопка Authorize, схема SessionId - вставь значение cookie session_id (после POST /auth/sign-in в Try it out или из DevTools). WithCredentials уже включён.
 // @description **Socket.IO:** тот же хост и CORS что у REST; путь `/socket.io`; авторизация cookie `session_id`. Неймспейсы `/chat` и `/support`.
 // @description Клиент `socket.io`: надёжнее **v2.x / v3.x**; движок Go (`googollee/go-socket.io` ~v1.7) часто **не коннектится** с **socket.io-client v4** из‑за протокола handshake.
 // @description **/chat** — исходящие: `joinChat` {chatId}, `sendMessage` {chatId, content}, `markAsRead` {chatId}. Входящие: `newMessage`, `messagesRead`, `newChatMessage`.
@@ -9,6 +10,11 @@
 // @BasePath /
 // @tag.name websocket
 // @tag.description Socket.IO на `/socket.io` (см. блок **Socket.IO** в описании API выше). В Swagger нет Try it out для WS.
+// @tag.name product-draft
+// @tag.description Черновики объявлений: create-draft, my-drafts, publish-draft; cookie session_id.
+// @securityDefinitions.apikey SessionId
+// @in cookie
+// @name session_id
 package main
 
 import (
@@ -17,6 +23,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -208,5 +215,7 @@ func loadEnvFiles() {
 	if len(paths) == 0 {
 		return
 	}
+	// Overload: последний файл побеждает. Сначала родители, в конце — .env у cwd, чтобы api-go/.env перекрывал корень репы.
+	slices.Reverse(paths)
 	_ = godotenv.Overload(paths...)
 }

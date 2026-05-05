@@ -25,6 +25,8 @@ has_core_schema="$(psql_cmd -tAc "SELECT CASE WHEN to_regclass('public.\"User\"'
 
 if [ "$has_core_schema" = "0" ]; then
   echo "Applying base schema dump..."
+  # Go-приложение могло успеть создать только эту таблицу до падения миграций — иначе CREATE в дампе падает.
+  psql_cmd -c 'DROP TABLE IF EXISTS public."_GoSchemaMigration" CASCADE;'
   psql_cmd -f /dumps/01-schema.sql
 
   echo "Applying base data dump..."

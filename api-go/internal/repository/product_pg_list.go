@@ -437,12 +437,13 @@ type ProductCardDB struct {
 	TypeName      *string
 	TypeSlug      *string
 	ModerateState string
+	State         string
 	FieldPairs    []struct{ FieldName, Value string }
 }
 
 func (r *ProductPG) GetProductCard(ctx context.Context, productID int32) (*ProductCardDB, error) {
 	const q = `
-		SELECT p.id, p.name, p.description, p.price, p.quantity, p."isHide", p.images, p.address, p."userId", p."videoUrl", p."moderateState"::text,
+		SELECT p.id, p.name, p.description, p.price, p.quantity, p."isHide", p.images, p.address, p."userId", p."videoUrl", p."moderateState"::text, p.state::text,
 			c.id, c.name, c.slug, sc.id, sc.name, sc.slug, t.id, t.name, t.slug
 		FROM "Product" p
 		JOIN "Category" c ON c.id = p."categoryId"
@@ -453,7 +454,7 @@ func (r *ProductPG) GetProductCard(ctx context.Context, productID int32) (*Produ
 	var typeID *int32
 	var typeName, typeSlug *string
 	err := r.pool.QueryRow(ctx, q, productID).Scan(
-		&card.ID, &card.Name, &card.Description, &card.Price, &card.Quantity, &card.IsHide, &card.Images, &card.Address, &card.UserID, &card.VideoURL, &card.ModerateState,
+		&card.ID, &card.Name, &card.Description, &card.Price, &card.Quantity, &card.IsHide, &card.Images, &card.Address, &card.UserID, &card.VideoURL, &card.ModerateState, &card.State,
 		&card.CategoryID, &card.CategoryName, &card.CategorySlug,
 		&card.SubCatID, &card.SubCatName, &card.SubCatSlug,
 		&typeID, &typeName, &typeSlug,
@@ -501,18 +502,18 @@ func (r *ProductPG) LoadProductWithRelations(ctx context.Context, productID int3
 	}
 	out := map[string]any{
 		"id": card.ID, "name": card.Name, "description": card.Description, "price": card.Price, "quantity": card.Quantity,
-		"state":       nil,
-		"images":      card.Images,
-		"address":     card.Address,
-		"videoUrl":    card.VideoURL,
-		"category":    map[string]any{"id": card.CategoryID, "name": card.CategoryName},
-		"subCategory": map[string]any{"id": card.SubCatID, "name": card.SubCatName},
-		"user":        map[string]any{"id": uid, "fullName": fullName, "email": email, "rating": rating},
-		"fieldValues": fv,
+		"state":          nil,
+		"images":         card.Images,
+		"address":        card.Address,
+		"videoUrl":       card.VideoURL,
+		"moderateState":  card.ModerateState,
+		"category":       map[string]any{"id": card.CategoryID, "name": card.CategoryName},
+		"subCategory":    map[string]any{"id": card.SubCatID, "name": card.SubCatName},
+		"user":           map[string]any{"id": uid, "fullName": fullName, "email": email, "rating": rating},
+		"fieldValues":    fv,
 	}
-	var st string
-	_ = r.pool.QueryRow(ctx, `SELECT state::text FROM "Product" WHERE id = $1`, productID).Scan(&st)
-	out["state"] = st
+	out["state"] = card.State
+	out["isDraft"] = card.ModerateState == "DRAFT"
 	return out, nil
 }
 

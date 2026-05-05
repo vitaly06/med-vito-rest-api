@@ -23,11 +23,11 @@ const docTemplate = `{
                 "tags": [
                     "address"
                 ],
-                "summary": "Р СџР С•Р Т‘РЎРѓР С”Р В°Р В·Р С”Р С‘ Р В°Р Т‘РЎР‚Р ВµРЎРѓР В° (DaData)",
+                "summary": "Подсказки адреса (DaData)",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Р РЋРЎвЂљРЎР‚Р С•Р С”Р В° Р С—Р С•Р С‘РЎРѓР С”Р В°",
+                        "description": "Строка поиска",
                         "name": "query",
                         "in": "query",
                         "required": true
@@ -35,7 +35,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "default": 5,
-                        "description": "Р вЂєР С‘Р СР С‘РЎвЂљ",
+                        "description": "Лимит",
                         "name": "limit",
                         "in": "query"
                     }
@@ -64,10 +64,10 @@ const docTemplate = `{
                 "tags": [
                     "address"
                 ],
-                "summary": "Р СџРЎР‚Р С•Р Р†Р ВµРЎР‚Р С”Р В° Р В°Р Т‘РЎР‚Р ВµРЎРѓР В° Р С—Р С• Р С—Р ВµРЎР‚Р Р†Р С•Р в„– Р С—Р С•Р Т‘РЎРѓР С”Р В°Р В·Р С”Р Вµ DaData",
+                "summary": "Проверка адреса по первой подсказке DaData",
                 "parameters": [
                     {
-                        "description": "Р С’Р Т‘РЎР‚Р ВµРЎРѓ",
+                        "description": "Адрес",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -101,7 +101,7 @@ const docTemplate = `{
                 "tags": [
                     "moderation-admin"
                 ],
-                "summary": "РЎРїРёСЃРѕРє С‚РѕРІР°СЂРѕРІ AI-РјРѕРґРµСЂР°С†РёРё",
+                "summary": "Список товаров AI-модерации",
                 "parameters": [
                     {
                         "type": "string",
@@ -111,7 +111,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "РќРѕРјРµСЂ СЃС‚СЂР°РЅРёС†С‹",
+                        "description": "Номер страницы",
                         "name": "page",
                         "in": "query"
                     }
@@ -148,11 +148,11 @@ const docTemplate = `{
                 "tags": [
                     "moderation-admin"
                 ],
-                "summary": "Р”РµС‚Р°Р»Рё С‚РѕРІР°СЂР° РёР· AI-РјРѕРґРµСЂР°С†РёРё",
+                "summary": "Детали товара из AI-модерации",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID С‚РѕРІР°СЂР°",
+                        "description": "ID товара",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -207,10 +207,10 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Р СњР С•Р Р†РЎвЂ№Р в„– Р С—Р В°РЎР‚Р С•Р В»РЎРЉ Р С—Р С•РЎРѓР В»Р Вµ verify-code",
+                "summary": "Новый пароль после verify-code",
                 "parameters": [
                     {
-                        "description": "Р СћР ВµР В»Р С•",
+                        "description": "Тело",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -243,7 +243,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Р вЂ”Р В°Р С—РЎР‚Р С•РЎРѓ Р С”Р С•Р Т‘Р В° РЎРѓР В±РЎР‚Р С•РЎРѓР В° Р Р…Р В° Р С—Р С•РЎвЂЎРЎвЂљРЎС“",
+                "summary": "Запрос кода сброса на почту",
                 "parameters": [
                     {
                         "description": "email",
@@ -276,7 +276,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Р СџРЎР‚Р С•Р Р†Р ВµРЎР‚Р С”Р В° РЎР‚Р С•Р В»Р С‘ admin",
+                "summary": "Проверка роли admin",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -298,7 +298,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Р вЂ™РЎвЂ№РЎвЂ¦Р С•Р Т‘",
+                "summary": "Выход",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -320,7 +320,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Р СћР ВµР С”РЎС“РЎвЂ°Р С‘Р в„– Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЉ",
+                "summary": "Текущий пользователь",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -342,10 +342,10 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Р вЂ™РЎвЂ¦Р С•Р Т‘ (РЎРѓРЎвЂљР В°Р Р†Р С‘РЎвЂљ cookie session_id)",
+                "summary": "Вход (ставит cookie session_id)",
                 "parameters": [
                     {
-                        "description": "Р вЂєР С•Р С–Р С‘Р Р…",
+                        "description": "Логин",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -375,7 +375,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Р В Р ВµР С–Р С‘РЎРѓРЎвЂљРЎР‚Р В°РЎвЂ Р С‘РЎРЏ РІР‚вЂќ Р С•РЎвЂљР С—РЎР‚Р В°Р Р†Р С”Р В° Р С”Р С•Р Т‘Р В° (query where=telegram|sms)",
+                "summary": "Регистрация — отправка кода (query where=telegram|sms)",
                 "parameters": [
                     {
                         "enum": [
@@ -383,13 +383,13 @@ const docTemplate = `{
                             "sms"
                         ],
                         "type": "string",
-                        "description": "telegram Р С‘Р В»Р С‘ sms",
+                        "description": "telegram или sms",
                         "name": "where",
                         "in": "query",
                         "required": true
                     },
                     {
-                        "description": "Р вЂќР В°Р Р…Р Р…РЎвЂ№Р Вµ",
+                        "description": "Данные",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -419,11 +419,11 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Р СџРЎР‚Р С•Р Р†Р ВµРЎР‚Р С”Р В° Р С”Р С•Р Т‘Р В° РЎРѓР В±РЎР‚Р С•РЎРѓР В°",
+                "summary": "Проверка кода сброса",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Р С™Р С•Р Т‘ Р С‘Р В· Р С—Р С‘РЎРѓРЎРЉР СР В°",
+                        "description": "Код из письма",
                         "name": "code",
                         "in": "query",
                         "required": true
@@ -450,11 +450,11 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Р СџР С•Р Т‘РЎвЂљР Р†Р ВµРЎР‚Р В¶Р Т‘Р ВµР Р…Р С‘Р Вµ РЎвЂљР ВµР В»Р ВµРЎвЂћР С•Р Р…Р В° Р С—Р С• Р С”Р С•Р Т‘РЎС“",
+                "summary": "Подтверждение телефона по коду",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Р С™Р С•Р Т‘ Р С‘Р В· SMS/TG",
+                        "description": "Код из SMS/TG",
                         "name": "code",
                         "in": "query",
                         "required": true
@@ -481,7 +481,7 @@ const docTemplate = `{
                 "tags": [
                     "banner"
                 ],
-                "summary": "Р РЋР С—Р С‘РЎРѓР С•Р С” Р С•Р Т‘Р С•Р В±РЎР‚Р ВµР Р…Р Р…РЎвЂ№РЎвЂ¦ Р В±Р В°Р Р…Р Р…Р ВµРЎР‚Р С•Р Р† (query place Р С•Р С—РЎвЂ Р С‘Р С•Р Р…Р В°Р В»РЎРЉР Р…Р С•)",
+                "summary": "Список одобренных баннеров (query place опционально)",
                 "responses": {}
             },
             "post": {
@@ -494,7 +494,7 @@ const docTemplate = `{
                 "tags": [
                     "banner"
                 ],
-                "summary": "Р РЋР С•Р В·Р Т‘Р В°РЎвЂљРЎРЉ Р В±Р В°Р Р…Р Р…Р ВµРЎР‚ (multipart: image, name, place, navigateToUrl; РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
+                "summary": "Создать баннер (multipart: image, name, place, navigateToUrl; сессия)",
                 "responses": {
                     "201": {
                         "description": "Created",
@@ -513,7 +513,7 @@ const docTemplate = `{
                 "tags": [
                     "banner"
                 ],
-                "summary": "Р С›РЎвЂЎР ВµРЎР‚Р ВµР Т‘РЎРЉ Р В±Р В°Р Р…Р Р…Р ВµРЎР‚Р С•Р Р† Р Р…Р В° Р СР С•Р Т‘Р ВµРЎР‚Р В°РЎвЂ Р С‘РЎР‹ (admin)",
+                "summary": "Очередь баннеров на модерацию (admin)",
                 "responses": {}
             }
         },
@@ -525,7 +525,7 @@ const docTemplate = `{
                 "tags": [
                     "banner"
                 ],
-                "summary": "Р СљР С•Р Т‘Р ВµРЎР‚Р В°РЎвЂ Р С‘РЎРЏ Р В±Р В°Р Р…Р Р…Р ВµРЎР‚Р В° (admin, query status)",
+                "summary": "Модерация баннера (admin, query status)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -553,7 +553,7 @@ const docTemplate = `{
                 "tags": [
                     "banner"
                 ],
-                "summary": "Р РЋР В»РЎС“РЎвЂЎР В°Р в„–Р Р…РЎвЂ№Р Вµ Р С•Р Т‘Р С•Р В±РЎР‚Р ВµР Р…Р Р…РЎвЂ№Р Вµ Р В±Р В°Р Р…Р Р…Р ВµРЎР‚РЎвЂ№",
+                "summary": "Случайные одобренные баннеры",
                 "responses": {}
             }
         },
@@ -568,10 +568,10 @@ const docTemplate = `{
                 "tags": [
                     "category-admin"
                 ],
-                "summary": "Р РЋР С•Р В·Р Т‘Р В°РЎвЂљРЎРЉ Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘РЎР‹",
+                "summary": "Создать категорию",
                 "parameters": [
                     {
-                        "description": "Р СћР ВµР В»Р С•",
+                        "description": "Тело",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -605,7 +605,7 @@ const docTemplate = `{
                 "tags": [
                     "category-admin"
                 ],
-                "summary": "Р Р€Р Т‘Р В°Р В»Р С‘РЎвЂљРЎРЉ Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘РЎР‹",
+                "summary": "Удалить категорию",
                 "parameters": [
                     {
                         "type": "integer",
@@ -643,7 +643,7 @@ const docTemplate = `{
                 "tags": [
                     "category"
                 ],
-                "summary": "Р вЂќР ВµРЎР‚Р ВµР Р†Р С• Р Р†РЎРѓР ВµРЎвЂ¦ Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘Р в„–",
+                "summary": "Дерево всех категорий",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -665,11 +665,11 @@ const docTemplate = `{
                 "tags": [
                     "category"
                 ],
-                "summary": "Р С™Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘РЎРЏ Р С—Р С• id (Р С—Р С•Р В»Р Р…Р С•Р Вµ Р Т‘Р ВµРЎР‚Р ВµР Р†Р С•)",
+                "summary": "Категория по id (полное дерево)",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘Р С‘",
+                        "description": "ID категории",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -694,18 +694,18 @@ const docTemplate = `{
         },
         "/category/path/{slugPath}": {
             "get": {
-                "description": "Р вЂ™ Swagger Р’В«Try it outР’В» Р Р†Р Р†Р ВµР Т‘Р С‘ РЎРѓР ВµР С–Р СР ВµР Р…РЎвЂљРЎвЂ№ РЎвЂЎР ВµРЎР‚Р ВµР В· %2F, Р Р…Р В°Р С—РЎР‚Р С‘Р СР ВµРЎР‚: elektronika%2Ftelefony",
+                "description": "В Swagger «Try it out» введи сегменты через %2F, например: elektronika%2Ftelefony",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "category"
                 ],
-                "summary": "Р В Р В°Р В·РЎР‚Р ВµРЎв‚¬Р ВµР Р…Р С‘Р Вµ РЎвЂ Р ВµР С—Р С•РЎвЂЎР С”Р С‘ slug (Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘РЎРЏ / Р С—Р С•Р Т‘Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘РЎРЏ / РЎвЂљР С‘Р С—)",
+                "summary": "Разрешение цепочки slug (категория / подкатегория / тип)",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Р В¦Р ВµР С—Р С•РЎвЂЎР С”Р В° (Р С‘Р В»Р С‘ Р С•Р Т‘Р С‘Р Р… РЎРѓР ВµР С–Р СР ВµР Р…РЎвЂљ)",
+                        "description": "Цепочка (или один сегмент)",
                         "name": "slugPath",
                         "in": "path",
                         "required": true
@@ -743,7 +743,7 @@ const docTemplate = `{
                 "tags": [
                     "category"
                 ],
-                "summary": "Р С™Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘РЎРЏ Р С—Р С• slug",
+                "summary": "Категория по slug",
                 "parameters": [
                     {
                         "type": "string",
@@ -781,7 +781,7 @@ const docTemplate = `{
                 "tags": [
                     "category-admin"
                 ],
-                "summary": "Р С›Р В±Р Р…Р С•Р Р†Р С‘РЎвЂљРЎРЉ Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘РЎР‹",
+                "summary": "Обновить категорию",
                 "parameters": [
                     {
                         "type": "integer",
@@ -791,7 +791,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Р СћР ВµР В»Р С•",
+                        "description": "Тело",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -955,7 +955,7 @@ const docTemplate = `{
                 "tags": [
                     "chat"
                 ],
-                "summary": "Р РЋР С—Р С‘РЎРѓР С•Р С” РЎвЂЎР В°РЎвЂљР С•Р Р† Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЏ",
+                "summary": "Список чатов пользователя",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -980,7 +980,7 @@ const docTemplate = `{
                 "tags": [
                     "chat"
                 ],
-                "summary": "Р СњР В°РЎвЂЎР В°РЎвЂљРЎРЉ РЎвЂЎР В°РЎвЂљ Р С—Р С• РЎвЂљР С•Р Р†Р В°РЎР‚РЎС“",
+                "summary": "Начать чат по товару",
                 "parameters": [
                     {
                         "description": "productId",
@@ -1024,7 +1024,7 @@ const docTemplate = `{
                 "tags": [
                     "chat"
                 ],
-                "summary": "Р ВР Р…РЎвЂћР С•РЎР‚Р СР В°РЎвЂ Р С‘РЎРЏ Р С• РЎвЂЎР В°РЎвЂљР Вµ",
+                "summary": "Информация о чате",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1052,7 +1052,7 @@ const docTemplate = `{
                 "tags": [
                     "chat"
                 ],
-                "summary": "Р РЋР С•Р С•Р В±РЎвЂ°Р ВµР Р…Р С‘РЎРЏ РЎвЂЎР В°РЎвЂљР В° (Р С—Р В°Р С–Р С‘Р Р…Р В°РЎвЂ Р С‘РЎРЏ)",
+                "summary": "Сообщения чата (пагинация)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1064,14 +1064,14 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "default": 1,
-                        "description": "Р РЋРЎвЂљРЎР‚Р В°Р Р…Р С‘РЎвЂ Р В°",
+                        "description": "Страница",
                         "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
                         "default": 50,
-                        "description": "Р вЂєР С‘Р СР С‘РЎвЂљ",
+                        "description": "Лимит",
                         "name": "limit",
                         "in": "query"
                     }
@@ -1088,14 +1088,14 @@ const docTemplate = `{
         },
         "/health": {
             "get": {
-                "description": "Р вЂ™Р С•Р В·Р Р†РЎР‚Р В°РЎвЂ°Р В°Р ВµРЎвЂљ status ok",
+                "description": "Возвращает status ok",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "system"
                 ],
-                "summary": "Р СџРЎР‚Р С•Р Р†Р ВµРЎР‚Р С”Р В° Р В¶Р С‘Р Р†Р С•РЎРѓРЎвЂљР С‘ РЎРѓР ВµРЎР‚Р Р†Р С‘РЎРѓР В°",
+                "summary": "Проверка живости сервиса",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1117,7 +1117,7 @@ const docTemplate = `{
                 "tags": [
                     "knowledge-base"
                 ],
-                "summary": "Р РЋР С—Р С‘РЎРѓР С•Р С” РЎРѓРЎвЂљР В°РЎвЂљР ВµР в„– Р В±Р В°Р В·РЎвЂ№ Р В·Р Р…Р В°Р Р…Р С‘Р в„–",
+                "summary": "Список статей базы знаний",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1140,10 +1140,10 @@ const docTemplate = `{
                 "tags": [
                     "knowledge-base-admin"
                 ],
-                "summary": "Р РЋР С•Р В·Р Т‘Р В°РЎвЂљРЎРЉ РЎРѓРЎвЂљР В°РЎвЂљРЎРЉРЎР‹ Р В±Р В°Р В·РЎвЂ№ Р В·Р Р…Р В°Р Р…Р С‘Р в„–",
+                "summary": "Создать статью базы знаний",
                 "parameters": [
                     {
-                        "description": "Р СћР ВµР В»Р С•",
+                        "description": "Тело",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -1191,11 +1191,11 @@ const docTemplate = `{
                 "tags": [
                     "knowledge-base"
                 ],
-                "summary": "Р РЋРЎвЂљР В°РЎвЂљРЎРЉРЎРЏ Р В±Р В°Р В·РЎвЂ№ Р В·Р Р…Р В°Р Р…Р С‘Р в„– Р С—Р С• id",
+                "summary": "Статья базы знаний по id",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID РЎРѓРЎвЂљР В°РЎвЂљРЎРЉР С‘",
+                        "description": "ID статьи",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1234,17 +1234,17 @@ const docTemplate = `{
                 "tags": [
                     "knowledge-base-admin"
                 ],
-                "summary": "Р С›Р В±Р Р…Р С•Р Р†Р С‘РЎвЂљРЎРЉ РЎРѓРЎвЂљР В°РЎвЂљРЎРЉРЎР‹ Р В±Р В°Р В·РЎвЂ№ Р В·Р Р…Р В°Р Р…Р С‘Р в„–",
+                "summary": "Обновить статью базы знаний",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID РЎРѓРЎвЂљР В°РЎвЂљРЎРЉР С‘",
+                        "description": "ID статьи",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Р СћР ВµР В»Р С•",
+                        "description": "Тело",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -1297,11 +1297,11 @@ const docTemplate = `{
                 "tags": [
                     "knowledge-base-admin"
                 ],
-                "summary": "Р Р€Р Т‘Р В°Р В»Р С‘РЎвЂљРЎРЉ РЎРѓРЎвЂљР В°РЎвЂљРЎРЉРЎР‹ Р В±Р В°Р В·РЎвЂ№ Р В·Р Р…Р В°Р Р…Р С‘Р в„–",
+                "summary": "Удалить статью базы знаний",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID РЎРѓРЎвЂљР В°РЎвЂљРЎРЉР С‘",
+                        "description": "ID статьи",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1353,7 +1353,7 @@ const docTemplate = `{
                 "tags": [
                     "log"
                 ],
-                "summary": "Р РЋР С—Р С‘РЎРѓР С•Р С” Р В·Р В°Р С—Р С‘РЎРѓР ВµР в„– Log",
+                "summary": "Список записей Log",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1369,7 +1369,7 @@ const docTemplate = `{
         },
         "/payment/check-status": {
             "post": {
-                "description": "Р РЋР ВµРЎРѓРЎРѓР С‘РЎРЏ: cookie session_id. Р вЂ™ РЎвЂљР ВµР В»Р Вµ РІР‚вЂќ paymentId Р С‘Р В· Р С•РЎвЂљР Р†Р ВµРЎвЂљР В° Init Р С‘Р В»Р С‘ РЎС“Р Р†Р ВµР Т‘Р С•Р СР В»Р ВµР Р…Р С‘РЎРЏ.",
+                "description": "Сессия: cookie session_id. В теле — paymentId из ответа Init или уведомления.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1379,7 +1379,7 @@ const docTemplate = `{
                 "tags": [
                     "payment"
                 ],
-                "summary": "Р СџРЎР‚Р С•Р Р†Р ВµРЎР‚Р С”Р В° РЎРѓРЎвЂљР В°РЎвЂљРЎС“РЎРѓР В° Р С—Р В»Р В°РЎвЂљР ВµР В¶Р В° Р Р† Р Сћ-Р вЂР В°Р Р…Р С”Р Вµ (GetState)",
+                "summary": "Проверка статуса платежа в Т-Банке (GetState)",
                 "parameters": [
                     {
                         "description": "paymentId",
@@ -1417,7 +1417,7 @@ const docTemplate = `{
         },
         "/payment/create": {
             "post": {
-                "description": "Init Р Р† Р Сћ-Р вЂР В°Р Р…Р С”. Р СњРЎС“Р В¶Р Р…РЎвЂ№ TINKOFF_TERMINAL_KEY Р С‘ TINKOFF_SECRET_KEY. Р С’Р Р†РЎвЂљР С•РЎР‚Р С‘Р В·Р В°РЎвЂ Р С‘РЎРЏ: cookie session_id Р С—Р С•РЎРѓР В»Р Вµ POST /auth/sign-in.",
+                "description": "Init в Т-Банк. Нужны TINKOFF_TERMINAL_KEY и TINKOFF_SECRET_KEY. Авторизация: cookie session_id после POST /auth/sign-in.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1427,10 +1427,10 @@ const docTemplate = `{
                 "tags": [
                     "payment"
                 ],
-                "summary": "Р РЋР С•Р В·Р Т‘Р В°Р Р…Р С‘Р Вµ Р С—Р В»Р В°РЎвЂљР ВµР В¶Р В° Р Т‘Р В»РЎРЏ Р С—Р С•Р С—Р С•Р В»Р Р…Р ВµР Р…Р С‘РЎРЏ Р В±Р В°Р В»Р В°Р Р…РЎРѓР В°",
+                "summary": "Создание платежа для пополнения баланса",
                 "parameters": [
                     {
-                        "description": "Р РЋРЎС“Р СР СР В° Р Р† РЎР‚РЎС“Р В±Р В»РЎРЏРЎвЂ¦ (Р СР С‘Р Р…. 1)",
+                        "description": "Сумма в рублях (мин. 1)",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -1465,14 +1465,14 @@ const docTemplate = `{
         },
         "/payment/history": {
             "get": {
-                "description": "Р вЂќР С• 50 Р В·Р В°Р С—Р С‘РЎРѓР ВµР в„–, Р Р…Р С•Р Р†РЎвЂ№Р Вµ РЎРѓР Р†Р ВµРЎР‚РЎвЂ¦РЎС“. Р РЋР ВµРЎРѓРЎРѓР С‘РЎРЏ: cookie session_id.",
+                "description": "До 50 записей, новые сверху. Сессия: cookie session_id.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "payment"
                 ],
-                "summary": "Р ВРЎРѓРЎвЂљР С•РЎР‚Р С‘РЎРЏ Р С—Р В»Р В°РЎвЂљР ВµР В¶Р ВµР в„– Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЏ",
+                "summary": "История платежей пользователя",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1495,7 +1495,7 @@ const docTemplate = `{
         },
         "/payment/notification": {
             "post": {
-                "description": "Р вЂР ВµР В· РЎРѓР ВµРЎРѓРЎРѓР С‘Р С‘. Р СџР С•Р Т‘Р С—Р С‘РЎРѓРЎРЉ Token Р С—РЎР‚Р С•Р Р†Р ВµРЎР‚РЎРЏР ВµРЎвЂљРЎРѓРЎРЏ Р С—Р С• Р С—Р С•Р В»РЎРЏР С РЎвЂљР ВµР В»Р В°. Р СћР ВµР В»Р С• РІР‚вЂќ Р С”Р В°Р С” Р С—РЎР‚Р С‘РЎвЂ¦Р С•Р Т‘Р С‘РЎвЂљ Р С•РЎвЂљ Р В±Р В°Р Р…Р С”Р В°; Р С—РЎР‚Р С‘Р СР ВµРЎР‚ Р Р…Р С‘Р В¶Р Вµ.",
+                "description": "Без сессии. Подпись Token проверяется по полям тела. Тело — как приходит от банка; пример ниже.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1505,10 +1505,10 @@ const docTemplate = `{
                 "tags": [
                     "payment"
                 ],
-                "summary": "Webhook РЎС“Р Р†Р ВµР Т‘Р С•Р СР В»Р ВµР Р…Р С‘Р в„– Р Сћ-Р вЂР В°Р Р…Р С”Р В° Р С• РЎРѓРЎвЂљР В°РЎвЂљРЎС“РЎРѓР Вµ Р С—Р В»Р В°РЎвЂљР ВµР В¶Р В°",
+                "summary": "Webhook уведомлений Т-Банка о статусе платежа",
                 "parameters": [
                     {
-                        "description": "Р Р€Р Р†Р ВµР Т‘Р С•Р СР В»Р ВµР Р…Р С‘Р Вµ",
+                        "description": "Уведомление",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -1542,27 +1542,91 @@ const docTemplate = `{
                 "tags": [
                     "product"
                 ],
-                "summary": "Р РЋР С—Р С‘РЎРѓР С•Р С” РЎвЂљР С•Р Р†Р В°РЎР‚Р С•Р Р† / Р С—Р С•Р С‘РЎРѓР С” (query; optional РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ Р Т‘Р В»РЎРЏ Р С‘Р В·Р В±РЎР‚Р В°Р Р…Р Р…Р С•Р С–Р С•)",
+                "summary": "Список товаров / поиск (query; optional сессия для избранного)",
                 "responses": {}
             }
         },
         "/product/create": {
             "post": {
+                "security": [
+                    {
+                        "SessionId": []
+                    }
+                ],
+                "description": "Полная форма и валидация - объявление на модерацию (isDraft=false, moderateState MODERATE). Неполные данные или ошибка валидации - сохраняется черновик (isDraft=true, DRAFT), как create-draft.\nmultipart/form-data (до 8 images) или application/json. Числа в JSON допустимы как number. Нужна cookie session_id.",
                 "consumes": [
+                    "application/json",
                     "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "product"
+                    "product",
+                    "product-draft"
                 ],
-                "summary": "Р РЋР С•Р В·Р Т‘Р В°РЎвЂљРЎРЉ РЎвЂљР С•Р Р†Р В°РЎР‚ (multipart, Р Т‘Р С• 8 images, РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
+                "summary": "Создать объявление или черновик",
+                "parameters": [
+                    {
+                        "description": "Только для JSON; при multipart поля формы см. бэкенд",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/main.swaggerCreateDraftJSON"
+                        }
+                    }
+                ],
                 "responses": {
                     "201": {
                         "description": "Created",
                         "schema": {
                             "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/product/create-draft": {
+            "post": {
+                "security": [
+                    {
+                        "SessionId": []
+                    }
+                ],
+                "description": "Все поля опциональны, можно пустой JSON-объект. JSON или multipart (images). Ответ: product, isDraft=true, moderateState=DRAFT. Сначала Authorize (session_id) или POST /auth/sign-in.",
+                "consumes": [
+                    "application/json",
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "product-draft"
+                ],
+                "summary": "Явно создать черновик",
+                "parameters": [
+                    {
+                        "description": "Тело (опционально)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/main.swaggerCreateDraftJSON"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -1576,7 +1640,7 @@ const docTemplate = `{
                 "tags": [
                     "product-admin"
                 ],
-                "summary": "Р СљР С•Р Т‘Р ВµРЎР‚Р В°РЎвЂ Р С‘РЎРЏ (admin)",
+                "summary": "Модерация (admin)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1594,12 +1658,47 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Р СџРЎР‚Р С‘РЎвЂЎР С‘Р Р…Р В° Р С—РЎР‚Р С‘ DENIDED",
+                        "description": "Причина при DENIDED",
                         "name": "reason",
                         "in": "query"
                     }
                 ],
                 "responses": {}
+            }
+        },
+        "/product/my-drafts": {
+            "get": {
+                "security": [
+                    {
+                        "SessionId": []
+                    }
+                ],
+                "description": "Только авторизованный пользователь. Cookie session_id.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "product-draft"
+                ],
+                "summary": "Список моих черновиков",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/product/product-card/{id}": {
@@ -1610,7 +1709,7 @@ const docTemplate = `{
                 "tags": [
                     "product"
                 ],
-                "summary": "Р С™Р В°РЎР‚РЎвЂљР С•РЎвЂЎР С”Р В° РЎвЂљР С•Р Р†Р В°РЎР‚Р В°",
+                "summary": "Карточка товара",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1623,15 +1722,61 @@ const docTemplate = `{
                 "responses": {}
             }
         },
+        "/product/publish-draft/{id}": {
+            "post": {
+                "security": [
+                    {
+                        "SessionId": []
+                    }
+                ],
+                "description": "Проверка: имя не пустое и не дефолтное Черновик, адрес валидный, цена \u003e= 1, state NEW|USED. Успех: isDraft=false, moderateState=MODERATE.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "product-draft"
+                ],
+                "summary": "Выложить черновик (на модерацию)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID продукта-черновика",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/product/{id}": {
             "delete": {
+                "security": [
+                    {
+                        "SessionId": []
+                    }
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "product"
                 ],
-                "summary": "Р Р€Р Т‘Р В°Р В»Р С‘РЎвЂљРЎРЉ РЎРѓР Р†Р С•Р в„– РЎвЂљР С•Р Р†Р В°РЎР‚",
+                "summary": "Удалить свой товар",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1644,16 +1789,24 @@ const docTemplate = `{
                 "responses": {}
             },
             "patch": {
+                "security": [
+                    {
+                        "SessionId": []
+                    }
+                ],
+                "description": "Для DRAFT - мягкая валидация; для остальных - полная. multipart/form-data или application/json.",
                 "consumes": [
+                    "application/json",
                     "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "product"
+                    "product",
+                    "product-draft"
                 ],
-                "summary": "Р С›Р В±Р Р…Р С•Р Р†Р С‘РЎвЂљРЎРЉ РЎвЂљР С•Р Р†Р В°РЎР‚ (multipart)",
+                "summary": "Обновить объявление или черновик",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1661,6 +1814,14 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "Частичное тело для JSON",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/main.swaggerCreateDraftJSON"
+                        }
                     }
                 ],
                 "responses": {}
@@ -1677,10 +1838,10 @@ const docTemplate = `{
                 "tags": [
                     "promotion"
                 ],
-                "summary": "Р СџР С•Р Т‘Р С”Р В»РЎР‹РЎвЂЎР С‘РЎвЂљРЎРЉ Р С—РЎР‚Р С•Р Т‘Р Р†Р С‘Р В¶Р ВµР Р…Р С‘Р Вµ Р С” РЎвЂљР С•Р Р†Р В°РЎР‚РЎС“ (РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
+                "summary": "Подключить продвижение к товару (сессия)",
                 "parameters": [
                     {
-                        "description": "Р СћР ВµР В»Р С•",
+                        "description": "Тело",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -1728,7 +1889,7 @@ const docTemplate = `{
                 "tags": [
                     "promotion"
                 ],
-                "summary": "Р вЂ™РЎРѓР Вµ РЎвЂљР С‘Р С—РЎвЂ№ Р С—РЎР‚Р С•Р Т‘Р Р†Р С‘Р В¶Р ВµР Р…Р С‘РЎРЏ (РЎвЂљР В°РЎР‚Р С‘РЎвЂћРЎвЂ№)",
+                "summary": "Все типы продвижения (тарифы)",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1750,7 +1911,7 @@ const docTemplate = `{
                 "tags": [
                     "review-admin"
                 ],
-                "summary": "Р С›РЎвЂЎР ВµРЎР‚Р ВµР Т‘РЎРЉ Р С•РЎвЂљР В·РЎвЂ№Р Р†Р С•Р Р† Р Р…Р В° Р СР С•Р Т‘Р ВµРЎР‚Р В°РЎвЂ Р С‘РЎР‹ (admin)",
+                "summary": "Очередь отзывов на модерацию (admin)",
                 "responses": {}
             }
         },
@@ -1762,7 +1923,7 @@ const docTemplate = `{
                 "tags": [
                     "review-admin"
                 ],
-                "summary": "Р СљР С•Р Т‘Р ВµРЎР‚Р В°РЎвЂ Р С‘РЎРЏ Р С•РЎвЂљР В·РЎвЂ№Р Р†Р В° (admin)",
+                "summary": "Модерация отзыва (admin)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1793,10 +1954,10 @@ const docTemplate = `{
                 "tags": [
                     "review"
                 ],
-                "summary": "Р С›РЎРѓРЎвЂљР В°Р Р†Р С‘РЎвЂљРЎРЉ Р С•РЎвЂљР В·РЎвЂ№Р Р† Р С—РЎР‚Р С•Р Т‘Р В°Р Р†РЎвЂ РЎС“ (РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
+                "summary": "Оставить отзыв продавцу (сессия)",
                 "parameters": [
                     {
-                        "description": "Р СћР ВµР В»Р С•",
+                        "description": "Тело",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -1826,7 +1987,7 @@ const docTemplate = `{
                 "tags": [
                     "review"
                 ],
-                "summary": "Р С›Р Т‘Р С•Р В±РЎР‚Р ВµР Р…Р Р…РЎвЂ№Р Вµ Р С•РЎвЂљР В·РЎвЂ№Р Р†РЎвЂ№ Р С• Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»Р Вµ",
+                "summary": "Одобренные отзывы о пользователе",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1847,7 +2008,7 @@ const docTemplate = `{
                 "tags": [
                     "statistics"
                 ],
-                "summary": "Р РЋРЎвЂљР В°РЎвЂљР С‘РЎРѓРЎвЂљР С‘Р С”Р В° Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЏ (Р С—РЎР‚Р С•РЎРѓР СР С•РЎвЂљРЎР‚РЎвЂ№, РЎвЂљР ВµР В»Р ВµРЎвЂћР С•Р Р…, Р С‘Р В·Р В±РЎР‚Р В°Р Р…Р Р…Р С•Р Вµ)",
+                "summary": "Статистика пользователя (просмотры, телефон, избранное)",
                 "parameters": [
                     {
                         "type": "string",
@@ -1857,19 +2018,19 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "Р В¤Р С‘Р В»РЎРЉРЎвЂљРЎР‚ Р С—Р С• Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘Р С‘ (РЎвЂЎР ВµРЎР‚Р ВµР В· SubCategory)",
+                        "description": "Фильтр по категории (через SubCategory)",
                         "name": "categoryId",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Р СџР С•Р Т‘РЎРѓРЎвЂљРЎР‚Р С•Р С”Р В° Р Р† address (ILIKE)",
+                        "description": "Подстрока в address (ILIKE)",
                         "name": "region",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Р С™Р С•Р Р…Р С”РЎР‚Р ВµРЎвЂљР Р…РЎвЂ№Р в„– РЎвЂљР С•Р Р†Р В°РЎР‚",
+                        "description": "Конкретный товар",
                         "name": "productId",
                         "in": "query"
                     }
@@ -1892,7 +2053,7 @@ const docTemplate = `{
                 "tags": [
                     "statistics"
                 ],
-                "summary": "Р С’Р Р…Р В°Р В»Р С‘РЎвЂљР С‘Р С”Р В° Р С—Р С• Р С”Р В°Р В¶Р Т‘Р С•Р СРЎС“ РЎвЂљР С•Р Р†Р В°РЎР‚РЎС“ Р С—РЎР‚Р С•Р Т‘Р В°Р Р†РЎвЂ Р В°",
+                "summary": "Аналитика по каждому товару продавца",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1914,7 +2075,7 @@ const docTemplate = `{
                 "tags": [
                     "subcategory-type"
                 ],
-                "summary": "Р вЂ™РЎРѓР Вµ РЎвЂљР С‘Р С—РЎвЂ№ Р С—Р С•Р Т‘Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘Р в„–",
+                "summary": "Все типы подкатегорий",
                 "responses": {}
             }
         },
@@ -1926,7 +2087,7 @@ const docTemplate = `{
                 "tags": [
                     "subcategory-type"
                 ],
-                "summary": "Р СћР С‘Р С— Р С—Р С•Р Т‘Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘Р С‘ Р С—Р С• id",
+                "summary": "Тип подкатегории по id",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1947,7 +2108,7 @@ const docTemplate = `{
                 "tags": [
                     "subcategory"
                 ],
-                "summary": "Р РЋР С—Р С‘РЎРѓР С•Р С” Р С—Р С•Р Т‘Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘Р в„–",
+                "summary": "Список подкатегорий",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1969,7 +2130,7 @@ const docTemplate = `{
                 "tags": [
                     "subcategory"
                 ],
-                "summary": "Р СџР С•Р Т‘Р С”Р В°РЎвЂљР ВµР С–Р С•РЎР‚Р С‘РЎРЏ Р С—Р С• id",
+                "summary": "Подкатегория по id",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1990,7 +2151,7 @@ const docTemplate = `{
                 "tags": [
                     "support"
                 ],
-                "summary": "Р РЋРЎвЂљР В°РЎвЂљР С‘РЎРѓРЎвЂљР С‘Р С”Р В° РЎвЂљР С‘Р С”Р ВµРЎвЂљР С•Р Р† (РЎвЂљР С•Р В»РЎРЉР С”Р С• admin)",
+                "summary": "Статистика тикетов (только admin)",
                 "responses": {}
             }
         },
@@ -2005,10 +2166,10 @@ const docTemplate = `{
                 "tags": [
                     "support"
                 ],
-                "summary": "Р РЋР С•Р В·Р Т‘Р В°РЎвЂљРЎРЉ РЎвЂљР С‘Р С”Р ВµРЎвЂљ Р С—Р С•Р Т‘Р Т‘Р ВµРЎР‚Р В¶Р С”Р С‘",
+                "summary": "Создать тикет поддержки",
                 "parameters": [
                     {
-                        "description": "Р СћР ВµР В»Р С•",
+                        "description": "Тело",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -2035,7 +2196,7 @@ const docTemplate = `{
                 "tags": [
                     "support"
                 ],
-                "summary": "Р вЂ™РЎРѓР Вµ РЎвЂљР С‘Р С”Р ВµРЎвЂљРЎвЂ№ (Р СР С•Р Т‘Р ВµРЎР‚Р В°РЎвЂљР С•РЎР‚/admin)",
+                "summary": "Все тикеты (модератор/admin)",
                 "responses": {}
             }
         },
@@ -2047,7 +2208,7 @@ const docTemplate = `{
                 "tags": [
                     "support"
                 ],
-                "summary": "Р СљР С•Р С‘ РЎвЂљР С‘Р С”Р ВµРЎвЂљРЎвЂ№ (Р С—Р В°Р С–Р С‘Р Р…Р В°РЎвЂ Р С‘РЎРЏ, РЎвЂћР С‘Р В»РЎРЉРЎвЂљРЎР‚РЎвЂ№ query)",
+                "summary": "Мои тикеты (пагинация, фильтры query)",
                 "responses": {}
             }
         },
@@ -2059,7 +2220,7 @@ const docTemplate = `{
                 "tags": [
                     "support"
                 ],
-                "summary": "Р СћР С‘Р С”Р ВµРЎвЂљ РЎРѓ РЎРѓР С•Р С•Р В±РЎвЂ°Р ВµР Р…Р С‘РЎРЏР СР С‘",
+                "summary": "Тикет с сообщениями",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2078,7 +2239,7 @@ const docTemplate = `{
                 "tags": [
                     "support"
                 ],
-                "summary": "Р С›Р В±Р Р…Р С•Р Р†Р С‘РЎвЂљРЎРЉ РЎвЂљР С‘Р С”Р ВµРЎвЂљ (Р СР С•Р Т‘Р ВµРЎР‚Р В°РЎвЂљР С•РЎР‚/admin)",
+                "summary": "Обновить тикет (модератор/admin)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2088,7 +2249,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Р СџР С•Р В»РЎРЏ",
+                        "description": "Поля",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -2105,7 +2266,7 @@ const docTemplate = `{
                 "tags": [
                     "support"
                 ],
-                "summary": "Р СњР В°Р В·Р Р…Р В°РЎвЂЎР С‘РЎвЂљРЎРЉ РЎвЂљР С‘Р С”Р ВµРЎвЂљ Р Р…Р В° РЎРѓР ВµР В±РЎРЏ",
+                "summary": "Назначить тикет на себя",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2126,7 +2287,7 @@ const docTemplate = `{
                 "tags": [
                     "support"
                 ],
-                "summary": "Р РЋР С•Р С•Р В±РЎвЂ°Р ВµР Р…Р С‘Р Вµ Р Р† РЎвЂљР С‘Р С”Р ВµРЎвЂљ",
+                "summary": "Сообщение в тикет",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2136,7 +2297,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Р СћР ВµР С”РЎРѓРЎвЂљ",
+                        "description": "Текст",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -2156,7 +2317,7 @@ const docTemplate = `{
                 "tags": [
                     "type-field"
                 ],
-                "summary": "Р вЂ™РЎРѓР Вµ РЎвЂ¦Р В°РЎР‚Р В°Р С”РЎвЂљР ВµРЎР‚Р С‘РЎРѓРЎвЂљР С‘Р С”Р С‘ (Р С—Р С•Р В»РЎРЏ РЎвЂљР С‘Р С—Р В°)",
+                "summary": "Все характеристики (поля типа)",
                 "responses": {}
             }
         },
@@ -2168,7 +2329,7 @@ const docTemplate = `{
                 "tags": [
                     "type-field"
                 ],
-                "summary": "Р ТђР В°РЎР‚Р В°Р С”РЎвЂљР ВµРЎР‚Р С‘РЎРѓРЎвЂљР С‘Р С”Р В° Р С—Р С• id",
+                "summary": "Характеристика по id",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2189,7 +2350,7 @@ const docTemplate = `{
                 "tags": [
                     "user-admin"
                 ],
-                "summary": "Р РЋР С—Р С‘РЎРѓР С•Р С” Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»Р ВµР в„– (Р В°Р Т‘Р СР С‘Р Р…: cookie session_id + РЎР‚Р С•Р В»РЎРЉ admin)",
+                "summary": "Список пользователей (админ: cookie session_id + роль admin)",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -2225,7 +2386,7 @@ const docTemplate = `{
                 "tags": [
                     "user"
                 ],
-                "summary": "Р С™Р В°РЎР‚РЎвЂљР С•РЎвЂЎР С”Р В° Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЏ (РЎР‚Р ВµР в„–РЎвЂљР С‘Р Р…Р С–, Р В»Р С‘Р СР С‘РЎвЂљ Р С•Р В±РЎР‰РЎРЏР Р†Р В»Р ВµР Р…Р С‘Р в„–)",
+                "summary": "Карточка пользователя (рейтинг, лимит объявлений)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2260,7 +2421,7 @@ const docTemplate = `{
                 "tags": [
                     "user"
                 ],
-                "summary": "Р С›РЎРѓРЎвЂљР В°РЎвЂљР С•Р С” Р В±Р ВµРЎРѓР С—Р В»Р В°РЎвЂљР Р…РЎвЂ№РЎвЂ¦ Р С•Р В±РЎР‰РЎРЏР Р†Р В»Р ВµР Р…Р С‘Р в„– (РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
+                "summary": "Остаток бесплатных объявлений (сессия)",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -2279,7 +2440,7 @@ const docTemplate = `{
                 "tags": [
                     "user-admin"
                 ],
-                "summary": "Р Р€РЎРѓРЎвЂљР В°Р Р…Р С•Р Р†Р С‘РЎвЂљРЎРЉ bonusBalance (Р В°Р Т‘Р СР С‘Р Р…, РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
+                "summary": "Установить bonusBalance (админ, сессия)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2290,7 +2451,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Р В§Р С‘РЎРѓР В»Р С•",
+                        "description": "Число",
                         "name": "balance",
                         "in": "query",
                         "required": true
@@ -2317,11 +2478,11 @@ const docTemplate = `{
                 "tags": [
                     "user"
                 ],
-                "summary": "Р СџР С•Р С”Р В°Р В·Р В°РЎвЂљРЎРЉ Р Р…Р С•Р СР ВµРЎР‚ Р С—РЎР‚Р С•Р Т‘Р В°Р Р†РЎвЂ Р В° (РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
+                "summary": "Показать номер продавца (сессия)",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Р СџРЎР‚Р С•Р Т‘Р В°Р Р†Р ВµРЎвЂ ",
+                        "description": "Продавец",
                         "name": "userId",
                         "in": "path",
                         "required": true
@@ -2348,7 +2509,7 @@ const docTemplate = `{
                 "tags": [
                     "user-admin"
                 ],
-                "summary": "Р вЂР В°Р Р… / РЎР‚Р В°Р В·Р В±Р В°Р Р… (Р В°Р Т‘Р СР С‘Р Р…, РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
+                "summary": "Бан / разбан (админ, сессия)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2382,17 +2543,17 @@ const docTemplate = `{
                 "tags": [
                     "user"
                 ],
-                "summary": "Р С›Р В±Р Р…Р С•Р Р†Р В»Р ВµР Р…Р С‘Р Вµ Р Р…Р В°РЎРѓРЎвЂљРЎР‚Р С•Р ВµР С” (multipart, РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
+                "summary": "Обновление настроек (multipart, сессия)",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Р В¤Р ВР С›",
+                        "description": "ФИО",
                         "name": "fullName",
                         "in": "formData"
                     },
                     {
                         "type": "string",
-                        "description": "Р СћР ВµР В»Р ВµРЎвЂћР С•Р Р…",
+                        "description": "Телефон",
                         "name": "phoneNumber",
                         "in": "formData"
                     },
@@ -2410,7 +2571,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "file",
-                        "description": "Р С’Р Р†Р В°РЎвЂљР В°РЎР‚",
+                        "description": "Аватар",
                         "name": "photo",
                         "in": "formData"
                     }
@@ -2433,11 +2594,11 @@ const docTemplate = `{
                 "tags": [
                     "user"
                 ],
-                "summary": "Р СџР С•Р Т‘РЎвЂљР Р†Р ВµРЎР‚Р Т‘Р С‘РЎвЂљРЎРЉ Р С—Р С•РЎвЂЎРЎвЂљРЎС“ Р С—Р С• Р С”Р С•Р Т‘РЎС“ Р С‘Р В· Р С—Р С‘РЎРѓРЎРЉР СР В°",
+                "summary": "Подтвердить почту по коду из письма",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Р С™Р С•Р Т‘",
+                        "description": "Код",
                         "name": "code",
                         "in": "query",
                         "required": true
@@ -2464,7 +2625,7 @@ const docTemplate = `{
                 "tags": [
                     "user"
                 ],
-                "summary": "Р С›РЎвЂљР С—РЎР‚Р В°Р Р†Р С‘РЎвЂљРЎРЉ Р С”Р С•Р Т‘ Р С—Р С•Р Т‘РЎвЂљР Р†Р ВµРЎР‚Р В¶Р Т‘Р ВµР Р…Р С‘РЎРЏ Р Р…Р В° Р С—Р С•РЎвЂЎРЎвЂљРЎС“ (РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
+                "summary": "Отправить код подтверждения на почту (сессия)",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -2486,7 +2647,7 @@ const docTemplate = `{
                 "tags": [
                     "user-admin"
                 ],
-                "summary": "Р Р€Р Т‘Р В°Р В»Р С‘РЎвЂљРЎРЉ Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЏ (Р В°Р Т‘Р СР С‘Р Р…, РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
+                "summary": "Удалить пользователя (админ, сессия)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2518,7 +2679,7 @@ const docTemplate = `{
                 "tags": [
                     "user-admin"
                 ],
-                "summary": "Р С›Р В±Р Р…Р С•Р Р†Р С‘РЎвЂљРЎРЉ Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЏ (Р В°Р Т‘Р СР С‘Р Р…, РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ)",
+                "summary": "Обновить пользователя (админ, сессия)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2528,7 +2689,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Р СџР С•Р В»РЎРЏ",
+                        "description": "Поля",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -2647,11 +2808,66 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string",
-                    "example": "Р С’Р Р†РЎвЂљР С•Р СР С•Р В±Р С‘Р В»Р С‘"
+                    "example": "Автомобили"
                 },
                 "slug": {
                     "type": "string",
                     "example": "avtomobili"
+                }
+            }
+        },
+        "main.swaggerCreateDraftJSON": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string",
+                    "example": ""
+                },
+                "categoryId": {
+                    "type": "string",
+                    "example": ""
+                },
+                "description": {
+                    "type": "string",
+                    "example": ""
+                },
+                "fieldValues": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string",
+                    "example": ""
+                },
+                "price": {
+                    "type": "string",
+                    "example": ""
+                },
+                "quantity": {
+                    "type": "string",
+                    "example": ""
+                },
+                "state": {
+                    "type": "string",
+                    "example": "NEW"
+                },
+                "subCategoryId": {
+                    "type": "string",
+                    "example": ""
+                },
+                "subcategoryId": {
+                    "type": "string",
+                    "example": ""
+                },
+                "typeId": {
+                    "type": "string",
+                    "example": ""
+                },
+                "videoUrl": {
+                    "type": "string",
+                    "example": ""
                 }
             }
         },
@@ -2664,7 +2880,7 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string",
-                    "example": "Р СџР С•Р С—Р С•Р В»Р Р…Р ВµР Р…Р С‘Р Вµ Р В±Р В°Р В»Р В°Р Р…РЎРѓР В°"
+                    "example": "Пополнение баланса"
                 }
             }
         },
@@ -2700,7 +2916,7 @@ const docTemplate = `{
             "properties": {
                 "content": {
                     "type": "string",
-                    "example": "Р СћР ВµР С”РЎРѓРЎвЂљ РЎРѓРЎвЂљР В°РЎвЂљРЎРЉР С‘..."
+                    "example": "Текст статьи..."
                 },
                 "createdAt": {
                     "type": "string",
@@ -2712,7 +2928,7 @@ const docTemplate = `{
                 },
                 "title": {
                     "type": "string",
-                    "example": "Р С™Р В°Р С” Р С•РЎвЂћР С•РЎР‚Р СР С‘РЎвЂљРЎРЉ Р В·Р В°Р С”Р В°Р В·"
+                    "example": "Как оформить заказ"
                 },
                 "updatedAt": {
                     "type": "string",
@@ -2725,11 +2941,11 @@ const docTemplate = `{
             "properties": {
                 "content": {
                     "type": "string",
-                    "example": "Р СћР ВµР С”РЎРѓРЎвЂљ РЎРѓРЎвЂљР В°РЎвЂљРЎРЉР С‘..."
+                    "example": "Текст статьи..."
                 },
                 "title": {
                     "type": "string",
-                    "example": "Р С™Р В°Р С” Р С•РЎвЂћР С•РЎР‚Р СР С‘РЎвЂљРЎРЉ Р В·Р В°Р С”Р В°Р В·"
+                    "example": "Как оформить заказ"
                 }
             }
         },
@@ -2741,7 +2957,7 @@ const docTemplate = `{
                 },
                 "message": {
                     "type": "string",
-                    "example": "Р РЋРЎвЂљР В°РЎвЂљРЎРЉРЎРЏ РЎС“РЎРѓР С—Р ВµРЎв‚¬Р Р…Р С• РЎРѓР С•Р В·Р Т‘Р В°Р Р…Р В°"
+                    "example": "Статья успешно создана"
                 }
             }
         },
@@ -2750,7 +2966,7 @@ const docTemplate = `{
             "properties": {
                 "message": {
                     "type": "string",
-                    "example": "Р РЋРЎвЂљР В°РЎвЂљРЎРЉРЎРЏ РЎС“РЎРѓР С—Р ВµРЎв‚¬Р Р…Р С• РЎС“Р Т‘Р В°Р В»Р ВµР Р…Р В°"
+                    "example": "Статья успешно удалена"
                 }
             }
         },
@@ -2762,7 +2978,7 @@ const docTemplate = `{
                 },
                 "message": {
                     "type": "string",
-                    "example": "Р РЋРЎвЂљР В°РЎвЂљРЎРЉРЎРЏ РЎС“РЎРѓР С—Р ВµРЎв‚¬Р Р…Р С• Р С•Р В±Р Р…Р С•Р Р†Р В»Р ВµР Р…Р В°"
+                    "example": "Статья успешно обновлена"
                 }
             }
         },
@@ -2775,7 +2991,7 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string",
-                    "example": "РџСЂРѕРёР·РІРѕРґРёС‚РµР»СЊ"
+                    "example": "Производитель"
                 }
             }
         },
@@ -2817,11 +3033,11 @@ const docTemplate = `{
                 },
                 "moderationRejectionReason": {
                     "type": "string",
-                    "example": "РўРµРєСЃС‚: РµСЃС‚СЊ РєРѕРЅС‚Р°РєС‚С‹"
+                    "example": "Текст: есть контакты"
                 },
                 "name": {
                     "type": "string",
-                    "example": "РўРѕРЅРѕРјРµС‚СЂ"
+                    "example": "Тонометр"
                 },
                 "price": {
                     "type": "integer",
@@ -2874,7 +3090,7 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string",
-                    "example": "РћРїРёСЃР°РЅРёРµ С‚РѕРІР°СЂР°"
+                    "example": "Описание товара"
                 },
                 "fieldValues": {
                     "type": "array",
@@ -2898,11 +3114,11 @@ const docTemplate = `{
                 },
                 "moderationRejectionReason": {
                     "type": "string",
-                    "example": "Р¤РѕС‚Рѕ: С‚СЂРµР±СѓРµС‚СЃСЏ СЂСѓС‡РЅР°СЏ РїСЂРѕРІРµСЂРєР°"
+                    "example": "Фото: требуется ручная проверка"
                 },
                 "name": {
                     "type": "string",
-                    "example": "РўРѕРЅРѕРјРµС‚СЂ"
+                    "example": "Тонометр"
                 },
                 "price": {
                     "type": "integer",
@@ -2936,7 +3152,7 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string",
-                    "example": "РњРµРґС‚РµС…РЅРёРєР°"
+                    "example": "Медтехника"
                 }
             }
         },
@@ -2949,7 +3165,7 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string",
-                    "example": "РўРѕРЅРѕРјРµС‚СЂС‹"
+                    "example": "Тонометры"
                 }
             }
         },
@@ -2962,7 +3178,7 @@ const docTemplate = `{
                 },
                 "fullName": {
                     "type": "string",
-                    "example": "РРІР°РЅ РРІР°РЅРѕРІ"
+                    "example": "Иван Иванов"
                 },
                 "id": {
                     "type": "integer",
@@ -2983,7 +3199,7 @@ const docTemplate = `{
                 },
                 "fullName": {
                     "type": "string",
-                    "example": "РРІР°РЅ РРІР°РЅРѕРІ"
+                    "example": "Иван Иванов"
                 },
                 "id": {
                     "type": "integer",
@@ -3074,7 +3290,7 @@ const docTemplate = `{
             "properties": {
                 "message": {
                     "type": "string",
-                    "example": "Р вЂР В°Р В»Р В°Р Р…РЎРѓ РЎС“РЎРѓР С—Р ВµРЎв‚¬Р Р…Р С• Р С—Р С•Р С—Р С•Р В»Р Р…Р ВµР Р…"
+                    "example": "Баланс успешно пополнен"
                 },
                 "success": {
                     "type": "boolean",
@@ -3179,7 +3395,7 @@ const docTemplate = `{
                 },
                 "Token": {
                     "type": "string",
-                    "example": "Р С—Р С•Р Т‘Р С—Р С‘РЎРѓРЎРЉ_Р С•РЎвЂљ_Р В±Р В°Р Р…Р С”Р В°"
+                    "example": "подпись_от_банка"
                 }
             }
         },
@@ -3188,7 +3404,7 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string",
-                    "example": "Р С’Р Р†РЎвЂљР С•Р СР С•Р В±Р С‘Р В»Р С‘"
+                    "example": "Автомобили"
                 },
                 "slug": {
                     "type": "string"
@@ -3218,10 +3434,21 @@ const docTemplate = `{
             }
         }
     },
+    "securityDefinitions": {
+        "SessionId": {
+            "type": "apiKey",
+            "name": "session_id",
+            "in": "cookie"
+        }
+    },
     "tags": [
         {
             "description": "Socket.IO на ` + "`" + `/socket.io` + "`" + ` (см. блок **Socket.IO** в описании API выше). В Swagger нет Try it out для WS.",
             "name": "websocket"
+        },
+        {
+            "description": "Черновики объявлений: create-draft, my-drafts, publish-draft; cookie session_id.",
+            "name": "product-draft"
         }
     ]
 }`
@@ -3233,7 +3460,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Med Vito REST API (Go)",
-	Description:      "REST API (Go/Fiber). Документация и Try it out: GET /docs/index.html. Для цепочки slug в path используй %2F (например elektronika%2Ftelefony).\n**Socket.IO:** тот же хост и CORS что у REST; путь `/socket.io`; авторизация cookie `session_id`. Неймспейсы `/chat` и `/support`.\nКлиент `socket.io`: надёжнее **v2.x / v3.x**; движок Go (`googollee/go-socket.io` ~v1.7) часто **не коннектится** с **socket.io-client v4** из‑за протокола handshake.\n**/chat** — исходящие: `joinChat` {chatId}, `sendMessage` {chatId, content}, `markAsRead` {chatId}. Входящие: `newMessage`, `messagesRead`, `newChatMessage`.\n**/support** — исходящие: `joinTicket`, `leaveTicket`, `sendSupportMessage` {ticketId, message:{text}}, `supportTyping` {ticketId, isTyping}, `updateTicketStatus` {ticketId, status} (модератор). Входящие: `newSupportMessage`, `moderatorResponse`, `supportUserTyping`, `ticketStatusUpdated`; по неймспейсу `newSupportTicket`; в комнате тикета `ticketAssigned`.",
+	Description:      "REST API (Go/Fiber). Документация и Try it out: GET /docs/index.html. Для цепочки slug в path используй %2F (например elektronika%2Ftelefony).\n**Сессия в Swagger:** кнопка Authorize, схема SessionId - вставь значение cookie session_id (после POST /auth/sign-in в Try it out или из DevTools). WithCredentials уже включён.\n**Socket.IO:** тот же хост и CORS что у REST; путь `/socket.io`; авторизация cookie `session_id`. Неймспейсы `/chat` и `/support`.\nКлиент `socket.io`: надёжнее **v2.x / v3.x**; движок Go (`googollee/go-socket.io` ~v1.7) часто **не коннектится** с **socket.io-client v4** из‑за протокола handshake.\n**/chat** — исходящие: `joinChat` {chatId}, `sendMessage` {chatId, content}, `markAsRead` {chatId}. Входящие: `newMessage`, `messagesRead`, `newChatMessage`.\n**/support** — исходящие: `joinTicket`, `leaveTicket`, `sendSupportMessage` {ticketId, message:{text}}, `supportTyping` {ticketId, isTyping}, `updateTicketStatus` {ticketId, status} (модератор). Входящие: `newSupportMessage`, `moderatorResponse`, `supportUserTyping`, `ticketStatusUpdated`; по неймспейсу `newSupportTicket`; в комнате тикета `ticketAssigned`.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

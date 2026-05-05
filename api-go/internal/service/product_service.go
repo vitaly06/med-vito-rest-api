@@ -253,7 +253,12 @@ func (s *ProductService) CreateProduct(ctx context.Context, userID int32, name, 
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"message": "Продукт успешно создан", "product": prod}, nil
+	return map[string]any{
+		"message":       "Продукт успешно создан",
+		"product":       prod,
+		"isDraft":       false,
+		"moderateState": "MODERATE",
+	}, nil
 }
 
 // UploadedFile — один файл из multipart (images).
@@ -329,9 +334,17 @@ func (s *ProductService) CreateDraft(ctx context.Context, userID int32, name, pr
 		return nil, err
 	}
 	intMap := make(map[int32]string)
+	var draftFieldIDs []int32
 	for k, v := range fvMap {
 		if id64, err := strconv.ParseInt(k, 10, 32); err == nil {
-			intMap[int32(id64)] = v
+			fid := int32(id64)
+			draftFieldIDs = append(draftFieldIDs, fid)
+			intMap[fid] = v
+		}
+	}
+	if len(draftFieldIDs) > 0 {
+		if err := s.prod.ValidateTypeFieldIDs(ctx, draftFieldIDs); err != nil {
+			intMap = make(map[int32]string)
 		}
 	}
 	var vptr *string
@@ -352,7 +365,12 @@ func (s *ProductService) CreateDraft(ctx context.Context, userID int32, name, pr
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"message": "Черновик сохранен", "product": prod}, nil
+	return map[string]any{
+		"message":        "Черновик сохранен",
+		"product":        prod,
+		"isDraft":        true,
+		"moderateState":  "DRAFT",
+	}, nil
 }
 
 type UploadedFile struct {

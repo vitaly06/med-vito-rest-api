@@ -341,16 +341,54 @@ func (s *ProductService) MyDrafts(ctx context.Context, userID int32) ([]map[stri
 }
 
 func (s *ProductService) PublishDraft(ctx context.Context, productID, userID int32) (map[string]any, error) {
+	card, err := s.prod.GetProductCard(ctx, productID)
+	if errors.Is(err, repository.ErrNotFound) {
+		return nil, &AppError{404, "Черновик не найден"}
+	}
+	if err != nil {
+		return nil, err
+	}
+	if card.UserID != userID {
+		return nil, &AppError{403, "Нет доступа к этому объявлению"}
+	}
+	if card.ModerateState != "DRAFT" {
+		return nil, &AppError{400, "Это не черновик"}
+	}
+	name := strings.TrimSpace(card.Name)
+	if name == "" || name == "Черновик" {
+		return nil, &AppError{400, "Укажите название объявления"}
+	}
+	addr := strings.TrimSpace(card.Address)
+	if addr == "" || addr == "—" {
+		return nil, &AppError{400, "Укажите адрес"}
+	}
+	if card.Price < 1 {
+		return nil, &AppError{400, "Укажите цену"}
+	}
+	st := strings.TrimSpace(strings.ToUpper(card.State))
+	if st != "NEW" && st != "USED" {
+		return nil, &AppError{400, "Укажите состояние товара (NEW или USED)"}
+	}
+
 	if err := s.prod.PublishDraftTx(ctx, productID, userID); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, &AppError{404, "Р§РµСЂРЅРѕРІРёРє РЅРµ РЅР°Р№РґРµРЅ"}
+			return nil, &AppError{404, "Черновик не найден"}
 		}
 		if errors.Is(err, repository.ErrInsufficientFunds) {
-			return nil, &AppError{400, fmt.Sprintf("РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ СЃСЂРµРґСЃС‚РІ РґР»СЏ РїСѓР±Р»РёРєР°С†РёРё. РўСЂРµР±СѓРµС‚СЃСЏ %d СЂСѓР±.", repository.AdListingCost)}
+			return nil, &AppError{400, fmt.Sprintf("Недостаточно средств для публикации. Требуется %d руб.", repository.AdListingCost)}
 		}
 		return nil, err
 	}
-	return map[string]any{"message": "Р§РµСЂРЅРѕРІРёРє РѕРїСѓР±Р»РёРєРѕРІР°РЅ Рё РѕС‚РїСЂР°РІР»РµРЅ РЅР° РјРѕРґРµСЂР°С†РёСЋ"}, nil
+	prod, err := s.prod.LoadProductWithRelations(ctx, productID)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"message":       "Черновик опубликован и отправлен на модерацию",
+		"product":       prod,
+		"isDraft":       false,
+		"moderateState": "MODERATE",
+	}, nil
 }
 
 func (s *ProductService) AddFavorite(ctx context.Context, userID, productID int32) (map[string]any, error) {
