@@ -341,7 +341,7 @@ func (r *ProductPG) ProductWithTypeForUpdate(ctx context.Context, productID int3
 	return userID, typeID, images, moderateState, err
 }
 
-func (r *ProductPG) UpdateProductPartial(ctx context.Context, productID int32, name *string, price *int32, quantity *int32, state *string, description *string, address *string, video *string, images []string) error {
+func (r *ProductPG) UpdateProductPartial(ctx context.Context, productID int32, name *string, price *int32, quantity *int32, state *string, description *string, address *string, categoryID *int32, subCategoryID *int32, typeID *int32, video *string, images []string) error {
 	var sets []string
 	var args []any
 	n := 1
@@ -373,6 +373,21 @@ func (r *ProductPG) UpdateProductPartial(ctx context.Context, productID int32, n
 	if address != nil {
 		sets = append(sets, fmt.Sprintf(`address = $%d`, n))
 		args = append(args, *address)
+		n++
+	}
+	if categoryID != nil {
+		sets = append(sets, fmt.Sprintf(`"categoryId" = $%d`, n))
+		args = append(args, *categoryID)
+		n++
+	}
+	if subCategoryID != nil {
+		sets = append(sets, fmt.Sprintf(`"subCategoryId" = $%d`, n))
+		args = append(args, *subCategoryID)
+		n++
+	}
+	if typeID != nil {
+		sets = append(sets, fmt.Sprintf(`"typeId" = $%d`, n))
+		args = append(args, *typeID)
 		n++
 	}
 	if video != nil {

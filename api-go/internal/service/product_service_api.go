@@ -32,11 +32,11 @@ func (s *ProductService) DeleteProduct(ctx context.Context, productID, userID in
 	return map[string]any{"message": "РўРѕРІР°СЂ СѓСЃРїРµС€РЅРѕ СѓРґР°Р»С‘РЅ"}, nil
 }
 
-func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID int32, name, priceStr, quantityStr, state, description, address, videoStr, fieldJSON string, files []UploadedFile) (map[string]any, error) {
+func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID int32, name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, videoStr, fieldJSON string, files []UploadedFile) (map[string]any, error) {
 	if s.s3 == nil && len(files) > 0 {
 		return nil, &AppError{500, "S3 РЅРµ РЅР°СЃС‚СЂРѕРµРЅ"}
 	}
-	uid, typeID, existingImages, modState, err := s.prod.ProductWithTypeForUpdate(ctx, productID)
+	uid, currentTypeID, existingImages, modState, err := s.prod.ProductWithTypeForUpdate(ctx, productID)
 	if errors.Is(err, repository.ErrNotFound) {
 		return nil, &AppError{400, "РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ"}
 	}
@@ -60,12 +60,51 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 			fieldIDs = append(fieldIDs, int32(id64))
 		}
 	}
+	var categoryIDPtr, subCategoryIDPtr, typeIDPtr *int32
+	if strings.TrimSpace(categoryStr) != "" || strings.TrimSpace(subStr) != "" {
+		if strings.TrimSpace(categoryStr) == "" || strings.TrimSpace(subStr) == "" {
+			return nil, &AppError{400, "Для смены категории укажите и categoryId, и subcategoryId"}
+		}
+		catID, err := strconv.ParseInt(strings.TrimSpace(categoryStr), 10, 32)
+		if err != nil {
+			return nil, &AppError{400, "Некорректный categoryId"}
+		}
+		subID, err := strconv.ParseInt(strings.TrimSpace(subStr), 10, 32)
+		if err != nil {
+			return nil, &AppError{400, "Некорректный subcategoryId"}
+		}
+		ok, err := s.prod.SubCategoryBelongsToCategory(ctx, int32(catID), int32(subID))
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			return nil, &AppError{400, "Подкатегория не принадлежит указанной категории"}
+		}
+		c := int32(catID)
+		sc := int32(subID)
+		categoryIDPtr = &c
+		subCategoryIDPtr = &sc
+	}
+	if strings.TrimSpace(typeStr) != "" {
+		tid, err := strconv.ParseInt(strings.TrimSpace(typeStr), 10, 32)
+		if err != nil {
+			return nil, &AppError{400, "Некорректный typeId"}
+		}
+		t := int32(tid)
+		typeIDPtr = &t
+	}
+
+	effectiveTypeID := currentTypeID
+	if typeIDPtr != nil {
+		effectiveTypeID = typeIDPtr
+	}
+
 	if len(fieldIDs) > 0 && !isDraft {
 		if err := s.prod.ValidateTypeFieldIDs(ctx, fieldIDs); err != nil {
 			return nil, &AppError{400, err.Error()}
 		}
-		if typeID != nil {
-			badNames, err := s.prod.TypeFieldsBelongToType(ctx, *typeID, fieldIDs)
+		if effectiveTypeID != nil {
+			badNames, err := s.prod.TypeFieldsBelongToType(ctx, *effectiveTypeID, fieldIDs)
 			if err != nil {
 				return nil, err
 			}
@@ -140,7 +179,7 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 		imgsArg = append(append([]string{}, existingImages...), newImages...)
 	}
 
-	if err := s.prod.UpdateProductPartial(ctx, productID, namePtr, pricePtr, quantityPtr, statePtr, descPtr, addrPtr, vidPtr, imgsArg); err != nil {
+	if err := s.prod.UpdateProductPartial(ctx, productID, namePtr, pricePtr, quantityPtr, statePtr, descPtr, addrPtr, categoryIDPtr, subCategoryIDPtr, typeIDPtr, vidPtr, imgsArg); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, &AppError{400, "РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ"}
 		}
