@@ -86,6 +86,11 @@ func RegisterSocketIO(app *fiber.App, corsOrigins string, auth *service.AuthServ
 	}
 	server := socketio.NewServer(opts)
 	setEngineSocketServer(server)
+	go func() {
+		if err := server.Serve(); err != nil {
+			log.Printf("Socket.IO serve error: %v", err)
+		}
+	}()
 
 	registerChatNamespace(server, auth, chat)
 	registerSupportNamespace(server, auth, sup)
