@@ -11,8 +11,8 @@ import (
 
 	"github.com/gofiber/adaptor/v2"
 	"github.com/gofiber/fiber/v2"
-	socketio "github.com/googollee/go-socket.io"
-	"github.com/googollee/go-socket.io/engineio"
+	socketio "github.com/vchitai/go-socket.io"
+	"github.com/vchitai/go-socket.io/engineio"
 
 	"med-vito/api-go/internal/domain"
 	"med-vito/api-go/internal/rbac"
