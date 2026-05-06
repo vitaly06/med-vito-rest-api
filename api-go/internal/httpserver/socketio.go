@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	chatIONamespace    = "/chat"
+	chatIONamespace    = "/"
 	supportIONamespace = "/support"
 )
 
@@ -134,6 +134,14 @@ func normalizeOrigin(v string) string {
 }
 
 func registerChatNamespace(server *socketio.Server, auth *service.AuthService, chat *service.ChatService) {
+	server.OnError(chatIONamespace, func(c socketio.Conn, err error) {
+		if c != nil {
+			log.Printf("Socket.IO chat namespace error: ns=%q conn=%q err=%v", c.Namespace(), c.ID(), err)
+			return
+		}
+		log.Printf("Socket.IO chat namespace error: err=%v", err)
+	})
+
 	server.OnConnect(chatIONamespace, func(c socketio.Conn) error {
 		ctx := context.Background()
 		origin := c.RemoteHeader().Get("Origin")
@@ -237,6 +245,14 @@ func registerChatNamespace(server *socketio.Server, auth *service.AuthService, c
 }
 
 func registerSupportNamespace(server *socketio.Server, auth *service.AuthService, sup *service.SupportService) {
+	server.OnError(supportIONamespace, func(c socketio.Conn, err error) {
+		if c != nil {
+			log.Printf("Socket.IO support namespace error: ns=%q conn=%q err=%v", c.Namespace(), c.ID(), err)
+			return
+		}
+		log.Printf("Socket.IO support namespace error: err=%v", err)
+	})
+
 	server.OnConnect(supportIONamespace, func(c socketio.Conn) error {
 		ctx := context.Background()
 		u, err := auth.SocketUserFromCookie(ctx, c.RemoteHeader().Get("Cookie"))

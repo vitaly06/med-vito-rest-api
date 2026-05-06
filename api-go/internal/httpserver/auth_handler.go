@@ -30,6 +30,28 @@ func clearSessionCookie(cfg config.Config) *fiber.Cookie {
 	return c
 }
 
+func wsSessionCookie(cfg config.Config, value string, maxAgeSec int) *fiber.Cookie {
+	ss := "Lax"
+	if cfg.Production {
+		ss = "Strict"
+	}
+	return &fiber.Cookie{
+		Name:     "ws_session_id",
+		Value:    value,
+		Path:     "/",
+		HTTPOnly: false,
+		Secure:   cfg.Production,
+		SameSite: ss,
+		MaxAge:   maxAgeSec,
+	}
+}
+
+func clearWSSessionCookie(cfg config.Config) *fiber.Cookie {
+	c := wsSessionCookie(cfg, "", -1)
+	c.MaxAge = -1
+	return c
+}
+
 // RegisterAuthRoutes — пути как Nest AuthController.
 func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthService) {
 	g := app.Group("/auth")
@@ -58,6 +80,7 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 			return writeAppError(c, err)
 		}
 		c.Cookie(sessionCookie(cfg, sid, 30*24*60*60))
+		c.Cookie(wsSessionCookie(cfg, sid, 30*24*60*60))
 		return c.JSON(out)
 	})
 
@@ -74,6 +97,7 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 			return writeAppError(c, err)
 		}
 		c.Cookie(sessionCookie(cfg, sid, 30*24*60*60))
+		c.Cookie(wsSessionCookie(cfg, sid, 30*24*60*60))
 		return c.JSON(out)
 	})
 
@@ -98,11 +122,15 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 			return writeAppError(c, err)
 		}
 		c.Cookie(sessionCookie(cfg, sid, 30*24*60*60))
+		c.Cookie(wsSessionCookie(cfg, sid, 30*24*60*60))
 		return c.JSON(out)
 	})
 
 	g.Get("/me", middleware.RequireSession(auth), func(c *fiber.Ctx) error {
 		u := middleware.UserFromLocals(c)
+		if sid := c.Cookies("session_id"); sid != "" {
+			c.Cookie(wsSessionCookie(cfg, sid, 30*24*60*60))
+		}
 		me, err := auth.Me(c.UserContext(), u.ID)
 		if err != nil {
 			return writeAppError(c, err)
@@ -120,6 +148,7 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 			return writeAppError(c, err)
 		}
 		c.Cookie(clearSessionCookie(cfg))
+		c.Cookie(clearWSSessionCookie(cfg))
 		return c.JSON(fiber.Map{"message": "Вы успешно вышли из системы!"})
 	})
 

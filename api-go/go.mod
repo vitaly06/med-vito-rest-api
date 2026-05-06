@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.12
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.97.1
 	github.com/gofiber/adaptor/v2 v2.2.1
+	github.com/gofiber/contrib/websocket v1.3.4
 	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/gofiber/swagger v1.1.1
 	github.com/google/uuid v1.6.0
@@ -16,6 +17,11 @@ require (
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/swaggo/swag v1.16.4
 	golang.org/x/crypto v0.49.0
+)
+
+require (
+	github.com/fasthttp/websocket v1.5.8 // indirect
+	github.com/savsgio/gotils v0.0.0-20240303185622-093b76447511 // indirect
 )
 
 require (
@@ -60,11 +66,11 @@ require (
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/swaggo/files/v2 v2.0.2 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v1.51.0 // indirect
+	github.com/valyala/fasthttp v1.52.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	github.com/vchitai/go-socket.io v0.0.0-20221115104339-b45dedfb7b6e
 	go.uber.org/atomic v1.11.0 // indirect
-	golang.org/x/image v0.39.0 // indirect
+	golang.org/x/image v0.39.0
 	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
