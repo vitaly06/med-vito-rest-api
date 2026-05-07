@@ -1158,7 +1158,7 @@ func _swaggerDealMarkShipped() {}
 
 // DealGetCDEKQR
 // @Summary Получить QR и трек CDEK для сделки
-// @Description Возвращает qrCodeData (data:image/png;base64,...), trackNumber, trackingUrl и orderUuid.
+// @Description Возвращает qrCodeData/qrCodeUrl, trackNumber, trackingUrl и orderUuid. QR берется напрямую из ответа CDEK API.
 // @Security SessionId
 // @Tags deals
 // @Produce json
@@ -1177,7 +1177,8 @@ type swaggerDealMarkShippedRequest struct {
 }
 
 type swaggerDealCDEKQRResponse struct {
-	QRCodeData string  `json:"qrCodeData" example:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."`
+	QRCodeData *string `json:"qrCodeData,omitempty" example:"iVBORw0KGgoAAAANSUhEUgAA..."`
+	QRCodeURL  *string `json:"qrCodeUrl,omitempty" example:"https://api.cdek.ru/v2/.../barcode.pdf"`
 	TrackNumber *string `json:"trackNumber,omitempty" example:"1401262037"`
 	TrackingURL *string `json:"trackingUrl,omitempty" example:"https://www.cdek.ru/ru/tracking?order_id=1401262037"`
 	OrderUUID   *string `json:"orderUuid,omitempty" example:"6f61a0f8-9260-4e6d-8d17-43a988ab86b8"`

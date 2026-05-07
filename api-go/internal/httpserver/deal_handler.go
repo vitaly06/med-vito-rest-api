@@ -72,24 +72,11 @@ func RegisterDealRoutes(app fiber.Router, deals *service.DealService, auth *serv
 			return err
 		}
 		me := authmw.UserFromLocals(c)
-		out, err := deals.GetDeal(c.UserContext(), me.ID, id)
+		out, err := deals.GetDealCDEKQR(c.UserContext(), me.ID, id)
 		if err != nil {
 			return writeAppError(c, err)
 		}
-		cdekMap, _ := out["cdek"].(map[string]any)
-		if cdekMap == nil {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"statusCode": 404, "message": "Данные CDEK не найдены"})
-		}
-		qrCodeData, _ := cdekMap["qrCodeData"].(*string)
-		if qrCodeData == nil || *qrCodeData == "" {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"statusCode": 404, "message": "QR-код еще не сформирован"})
-		}
-		return c.JSON(fiber.Map{
-			"qrCodeData":  *qrCodeData,
-			"trackNumber": cdekMap["trackNumber"],
-			"trackingUrl": cdekMap["trackingUrl"],
-			"orderUuid":   cdekMap["orderUuid"],
-		})
+		return c.JSON(out)
 	})
 
 	g.Post("/:id/pay", sess, func(c *fiber.Ctx) error {

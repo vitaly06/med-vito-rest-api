@@ -1155,7 +1155,7 @@ const docTemplate = `{
                         "SessionId": []
                     }
                 ],
-                "description": "Возвращает qrCodeData (data:image/png;base64,...), trackNumber, trackingUrl и orderUuid.",
+                "description": "Возвращает qrCodeData/qrCodeUrl, trackNumber, trackingUrl и orderUuid. QR берется напрямую из ответа CDEK API.",
                 "produces": [
                     "application/json"
                 ],
@@ -3109,7 +3109,11 @@ const docTemplate = `{
                 },
                 "qrCodeData": {
                     "type": "string",
-                    "example": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+                    "example": "iVBORw0KGgoAAAANSUhEUgAA..."
+                },
+                "qrCodeUrl": {
+                    "type": "string",
+                    "example": "https://api.cdek.ru/v2/.../barcode.pdf"
                 },
                 "trackNumber": {
                     "type": "string",

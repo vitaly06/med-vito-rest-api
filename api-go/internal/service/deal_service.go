@@ -2,14 +2,11 @@ package service
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
 	"strings"
 	"time"
-
-	"github.com/skip2/go-qrcode"
 
 	"med-vito/api-go/internal/config"
 	"med-vito/api-go/internal/repository"
@@ -209,7 +206,33 @@ func (s *DealService) GetDeal(ctx context.Context, userID, dealID int32) (map[st
 	if err != nil {
 		return nil, err
 	}
+	deal = s.refreshDealTrackFromCDEK(ctx, deal)
 	return s.formatDeal(*deal), nil
+}
+
+func (s *DealService) GetDealCDEKQR(ctx context.Context, userID, dealID int32) (map[string]any, error) {
+	deal, err := s.getUserDeal(ctx, dealID, userID, "participant")
+	if err != nil {
+		return nil, err
+	}
+	deal = s.refreshDealTrackFromCDEK(ctx, deal)
+	if deal.CDEKOrderUUID == nil || strings.TrimSpace(*deal.CDEKOrderUUID) == "" {
+		return nil, &AppError{404, "Для сделки еще не сохранен orderUuid CDEK"}
+	}
+	if s.cdek == nil {
+		return nil, &AppError{400, "CDEK сервис не инициализирован"}
+	}
+	qrData, qrURL := s.cdek.QRByOrderUUID(ctx, *deal.CDEKOrderUUID)
+	if qrData == nil && qrURL == nil {
+		return nil, &AppError{404, "CDEK не вернул QR по этой отправке"}
+	}
+	return map[string]any{
+		"qrCodeData":  qrData,
+		"qrCodeUrl":   qrURL,
+		"trackNumber": deal.CDEKTrackNumber,
+		"trackingUrl": buildCDEKTrackingURL(deal.CDEKTrackNumber),
+		"orderUuid":   deal.CDEKOrderUUID,
+	}, nil
 }
 
 func (s *DealService) MyPurchases(ctx context.Context, buyerID int32) ([]map[string]any, error) {
@@ -217,6 +240,7 @@ func (s *DealService) MyPurchases(ctx context.Context, buyerID int32) ([]map[str
 	if err != nil {
 		return nil, err
 	}
+	deals, _ = s.refreshDealsTracksFromCDEK(ctx, deals, 5)
 	return s.formatDeals(deals), nil
 }
 
@@ -225,6 +249,7 @@ func (s *DealService) MySales(ctx context.Context, sellerID int32) ([]map[string
 	if err != nil {
 		return nil, err
 	}
+	deals, _ = s.refreshDealsTracksFromCDEK(ctx, deals, 5)
 	return s.formatDeals(deals), nil
 }
 
@@ -237,6 +262,12 @@ func (s *DealService) MyAllDeals(ctx context.Context, userID int32) ([]map[strin
 	if err != nil {
 		return nil, err
 	}
+	purchases, usedBudget := s.refreshDealsTracksFromCDEK(ctx, purchases, 5)
+	remainingBudget := 5 - usedBudget
+	if remainingBudget < 0 {
+		remainingBudget = 0
+	}
+	sales, _ = s.refreshDealsTracksFromCDEK(ctx, sales, remainingBudget)
 	all := make([]map[string]any, 0, len(purchases)+len(sales))
 	for _, deal := range purchases {
 		item := s.formatDeal(deal)
@@ -363,8 +394,6 @@ func (s *DealService) formatDeal(deal repository.DealRow) map[string]any {
 }
 
 func formatDealCDEK(deal repository.DealRow) map[string]any {
-	qrPayload := buildCDEKQRPayload(deal.CDEKTrackNumber, deal.CDEKOrderUUID)
-	qrDataURI := buildQRCodeDataURI(qrPayload)
 	return map[string]any{
 		"tariffCode":   deal.CDEKTariffCode,
 		"tariffName":   deal.CDEKTariffName,
@@ -375,8 +404,6 @@ func formatDealCDEK(deal repository.DealRow) map[string]any {
 		"orderUuid":    deal.CDEKOrderUUID,
 		"trackNumber":  deal.CDEKTrackNumber,
 		"trackingUrl":  buildCDEKTrackingURL(deal.CDEKTrackNumber),
-		"qrPayload":    qrPayload,
-		"qrCodeData":   qrDataURI,
 	}
 }
 
@@ -392,26 +419,69 @@ func buildCDEKTrackingURL(trackNumber *string) *string {
 	return &url
 }
 
-func buildCDEKQRPayload(trackNumber, orderUUID *string) string {
-	if trackNumber != nil && strings.TrimSpace(*trackNumber) != "" {
-		return "CDEK_TRACK:" + strings.TrimSpace(*trackNumber)
+func (s *DealService) refreshDealTrackFromCDEK(ctx context.Context, deal *repository.DealRow) *repository.DealRow {
+	if deal == nil || s.cdek == nil || deal.CDEKOrderUUID == nil {
+		return deal
 	}
-	if orderUUID != nil && strings.TrimSpace(*orderUUID) != "" {
-		return "CDEK_ORDER:" + strings.TrimSpace(*orderUUID)
+	orderUUID := strings.TrimSpace(*deal.CDEKOrderUUID)
+	if orderUUID == "" {
+		return deal
 	}
-	return ""
+
+	liveTrack := s.cdek.TrackNumberByOrderUUID(ctx, orderUUID)
+	if liveTrack == nil {
+		return deal
+	}
+	currentTrack := ""
+	if deal.CDEKTrackNumber != nil {
+		currentTrack = strings.TrimSpace(*deal.CDEKTrackNumber)
+	}
+	if currentTrack == strings.TrimSpace(*liveTrack) {
+		return deal
+	}
+
+	// Обновляем трек в БД, чтобы дальше фронт получал консистентные данные.
+	if err := s.repo.SetCDEKShipment(ctx, deal.ID, nil, liveTrack); err != nil {
+		return deal
+	}
+	updated, err := s.repo.FindByID(ctx, deal.ID)
+	if err != nil {
+		return deal
+	}
+	return updated
 }
 
-func buildQRCodeDataURI(payload string) *string {
-	if strings.TrimSpace(payload) == "" {
-		return nil
+func (s *DealService) refreshDealsTracksFromCDEK(ctx context.Context, deals []repository.DealRow, maxLive int) ([]repository.DealRow, int) {
+	if maxLive <= 0 || len(deals) == 0 {
+		return deals, 0
 	}
-	png, err := qrcode.Encode(payload, qrcode.Medium, 256)
-	if err != nil {
-		return nil
+	used := 0
+	for i := range deals {
+		if used >= maxLive {
+			break
+		}
+		if !dealNeedsLiveTrackSync(deals[i]) {
+			continue
+		}
+		updated := s.refreshDealTrackFromCDEK(ctx, &deals[i])
+		if updated != nil {
+			deals[i] = *updated
+		}
+		used++
 	}
-	data := "data:image/png;base64," + base64.StdEncoding.EncodeToString(png)
-	return &data
+	return deals, used
+}
+
+func dealNeedsLiveTrackSync(deal repository.DealRow) bool {
+	if deal.CDEKOrderUUID == nil || strings.TrimSpace(*deal.CDEKOrderUUID) == "" {
+		return false
+	}
+	switch deal.Status {
+	case "PAID", "SHIPPED", "DELIVERED", "DISPUTE":
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *DealService) notifyOrderInChat(ctx context.Context, deal repository.DealRow) {

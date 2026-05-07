@@ -208,6 +208,83 @@ func (s *CDEKService) TrackNumberByOrderUUID(ctx context.Context, orderUUID stri
 	return nil
 }
 
+func (s *CDEKService) QRByOrderUUID(ctx context.Context, orderUUID string) (*string, *string) {
+	orderUUID = strings.TrimSpace(orderUUID)
+	if orderUUID == "" {
+		return nil, nil
+	}
+
+	var out map[string]any
+	if err := s.getJSON(ctx, "/orders/"+orderUUID, &out); err != nil {
+		return nil, nil
+	}
+
+	data := pickFirstString(out,
+		"qr_code",
+		"qrCode",
+		"barcode",
+		"barcode_data",
+		"barcodeData",
+	)
+	url := pickFirstString(out,
+		"qr_code_url",
+		"qrCodeUrl",
+		"barcode_url",
+		"barcodeUrl",
+		"print_url",
+		"printUrl",
+		"url",
+	)
+	return data, url
+}
+
+func pickFirstString(v any, keys ...string) *string {
+	if len(keys) == 0 {
+		return nil
+	}
+	switch t := v.(type) {
+	case map[string]any:
+		for _, key := range keys {
+			if raw, ok := t[key]; ok {
+				if s := normalizeAnyString(raw); s != nil {
+					return s
+				}
+			}
+		}
+		for _, raw := range t {
+			if s := pickFirstString(raw, keys...); s != nil {
+				return s
+			}
+		}
+	case []any:
+		for _, raw := range t {
+			if s := pickFirstString(raw, keys...); s != nil {
+				return s
+			}
+		}
+	}
+	return nil
+}
+
+func normalizeAnyString(v any) *string {
+	switch t := v.(type) {
+	case string:
+		s := strings.TrimSpace(t)
+		if s == "" {
+			return nil
+		}
+		return &s
+	case fmt.Stringer:
+		s := strings.TrimSpace(t.String())
+		if s == "" {
+			return nil
+		}
+		return &s
+	default:
+		return nil
+	}
+}
+
 func (s *CDEKService) getJSON(ctx context.Context, path string, target any) error {
 	token, err := s.token(ctx)
 	if err != nil {
