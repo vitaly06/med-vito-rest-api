@@ -2,11 +2,14 @@ package service
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
 	"strings"
 	"time"
+
+	"github.com/skip2/go-qrcode"
 
 	"med-vito/api-go/internal/config"
 	"med-vito/api-go/internal/repository"
@@ -18,10 +21,11 @@ type DealService struct {
 	chat    *repository.ChatPG
 	payment *PaymentService
 	reserve *repository.ReservationPG
+	cdek    *CDEKService
 }
 
-func NewDealService(cfg config.Config, repo *repository.DealPG, chat *repository.ChatPG, payment *PaymentService, reserve *repository.ReservationPG) *DealService {
-	return &DealService{cfg: cfg, repo: repo, chat: chat, payment: payment, reserve: reserve}
+func NewDealService(cfg config.Config, repo *repository.DealPG, chat *repository.ChatPG, payment *PaymentService, reserve *repository.ReservationPG, cdek *CDEKService) *DealService {
+	return &DealService{cfg: cfg, repo: repo, chat: chat, payment: payment, reserve: reserve, cdek: cdek}
 }
 
 type CreateDealRequest struct {
@@ -130,6 +134,11 @@ func (s *DealService) MarkShipped(ctx context.Context, sellerID, dealID int32, r
 	}
 	orderUUID := normalizeStringPtr(req.CDEKOrderUUID)
 	trackNumber := normalizeStringPtr(req.CDEKTrackNumber)
+	if trackNumber == nil && orderUUID != nil && s.cdek != nil {
+		if fetchedTrack := s.cdek.TrackNumberByOrderUUID(ctx, *orderUUID); fetchedTrack != nil {
+			trackNumber = fetchedTrack
+		}
+	}
 	if deal.CDEKToPVZ != nil {
 		if trackNumber == nil {
 			return nil, &AppError{400, "Для доставки в ПВЗ нужен трек-номер"}
@@ -354,6 +363,8 @@ func (s *DealService) formatDeal(deal repository.DealRow) map[string]any {
 }
 
 func formatDealCDEK(deal repository.DealRow) map[string]any {
+	qrPayload := buildCDEKQRPayload(deal.CDEKTrackNumber, deal.CDEKOrderUUID)
+	qrDataURI := buildQRCodeDataURI(qrPayload)
 	return map[string]any{
 		"tariffCode":   deal.CDEKTariffCode,
 		"tariffName":   deal.CDEKTariffName,
@@ -363,7 +374,44 @@ func formatDealCDEK(deal repository.DealRow) map[string]any {
 		"toPvzCode":    deal.CDEKToPVZ,
 		"orderUuid":    deal.CDEKOrderUUID,
 		"trackNumber":  deal.CDEKTrackNumber,
+		"trackingUrl":  buildCDEKTrackingURL(deal.CDEKTrackNumber),
+		"qrPayload":    qrPayload,
+		"qrCodeData":   qrDataURI,
 	}
+}
+
+func buildCDEKTrackingURL(trackNumber *string) *string {
+	if trackNumber == nil {
+		return nil
+	}
+	track := strings.TrimSpace(*trackNumber)
+	if track == "" {
+		return nil
+	}
+	url := "https://www.cdek.ru/ru/tracking?order_id=" + track
+	return &url
+}
+
+func buildCDEKQRPayload(trackNumber, orderUUID *string) string {
+	if trackNumber != nil && strings.TrimSpace(*trackNumber) != "" {
+		return "CDEK_TRACK:" + strings.TrimSpace(*trackNumber)
+	}
+	if orderUUID != nil && strings.TrimSpace(*orderUUID) != "" {
+		return "CDEK_ORDER:" + strings.TrimSpace(*orderUUID)
+	}
+	return ""
+}
+
+func buildQRCodeDataURI(payload string) *string {
+	if strings.TrimSpace(payload) == "" {
+		return nil
+	}
+	png, err := qrcode.Encode(payload, qrcode.Medium, 256)
+	if err != nil {
+		return nil
+	}
+	data := "data:image/png;base64," + base64.StdEncoding.EncodeToString(png)
+	return &data
 }
 
 func (s *DealService) notifyOrderInChat(ctx context.Context, deal repository.DealRow) {

@@ -180,6 +180,34 @@ func (s *CDEKService) Tariffs(ctx context.Context, req CDEKTariffsRequest) ([]ma
 	return normalizeTariffList(raw), nil
 }
 
+func (s *CDEKService) TrackNumberByOrderUUID(ctx context.Context, orderUUID string) *string {
+	orderUUID = strings.TrimSpace(orderUUID)
+	if orderUUID == "" {
+		return nil
+	}
+
+	var out map[string]any
+	if err := s.getJSON(ctx, "/orders/"+orderUUID, &out); err != nil {
+		return nil
+	}
+
+	if v, ok := out["cdek_number"]; ok {
+		if track := strings.TrimSpace(fmt.Sprint(v)); track != "" && track != "<nil>" {
+			return &track
+		}
+	}
+	if v, ok := out["entity"]; ok {
+		if entity, ok := v.(map[string]any); ok {
+			if t, ok := entity["cdek_number"]; ok {
+				if track := strings.TrimSpace(fmt.Sprint(t)); track != "" && track != "<nil>" {
+					return &track
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func (s *CDEKService) getJSON(ctx context.Context, path string, target any) error {
 	token, err := s.token(ctx)
 	if err != nil {

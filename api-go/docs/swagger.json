@@ -1080,6 +1080,203 @@
                 }
             }
         },
+        "/deals/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "SessionId": []
+                    }
+                ],
+                "description": "Возвращает полную карточку сделки, включая блок cdek (track, qr).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "deals"
+                ],
+                "summary": "Получить сделку по ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID сделки",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/deals/{id}/cdek-qr": {
+            "get": {
+                "security": [
+                    {
+                        "SessionId": []
+                    }
+                ],
+                "description": "Возвращает qrCodeData (data:image/png;base64,...), trackNumber, trackingUrl и orderUuid.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "deals"
+                ],
+                "summary": "Получить QR и трек CDEK для сделки",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID сделки",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.swaggerDealCDEKQRResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/deals/{id}/mark-shipped": {
+            "post": {
+                "security": [
+                    {
+                        "SessionId": []
+                    }
+                ],
+                "description": "Для ПВЗ обязателен trackNumber. Можно передать только orderUuid - трек подтянется автоматически из CDEK (если доступен).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "deals"
+                ],
+                "summary": "Подтвердить отправку (продавец)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID сделки",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Данные отгрузки CDEK",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/main.swaggerDealMarkShippedRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "description": "Возвращает status ok",
@@ -2894,6 +3091,40 @@
                 "theme": {
                     "type": "string",
                     "example": "TECHNICAL_ISSUE"
+                }
+            }
+        },
+        "main.swaggerDealCDEKQRResponse": {
+            "type": "object",
+            "properties": {
+                "orderUuid": {
+                    "type": "string",
+                    "example": "6f61a0f8-9260-4e6d-8d17-43a988ab86b8"
+                },
+                "qrCodeData": {
+                    "type": "string",
+                    "example": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+                },
+                "trackNumber": {
+                    "type": "string",
+                    "example": "1401262037"
+                },
+                "trackingUrl": {
+                    "type": "string",
+                    "example": "https://www.cdek.ru/ru/tracking?order_id=1401262037"
+                }
+            }
+        },
+        "main.swaggerDealMarkShippedRequest": {
+            "type": "object",
+            "properties": {
+                "cdekOrderUuid": {
+                    "type": "string",
+                    "example": "6f61a0f8-9260-4e6d-8d17-43a988ab86b8"
+                },
+                "cdekTrackNumber": {
+                    "type": "string",
+                    "example": "1401262037"
                 }
             }
         },

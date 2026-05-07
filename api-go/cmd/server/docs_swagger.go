@@ -898,6 +898,7 @@ func init() {
 	_ = []any{
 		_swaggerAddressSuggestions, _swaggerAddressValidate, _swaggerCDEKCities, _swaggerCDEKDeliveryPoints, _swaggerCDEKCalculate,
 		_swaggerAuthChangePassword, _swaggerAuthForgot, _swaggerAuthIsAdmin, _swaggerAuthLogout, _swaggerAuthMe,
+		_swaggerDealGetByID, _swaggerDealGetCDEKQR, _swaggerDealMarkShipped,
 		_swaggerAuthSignIn, _swaggerAuthSignUp, _swaggerAuthVerifyForgot, _swaggerAuthVerifyMobile,
 		_swaggerBannerAllModerate, _swaggerBannerCreate, _swaggerBannerList, _swaggerBannerModerate, _swaggerBannerRandom,
 		_swaggerCategoryCreate, _swaggerCategoryDelete, _swaggerCategoryFindAll, _swaggerCategoryFindByID,
@@ -922,6 +923,7 @@ func init() {
 		_swaggerUserVerifyEmail, _swaggerUserVerifyEmailCode,
 		swaggerAddPromotion{}, swaggerAdminUpdateUser{}, swaggerChangePassword{}, swaggerCheckPayment{},
 		swaggerCreateCategory{}, swaggerCreateDraftJSON{}, swaggerCreatePayment{}, swaggerCreateSupportTicket{}, swaggerForgotEmail{},
+		swaggerDealCDEKQRResponse{}, swaggerDealMarkShippedRequest{},
 		swaggerPaymentCheckStateResponse{}, swaggerPaymentCreateResponse{}, swaggerPaymentHistoryItem{},
 		swaggerKnowledgeBaseArticle{}, swaggerKnowledgeBaseArticleRequest{}, swaggerKnowledgeBaseCreateResponse{},
 		swaggerKnowledgeBaseDeleteResponse{}, swaggerKnowledgeBaseUpdateResponse{},
@@ -1118,6 +1120,67 @@ type swaggerModerationFieldValue struct {
 type swaggerModerationFieldRef struct {
 	ID   int32  `json:"id" example:"1"`
 	Name string `json:"name" example:"Производитель"`
+}
+
+// --- deals (безопасная сделка; сессия cookie session_id) ---
+
+// DealGetByID
+// @Summary Получить сделку по ID
+// @Description Возвращает полную карточку сделки, включая блок cdek (track, qr).
+// @Security SessionId
+// @Tags deals
+// @Produce json
+// @Param id path int true "ID сделки"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Router /deals/{id} [get]
+func _swaggerDealGetByID() {}
+
+// DealMarkShipped
+// @Summary Подтвердить отправку (продавец)
+// @Description Для ПВЗ обязателен trackNumber. Можно передать только orderUuid - трек подтянется автоматически из CDEK (если доступен).
+// @Security SessionId
+// @Tags deals
+// @Accept json
+// @Produce json
+// @Param id path int true "ID сделки"
+// @Param body body swaggerDealMarkShippedRequest false "Данные отгрузки CDEK"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Router /deals/{id}/mark-shipped [post]
+func _swaggerDealMarkShipped() {}
+
+// DealGetCDEKQR
+// @Summary Получить QR и трек CDEK для сделки
+// @Description Возвращает qrCodeData (data:image/png;base64,...), trackNumber, trackingUrl и orderUuid.
+// @Security SessionId
+// @Tags deals
+// @Produce json
+// @Param id path int true "ID сделки"
+// @Success 200 {object} swaggerDealCDEKQRResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Router /deals/{id}/cdek-qr [get]
+func _swaggerDealGetCDEKQR() {}
+
+type swaggerDealMarkShippedRequest struct {
+	CDEKOrderUUID   *string `json:"cdekOrderUuid,omitempty" example:"6f61a0f8-9260-4e6d-8d17-43a988ab86b8"`
+	CDEKTrackNumber *string `json:"cdekTrackNumber,omitempty" example:"1401262037"`
+}
+
+type swaggerDealCDEKQRResponse struct {
+	QRCodeData string  `json:"qrCodeData" example:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."`
+	TrackNumber *string `json:"trackNumber,omitempty" example:"1401262037"`
+	TrackingURL *string `json:"trackingUrl,omitempty" example:"https://www.cdek.ru/ru/tracking?order_id=1401262037"`
+	OrderUUID   *string `json:"orderUuid,omitempty" example:"6f61a0f8-9260-4e6d-8d17-43a988ab86b8"`
 }
 
 // --- cdek ---
