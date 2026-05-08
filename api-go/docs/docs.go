@@ -1093,7 +1093,7 @@ const docTemplate = `{
                         "SessionId": []
                     }
                 ],
-                "description": "Возвращает полную карточку сделки, включая блок cdek (track, qr).",
+                "description": "Возвращает полную карточку сделки, включая блок cdek (track, trackingUrl, trackPending).",
                 "produces": [
                     "application/json"
                 ],
@@ -1217,7 +1217,7 @@ const docTemplate = `{
                         "SessionId": []
                     }
                 ],
-                "description": "Для ПВЗ обязателен trackNumber. Можно передать только orderUuid - трек подтянется автоматически из CDEK (если доступен).",
+                "description": "Можно передать только orderUuid - трек подтянется автоматически из CDEK, когда будет присвоен.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3118,6 +3118,10 @@ const docTemplate = `{
                 "trackNumber": {
                     "type": "string",
                     "example": "1401262037"
+                },
+                "trackPending": {
+                    "type": "boolean",
+                    "example": true
                 },
                 "trackingUrl": {
                     "type": "string",

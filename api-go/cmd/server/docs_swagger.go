@@ -1126,7 +1126,7 @@ type swaggerModerationFieldRef struct {
 
 // DealGetByID
 // @Summary Получить сделку по ID
-// @Description Возвращает полную карточку сделки, включая блок cdek (track, qr).
+// @Description Возвращает полную карточку сделки, включая блок cdek (track, trackingUrl, trackPending).
 // @Security SessionId
 // @Tags deals
 // @Produce json
@@ -1141,7 +1141,7 @@ func _swaggerDealGetByID() {}
 
 // DealMarkShipped
 // @Summary Подтвердить отправку (продавец)
-// @Description Для ПВЗ обязателен trackNumber. Можно передать только orderUuid - трек подтянется автоматически из CDEK (если доступен).
+// @Description Можно передать только orderUuid - трек подтянется автоматически из CDEK, когда будет присвоен.
 // @Security SessionId
 // @Tags deals
 // @Accept json
@@ -1177,11 +1177,12 @@ type swaggerDealMarkShippedRequest struct {
 }
 
 type swaggerDealCDEKQRResponse struct {
-	QRCodeData *string `json:"qrCodeData,omitempty" example:"iVBORw0KGgoAAAANSUhEUgAA..."`
-	QRCodeURL  *string `json:"qrCodeUrl,omitempty" example:"https://api.cdek.ru/v2/.../barcode.pdf"`
+	QRCodeData  *string `json:"qrCodeData,omitempty" example:"iVBORw0KGgoAAAANSUhEUgAA..."`
+	QRCodeURL   *string `json:"qrCodeUrl,omitempty" example:"https://api.cdek.ru/v2/.../barcode.pdf"`
 	TrackNumber *string `json:"trackNumber,omitempty" example:"1401262037"`
 	TrackingURL *string `json:"trackingUrl,omitempty" example:"https://www.cdek.ru/ru/tracking?order_id=1401262037"`
 	OrderUUID   *string `json:"orderUuid,omitempty" example:"6f61a0f8-9260-4e6d-8d17-43a988ab86b8"`
+	TrackPending bool   `json:"trackPending" example:"true"`
 }
 
 // --- cdek ---

@@ -136,11 +136,6 @@ func (s *DealService) MarkShipped(ctx context.Context, sellerID, dealID int32, r
 			trackNumber = fetchedTrack
 		}
 	}
-	if deal.CDEKToPVZ != nil {
-		if trackNumber == nil {
-			return nil, &AppError{400, "Для доставки в ПВЗ нужен трек-номер"}
-		}
-	}
 	if orderUUID != nil || trackNumber != nil {
 		if err := s.repo.SetCDEKShipment(ctx, dealID, orderUUID, trackNumber); err != nil {
 			return nil, err
@@ -226,12 +221,14 @@ func (s *DealService) GetDealCDEKQR(ctx context.Context, userID, dealID int32) (
 	if qrData == nil && qrURL == nil {
 		return nil, &AppError{404, "CDEK не вернул QR по этой отправке"}
 	}
+	trackPending := deal.CDEKTrackNumber == nil || strings.TrimSpace(*deal.CDEKTrackNumber) == ""
 	return map[string]any{
-		"qrCodeData":  qrData,
-		"qrCodeUrl":   qrURL,
-		"trackNumber": deal.CDEKTrackNumber,
-		"trackingUrl": buildCDEKTrackingURL(deal.CDEKTrackNumber),
-		"orderUuid":   deal.CDEKOrderUUID,
+		"qrCodeData":   qrData,
+		"qrCodeUrl":    qrURL,
+		"trackNumber":  deal.CDEKTrackNumber,
+		"trackingUrl":  buildCDEKTrackingURL(deal.CDEKTrackNumber),
+		"orderUuid":    deal.CDEKOrderUUID,
+		"trackPending": trackPending,
 	}, nil
 }
 
@@ -394,6 +391,15 @@ func (s *DealService) formatDeal(deal repository.DealRow) map[string]any {
 }
 
 func formatDealCDEK(deal repository.DealRow) map[string]any {
+	trackPending := false
+	if deal.CDEKOrderUUID != nil {
+		orderUUID := strings.TrimSpace(*deal.CDEKOrderUUID)
+		track := ""
+		if deal.CDEKTrackNumber != nil {
+			track = strings.TrimSpace(*deal.CDEKTrackNumber)
+		}
+		trackPending = orderUUID != "" && track == ""
+	}
 	return map[string]any{
 		"tariffCode":   deal.CDEKTariffCode,
 		"tariffName":   deal.CDEKTariffName,
@@ -404,6 +410,7 @@ func formatDealCDEK(deal repository.DealRow) map[string]any {
 		"orderUuid":    deal.CDEKOrderUUID,
 		"trackNumber":  deal.CDEKTrackNumber,
 		"trackingUrl":  buildCDEKTrackingURL(deal.CDEKTrackNumber),
+		"trackPending": trackPending,
 	}
 }
 
