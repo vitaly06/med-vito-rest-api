@@ -720,6 +720,16 @@ func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, provider, exter
 }
 
 func parseVKUserInfo(body []byte, fallbackID int64) (id, fullName, email string, err error) {
+	vkFallbackName := func(externalID string, numericID int64) string {
+		if strings.TrimSpace(externalID) != "" {
+			return "Пользователь VK #" + strings.TrimSpace(externalID)
+		}
+		if numericID > 0 {
+			return "Пользователь VK #" + strconv.FormatInt(numericID, 10)
+		}
+		return "Пользователь VK"
+	}
+
 	var legacy struct {
 		Response []struct {
 			ID        int64  `json:"id"`
@@ -734,7 +744,7 @@ func parseVKUserInfo(body []byte, fallbackID int64) (id, fullName, email string,
 		last := strings.TrimSpace(legacy.Response[0].LastName)
 		fullName = strings.TrimSpace(first + " " + last)
 		if fullName == "" {
-			fullName = "VK User"
+			fullName = vkFallbackName(id, legacy.Response[0].ID)
 		}
 		return id, fullName, "", nil
 	}
@@ -751,18 +761,19 @@ func parseVKUserInfo(body []byte, fallbackID int64) (id, fullName, email string,
 		if id == "" && fallbackID > 0 {
 			id = strconv.FormatInt(fallbackID, 10)
 		}
-		fullName = strings.TrimSpace(vkid.Name)
+		fullName = strings.TrimSpace(strings.TrimSpace(vkid.FirstName) + " " + strings.TrimSpace(vkid.LastName))
 		if fullName == "" {
-			fullName = strings.TrimSpace(strings.TrimSpace(vkid.FirstName) + " " + strings.TrimSpace(vkid.LastName))
+			fullName = strings.TrimSpace(vkid.Name)
 		}
 		if fullName == "" {
-			fullName = "VK User"
+			fullName = vkFallbackName(id, fallbackID)
 		}
 		return id, fullName, strings.TrimSpace(vkid.Email), nil
 	}
 
 	if fallbackID > 0 {
-		return strconv.FormatInt(fallbackID, 10), "VK User", "", nil
+		id = strconv.FormatInt(fallbackID, 10)
+		return id, vkFallbackName(id, fallbackID), "", nil
 	}
 	return "", "", "", &AppError{401, "VK OAuth userinfo parse error"}
 }
