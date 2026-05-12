@@ -22,13 +22,15 @@ const tinkoffAPIBase = "https://securepay.tinkoff.ru/v2"
 type PaymentService struct {
 	cfg    config.Config
 	repo   *repository.PaymentPG
+	deals  *repository.DealPG
 	client *http.Client
 }
 
-func NewPaymentService(cfg config.Config, repo *repository.PaymentPG) *PaymentService {
+func NewPaymentService(cfg config.Config, repo *repository.PaymentPG, deals *repository.DealPG) *PaymentService {
 	return &PaymentService{
 		cfg:    cfg,
 		repo:   repo,
+		deals:  deals,
 		client: &http.Client{Timeout: 45 * time.Second},
 	}
 }
@@ -243,6 +245,15 @@ func (s *PaymentService) HandleNotification(ctx context.Context, rawJSON []byte)
 	case "CONFIRMED":
 		already, err := s.repo.TryCompleteTopUp(ctx, paymentID)
 		if errors.Is(err, repository.ErrNotFound) {
+			if s.deals != nil {
+				marked, errDeal := s.deals.TryMarkPaidByPaymentID(ctx, paymentID)
+				if errDeal != nil {
+					return nil, errDeal
+				}
+				if marked {
+					return map[string]any{"success": true, "message": "Сделка отмечена оплаченной"}, nil
+				}
+			}
 			return nil, &AppError{400, "РџР»Р°С‚РµР¶ РЅРµ РЅР°Р№РґРµРЅ"}
 		}
 		if err != nil {

@@ -19,10 +19,11 @@ type DealService struct {
 	payment *PaymentService
 	reserve *repository.ReservationPG
 	cdek    *CDEKService
+	users   *repository.UserPG
 }
 
-func NewDealService(cfg config.Config, repo *repository.DealPG, chat *repository.ChatPG, payment *PaymentService, reserve *repository.ReservationPG, cdek *CDEKService) *DealService {
-	return &DealService{cfg: cfg, repo: repo, chat: chat, payment: payment, reserve: reserve, cdek: cdek}
+func NewDealService(cfg config.Config, repo *repository.DealPG, chat *repository.ChatPG, payment *PaymentService, reserve *repository.ReservationPG, cdek *CDEKService, users *repository.UserPG) *DealService {
+	return &DealService{cfg: cfg, repo: repo, chat: chat, payment: payment, reserve: reserve, cdek: cdek, users: users}
 }
 
 type CreateDealRequest struct {
@@ -41,25 +42,176 @@ type MarkShippedRequest struct {
 	CDEKTrackNumber *string `json:"cdekTrackNumber"`
 }
 
+// dealHasCdekAutoRoute — в сделке сохранён маршрут калькулятора CDEK (тариф + города).
+func dealHasCdekAutoRoute(deal *repository.DealRow) bool {
+	if deal == nil || deal.CDEKTariffCode == nil || *deal.CDEKTariffCode <= 0 {
+		return false
+	}
+	if deal.CDEKFromCity == nil || *deal.CDEKFromCity <= 0 || deal.CDEKToCity == nil || *deal.CDEKToCity <= 0 {
+		return false
+	}
+	return true
+}
+
+// ensureCdekOrderRegistered — создаёт заказ в CDEK и пишет uuid/трек в БД (идемпотентно по number).
+func (s *DealService) ensureCdekOrderRegistered(ctx context.Context, deal *repository.DealRow) (*string, *string, error) {
+	if deal == nil {
+		return nil, nil, nil
+	}
+	if deal.CDEKOrderUUID != nil && strings.TrimSpace(*deal.CDEKOrderUUID) != "" {
+		return nil, nil, nil
+	}
+	if !dealHasCdekAutoRoute(deal) {
+		return nil, nil, nil
+	}
+	if s.cdek == nil || !s.cdek.configured() {
+		return nil, nil, nil
+	}
+	if s.users == nil {
+		return nil, nil, &AppError{400, "Автозаказ CDEK: нет доступа к данным пользователей"}
+	}
+	buyer, err := s.users.FindUserByID(ctx, deal.BuyerID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, nil, &AppError{404, "Покупатель не найден"}
+		}
+		return nil, nil, err
+	}
+	seller, err := s.users.FindUserByID(ctx, deal.SellerID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, nil, &AppError{404, "Продавец не найден"}
+		}
+		return nil, nil, err
+	}
+	bPhone, err := PhoneForCdekAPI(buyer.PhoneNumber)
+	if err != nil {
+		return nil, nil, &AppError{400, "Телефон покупателя для CDEK: " + err.Error()}
+	}
+	sPhone, err := PhoneForCdekAPI(seller.PhoneNumber)
+	if err != nil {
+		return nil, nil, &AppError{400, "Телефон продавца для CDEK: " + err.Error()}
+	}
+	clientNumber := fmt.Sprintf("med-vito-deal-%d", deal.ID)
+	in := CDEKCreateOrderInput{
+		TariffCode:      int(*deal.CDEKTariffCode),
+		FromCityCode:    int(*deal.CDEKFromCity),
+		ToCityCode:      int(*deal.CDEKToCity),
+		FromPVZ:         deal.CDEKFromPVZ,
+		ToPVZ:           deal.CDEKToPVZ,
+		ClientNumber:    clientNumber,
+		Comment:         fmt.Sprintf("Безопасная сделка #%d — %s", deal.ID, deal.ProductName),
+		SenderName:      seller.FullName,
+		SenderPhone:     sPhone,
+		RecipientName:   buyer.FullName,
+		RecipientPhone:  bPhone,
+		PackageName:     deal.ProductName,
+		WareKey:         fmt.Sprintf("deal-%d", deal.ID),
+		DeclaredCostRub: float64(deal.ProductAmount),
+		WeightGrams:     1000,
+	}
+
+	res, err := s.cdek.CreateOrder(ctx, in)
+	if err != nil {
+		res2, lookErr := s.cdek.LookupOrderByClientNumber(ctx, clientNumber)
+		if lookErr == nil && res2 != nil && res2.OrderUUID != nil && strings.TrimSpace(*res2.OrderUUID) != "" {
+			res, err = res2, nil
+		}
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	if res == nil || res.OrderUUID == nil {
+		return nil, nil, &AppError{502, "CDEK не вернул uuid заказа"}
+	}
+	u := strings.TrimSpace(*res.OrderUUID)
+	uu := u
+	var tt *string
+	if res.Track != nil {
+		if t := strings.TrimSpace(*res.Track); t != "" {
+			tt = &t
+		}
+	}
+	if tt == nil {
+		if live := s.cdek.TrackNumberByOrderUUID(ctx, u); live != nil {
+			tt = live
+		}
+	}
+	if err := s.repo.SetCDEKShipment(ctx, deal.ID, &uu, tt); err != nil {
+		return nil, nil, err
+	}
+	return &uu, tt, nil
+}
+
+// ensureCdekOrdersInList — для PAID без uuid пробуем создать заказ CDEK (ограничение, чтобы не долбить API).
+func (s *DealService) ensureCdekOrdersInList(ctx context.Context, deals []repository.DealRow, max int) {
+	if max <= 0 || s.cdek == nil || !s.cdek.configured() {
+		return
+	}
+	used := 0
+	for i := range deals {
+		if used >= max {
+			break
+		}
+		if deals[i].Status != "PAID" || !dealHasCdekAutoRoute(&deals[i]) {
+			continue
+		}
+		if deals[i].CDEKOrderUUID != nil && strings.TrimSpace(*deals[i].CDEKOrderUUID) != "" {
+			continue
+		}
+		if _, _, err := s.ensureCdekOrderRegistered(ctx, &deals[i]); err != nil {
+			log.Printf("cdek auto-order list deal=%d: %v", deals[i].ID, err)
+			continue
+		}
+		if fresh, e := s.repo.FindByID(ctx, deals[i].ID); e == nil {
+			deals[i] = *fresh
+		}
+		used++
+	}
+}
+
 func (s *DealService) CreateDeal(ctx context.Context, buyerID int32, req CreateDealRequest) (map[string]any, error) {
 	if req.ProductID <= 0 {
-		return nil, &AppError{400, "РќСѓР¶РµРЅ productId"}
+		return nil, &AppError{400, "Нужен productId"}
 	}
 	product, err := s.repo.ProductInfo(ctx, req.ProductID)
 	if errors.Is(err, repository.ErrNotFound) {
-		return nil, &AppError{404, "РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ"}
+		return nil, &AppError{404, "Товар не найден"}
 	}
 	if err != nil {
 		return nil, err
 	}
 	if product.UserID == buyerID {
-		return nil, &AppError{400, "РќРµР»СЊР·СЏ СЃРѕР·РґР°С‚СЊ СЃРґРµР»РєСѓ РЅР° СЃРІРѕР№ С‚РѕРІР°СЂ"}
+		return nil, &AppError{400, "Нельзя создать сделку на свой товар"}
 	}
 	if !product.Approved || product.IsHide {
-		return nil, &AppError{400, "РўРѕРІР°СЂ РЅРµРґРѕСЃС‚СѓРїРµРЅ РґР»СЏ Р±РµР·РѕРїР°СЃРЅРѕР№ СЃРґРµР»РєРё"}
+		return nil, &AppError{400, "Товар недоступен для безопасной сделки"}
 	}
 	if req.DeliveryCost < 0 {
-		return nil, &AppError{400, "РЎС‚РѕРёРјРѕСЃС‚СЊ РґРѕСЃС‚Р°РІРєРё РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РѕС‚СЂРёС†Р°С‚РµР»СЊРЅРѕР№"}
+		return nil, &AppError{400, "Стоимость доставки не может быть отрицательной"}
+	}
+
+	if s.users != nil {
+		buyer, err := s.users.FindUserByID(ctx, buyerID)
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return nil, &AppError{404, "Покупатель не найден"}
+			}
+			return nil, err
+		}
+		if isDealPhoneSynthetic(buyer.PhoneNumber) {
+			return nil, &AppError{400, "Нельзя создать сделку с подставным телефоном в профиле. Укажи реальный номер +7 в настройках аккаунта."}
+		}
+		seller, err := s.users.FindUserByID(ctx, product.UserID)
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return nil, &AppError{404, "Продавец не найден"}
+			}
+			return nil, err
+		}
+		if isDealPhoneSynthetic(seller.PhoneNumber) {
+			return nil, &AppError{400, "Продавец не указал реальный телефон в профиле — безопасная сделка недоступна, пока он не сохранит +7."}
+		}
 	}
 
 	feePercent := s.cfg.DealPlatformFeePercent
@@ -102,12 +254,34 @@ func (s *DealService) PayDeal(ctx context.Context, buyerID, dealID int32) (map[s
 		return nil, err
 	}
 	if deal.Status != "CREATED" {
-		return nil, &AppError{400, "РћРїР»Р°С‚РёС‚СЊ РјРѕР¶РЅРѕ С‚РѕР»СЊРєРѕ СЃРѕР·РґР°РЅРЅСѓСЋ СЃРґРµР»РєСѓ"}
+		return nil, &AppError{400, "Оплатить можно только созданную сделку"}
+	}
+	// Демо: без Tinkoff сразу PAID — иначе CDEK и «отправить» никогда не откроются.
+	if !s.payment.tinkoffConfigured() && s.cfg.DealAllowMockPayment {
+		ok, err := s.repo.TryMarkPaidByDealID(ctx, deal.ID)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			return nil, &AppError{400, "Не удалось отметить оплату (сделка не в статусе CREATED)"}
+		}
+		updated, err := s.repo.FindByID(ctx, deal.ID)
+		if err != nil {
+			return nil, err
+		}
+		mockPID := fmt.Sprintf("mock-%d", deal.ID)
+		return map[string]any{
+			"deal":        s.formatDeal(*updated),
+			"paymentId":   mockPID,
+			"paymentUrl":  "",
+			"orderId":     "mock",
+			"mockPayment": true,
+		}, nil
 	}
 	if deal.PaymentID != nil && deal.PaymentURL != nil {
 		return map[string]any{"deal": s.formatDeal(*deal), "paymentId": *deal.PaymentID, "paymentUrl": *deal.PaymentURL, "orderId": deal.OrderID}, nil
 	}
-	paymentID, paymentURL, orderID, err := s.payment.CreateDealPayment(ctx, buyerID, deal.ID, float64(deal.TotalAmount), "Р‘РµР·РѕРїР°СЃРЅР°СЏ СЃРґРµР»РєР°: "+deal.ProductName)
+	paymentID, paymentURL, orderID, err := s.payment.CreateDealPayment(ctx, buyerID, deal.ID, float64(deal.TotalAmount), "Безопасная сделка: "+deal.ProductName)
 	if err != nil {
 		return nil, err
 	}
@@ -121,16 +295,92 @@ func (s *DealService) PayDeal(ctx context.Context, buyerID, dealID int32) (map[s
 	return map[string]any{"deal": s.formatDeal(*updated), "paymentId": paymentID, "paymentUrl": paymentURL, "orderId": orderID}, nil
 }
 
+// SyncDealPayment — если webhook Тинькофф не дошёл (например localhost), покупатель дергает после оплаты.
+func (s *DealService) SyncDealPayment(ctx context.Context, buyerID, dealID int32) (map[string]any, error) {
+	deal, err := s.getUserDeal(ctx, dealID, buyerID, "buyer")
+	if err != nil {
+		return nil, err
+	}
+	if deal.Status != "CREATED" {
+		return nil, &AppError{400, "Сделка уже не в статусе «создана» — синхронизация не нужна"}
+	}
+	if deal.PaymentID == nil || strings.TrimSpace(*deal.PaymentID) == "" {
+		return nil, &AppError{400, "Сначала нажми оплату и получи paymentId"}
+	}
+	pid := strings.TrimSpace(*deal.PaymentID)
+	if strings.HasPrefix(strings.ToLower(pid), "mock-") {
+		ok, err := s.repo.TryMarkPaidByDealID(ctx, deal.ID)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			return nil, &AppError{400, "Не удалось отметить демо-оплату"}
+		}
+		updated, err := s.repo.FindByID(ctx, deal.ID)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"deal": s.formatDeal(*updated)}, nil
+	}
+	st, err := s.payment.CheckPaymentStatus(ctx, pid)
+	if err != nil {
+		return nil, err
+	}
+	status := strings.TrimSpace(fmt.Sprint(st["status"]))
+	if status != "CONFIRMED" {
+		return nil, &AppError{400, fmt.Sprintf("Платёж ещё не подтверждён (статус: %s)", status)}
+	}
+	ok, err := s.repo.TryMarkPaidByPaymentID(ctx, pid)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, &AppError{400, "Не удалось перевести сделку в оплаченную"}
+	}
+	updated, err := s.repo.FindByID(ctx, deal.ID)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"deal": s.formatDeal(*updated)}, nil
+}
+
 func (s *DealService) MarkShipped(ctx context.Context, sellerID, dealID int32, req MarkShippedRequest) (map[string]any, error) {
 	deal, err := s.getUserDeal(ctx, dealID, sellerID, "seller")
 	if err != nil {
 		return nil, err
 	}
 	if deal.Status != "PAID" {
-		return nil, &AppError{400, "РћС‚РїСЂР°РІРєСѓ РјРѕР¶РЅРѕ РїРѕРґС‚РІРµСЂРґРёС‚СЊ С‚РѕР»СЊРєРѕ РїРѕСЃР»Рµ РѕРїР»Р°С‚С‹"}
+		return nil, &AppError{400, "Отправку можно подтвердить только после оплаты"}
 	}
 	orderUUID := normalizeStringPtr(req.CDEKOrderUUID)
 	trackNumber := normalizeStringPtr(req.CDEKTrackNumber)
+	if orderUUID == nil && deal.CDEKOrderUUID != nil {
+		if u := strings.TrimSpace(*deal.CDEKOrderUUID); u != "" {
+			orderUUID = &u
+		}
+	}
+	if trackNumber == nil && deal.CDEKTrackNumber != nil {
+		if t := strings.TrimSpace(*deal.CDEKTrackNumber); t != "" {
+			trackNumber = &t
+		}
+	}
+	hasRoute := dealHasCdekAutoRoute(deal)
+	cdekOn := s.cdek != nil && s.cdek.configured()
+	if hasRoute && cdekOn && orderUUID == nil && trackNumber == nil {
+		uu, tt, regErr := s.ensureCdekOrderRegistered(ctx, deal)
+		if regErr != nil {
+			return nil, regErr
+		}
+		if uu != nil {
+			orderUUID = uu
+		}
+		if tt != nil {
+			trackNumber = tt
+		}
+	}
+	if hasRoute && cdekOn && orderUUID == nil && trackNumber == nil {
+		return nil, &AppError{400, "Нужны данные отправки CDEK (uuid или трек). Проверь ключи CDEK и телефоны участников."}
+	}
 	if trackNumber == nil && orderUUID != nil && s.cdek != nil {
 		if fetchedTrack := s.cdek.TrackNumberByOrderUUID(ctx, *orderUUID); fetchedTrack != nil {
 			trackNumber = fetchedTrack
@@ -142,7 +392,7 @@ func (s *DealService) MarkShipped(ctx context.Context, sellerID, dealID int32, r
 		}
 	}
 	if err := s.repo.SetStatus(ctx, dealID, []string{"PAID"}, "SHIPPED", "shippedAt"); err != nil {
-		return nil, &AppError{400, "РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕРґС‚РІРµСЂРґРёС‚СЊ РѕС‚РїСЂР°РІРєСѓ"}
+		return nil, &AppError{400, "Не удалось подтвердить отправку"}
 	}
 	return s.GetDeal(ctx, sellerID, dealID)
 }
@@ -153,7 +403,7 @@ func (s *DealService) ConfirmDelivery(ctx context.Context, buyerID, dealID int32
 		return nil, err
 	}
 	if deal.Status != "SHIPPED" {
-		return nil, &AppError{400, "РџРѕР»СѓС‡РµРЅРёРµ РјРѕР¶РЅРѕ РїРѕРґС‚РІРµСЂРґРёС‚СЊ С‚РѕР»СЊРєРѕ РїРѕСЃР»Рµ РѕС‚РїСЂР°РІРєРё"}
+		return nil, &AppError{400, "Получение можно подтвердить только после отправки"}
 	}
 	delay := s.cfg.DealPayoutDelayDays
 	if delay < 0 {
@@ -161,20 +411,20 @@ func (s *DealService) ConfirmDelivery(ctx context.Context, buyerID, dealID int32
 	}
 	payoutAt := time.Now().AddDate(0, 0, delay)
 	if err := s.repo.MarkDelivered(ctx, dealID, payoutAt); err != nil {
-		return nil, &AppError{400, "РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕРґС‚РІРµСЂРґРёС‚СЊ РїРѕР»СѓС‡РµРЅРёРµ"}
+		return nil, &AppError{400, "Не удалось подтвердить получение"}
 	}
 	return s.GetDeal(ctx, buyerID, dealID)
 }
 
 func (s *DealService) OpenDispute(ctx context.Context, userID, dealID int32, reason string) (map[string]any, error) {
 	if strings.TrimSpace(reason) == "" {
-		return nil, &AppError{400, "РќСѓР¶РЅРѕ СѓРєР°Р·Р°С‚СЊ РїСЂРёС‡РёРЅСѓ СЃРїРѕСЂР°"}
+		return nil, &AppError{400, "Нужно указать причину спора"}
 	}
 	if _, err := s.getUserDeal(ctx, dealID, userID, "participant"); err != nil {
 		return nil, err
 	}
 	if err := s.repo.OpenDispute(ctx, dealID, strings.TrimSpace(reason)); err != nil {
-		return nil, &AppError{400, "РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РєСЂС‹С‚СЊ СЃРїРѕСЂ"}
+		return nil, &AppError{400, "Не удалось открыть спор"}
 	}
 	return s.GetDeal(ctx, userID, dealID)
 }
@@ -187,9 +437,6 @@ func (s *DealService) CancelDeal(ctx context.Context, userID, dealID int32) (map
 	if deal.Status != "CREATED" && deal.Status != "PAID" {
 		return nil, &AppError{400, "Отменить можно только до оформления доставки"}
 	}
-	if deal.CDEKOrderUUID != nil || deal.CDEKTrackNumber != nil {
-		return nil, &AppError{400, "Доставка уже оформлена, отмена недоступна"}
-	}
 	if err := s.repo.SetStatus(ctx, dealID, []string{"CREATED", "PAID"}, "CANCELLED", "cancelledAt"); err != nil {
 		return nil, &AppError{400, "Не удалось отменить сделку"}
 	}
@@ -201,6 +448,14 @@ func (s *DealService) GetDeal(ctx context.Context, userID, dealID int32) (map[st
 	if err != nil {
 		return nil, err
 	}
+	// Автозаказ CDEK только у продавца при открытии карточки (покупатель не дергает CDEK зря).
+	if deal.Status == "PAID" && userID == deal.SellerID {
+		if _, _, regErr := s.ensureCdekOrderRegistered(ctx, deal); regErr != nil {
+			log.Printf("cdek auto-order getDeal seller deal=%d: %v", deal.ID, regErr)
+		} else if fresh, e := s.repo.FindByID(ctx, deal.ID); e == nil {
+			deal = fresh
+		}
+	}
 	deal = s.refreshDealTrackFromCDEK(ctx, deal)
 	return s.formatDeal(*deal), nil
 }
@@ -209,6 +464,13 @@ func (s *DealService) GetDealCDEKQR(ctx context.Context, userID, dealID int32) (
 	deal, err := s.getUserDeal(ctx, dealID, userID, "participant")
 	if err != nil {
 		return nil, err
+	}
+	if deal.Status == "PAID" {
+		if _, _, regErr := s.ensureCdekOrderRegistered(ctx, deal); regErr != nil {
+			log.Printf("cdek auto-order qr deal=%d: %v", deal.ID, regErr)
+		} else if fresh, e := s.repo.FindByID(ctx, deal.ID); e == nil {
+			deal = fresh
+		}
 	}
 	deal = s.refreshDealTrackFromCDEK(ctx, deal)
 	if deal.CDEKOrderUUID == nil || strings.TrimSpace(*deal.CDEKOrderUUID) == "" {
@@ -237,6 +499,7 @@ func (s *DealService) MyPurchases(ctx context.Context, buyerID int32) ([]map[str
 	if err != nil {
 		return nil, err
 	}
+	s.ensureCdekOrdersInList(ctx, deals, 12)
 	deals, _ = s.refreshDealsTracksFromCDEK(ctx, deals, 5)
 	return s.formatDeals(deals), nil
 }
@@ -246,6 +509,7 @@ func (s *DealService) MySales(ctx context.Context, sellerID int32) ([]map[string
 	if err != nil {
 		return nil, err
 	}
+	s.ensureCdekOrdersInList(ctx, deals, 12)
 	deals, _ = s.refreshDealsTracksFromCDEK(ctx, deals, 5)
 	return s.formatDeals(deals), nil
 }
@@ -259,6 +523,8 @@ func (s *DealService) MyAllDeals(ctx context.Context, userID int32) ([]map[strin
 	if err != nil {
 		return nil, err
 	}
+	s.ensureCdekOrdersInList(ctx, purchases, 12)
+	s.ensureCdekOrdersInList(ctx, sales, 12)
 	purchases, usedBudget := s.refreshDealsTracksFromCDEK(ctx, purchases, 5)
 	remainingBudget := 5 - usedBudget
 	if remainingBudget < 0 {
@@ -318,7 +584,7 @@ func (s *DealService) StartPayoutWorker(ctx context.Context) {
 func (s *DealService) getUserDeal(ctx context.Context, dealID, userID int32, role string) (*repository.DealRow, error) {
 	deal, err := s.repo.FindByID(ctx, dealID)
 	if errors.Is(err, repository.ErrNotFound) {
-		return nil, &AppError{404, "РЎРґРµР»РєР° РЅРµ РЅР°Р№РґРµРЅР°"}
+		return nil, &AppError{404, "Сделка не найдена"}
 	}
 	if err != nil {
 		return nil, err
@@ -326,15 +592,15 @@ func (s *DealService) getUserDeal(ctx context.Context, dealID, userID int32, rol
 	switch role {
 	case "buyer":
 		if deal.BuyerID != userID {
-			return nil, &AppError{403, "Р­С‚Рѕ РЅРµ РІР°С€Р° РїРѕРєСѓРїРєР°"}
+			return nil, &AppError{403, "Это не ваша покупка"}
 		}
 	case "seller":
 		if deal.SellerID != userID {
-			return nil, &AppError{403, "Р­С‚Рѕ РЅРµ РІР°С€Р° РїСЂРѕРґР°Р¶Р°"}
+			return nil, &AppError{403, "Это не ваша продажа"}
 		}
 	default:
 		if deal.BuyerID != userID && deal.SellerID != userID {
-			return nil, &AppError{403, "Р’С‹ РЅРµ СѓС‡Р°СЃС‚РЅРёРє СЃРґРµР»РєРё"}
+			return nil, &AppError{403, "Вы не участник сделки"}
 		}
 	}
 	return deal, nil
@@ -349,6 +615,11 @@ func (s *DealService) formatDeals(deals []repository.DealRow) []map[string]any {
 }
 
 func (s *DealService) formatDeal(deal repository.DealRow) map[string]any {
+	cdek := formatDealCDEK(deal)
+	if deal.Status == "CREATED" && s.cfg.DealAllowMockPayment && !s.payment.tinkoffConfigured() {
+		cdek["registrationHint"] = "Демо без Тинькофф: покупатель нажимает «Оплатить» — сделка сразу станет оплаченной, затем подтянется заказ CDEK."
+		cdek["mockPaymentAvailable"] = true
+	}
 	return map[string]any{
 		"id":         deal.ID,
 		"status":     localizeDealStatus(deal.Status),
@@ -376,7 +647,7 @@ func (s *DealService) formatDeal(deal repository.DealRow) map[string]any {
 		"paymentId":     deal.PaymentID,
 		"orderId":       deal.OrderID,
 		"paymentUrl":    deal.PaymentURL,
-		"cdek":          formatDealCDEK(deal),
+		"cdek":          cdek,
 		"disputeReason": deal.DisputeReason,
 		"paidAt":        deal.PaidAt,
 		"shippedAt":     deal.ShippedAt,
@@ -400,7 +671,9 @@ func formatDealCDEK(deal repository.DealRow) map[string]any {
 		}
 		trackPending = orderUUID != "" && track == ""
 	}
-	return map[string]any{
+	regHint := buildCdekRegistrationHint(deal)
+	sellerNote := buildCdekSellerHandoffNote(deal)
+	out := map[string]any{
 		"tariffCode":   deal.CDEKTariffCode,
 		"tariffName":   deal.CDEKTariffName,
 		"fromCityCode": deal.CDEKFromCity,
@@ -411,7 +684,14 @@ func formatDealCDEK(deal repository.DealRow) map[string]any {
 		"trackNumber":  deal.CDEKTrackNumber,
 		"trackingUrl":  buildCDEKTrackingURL(deal.CDEKTrackNumber),
 		"trackPending": trackPending,
+		// Тексты для UI — одна правда с бэка, без расхождений тариф/ПВЗ.
+		"registrationHint": regHint,
+		"sellerHandoffHint": sellerNote,
 	}
+	if regHint == "" {
+		delete(out, "registrationHint")
+	}
+	return out
 }
 
 func buildCDEKTrackingURL(trackNumber *string) *string {

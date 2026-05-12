@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -124,6 +126,49 @@ func (r *DealPG) SetPayment(ctx context.Context, dealID int32, paymentID, orderI
 		SET "paymentId" = $2, "orderId" = $3, "paymentUrl" = $4, "updatedAt" = NOW()
 		WHERE id = $1`, dealID, paymentID, orderID, nullString(paymentURL))
 	return err
+}
+
+// TryMarkPaidByDealID — CREATED → PAID (демо-оплата без банка); пишем синтетический paymentId если пусто.
+func (r *DealPG) TryMarkPaidByDealID(ctx context.Context, dealID int32) (bool, error) {
+	mockPID := fmt.Sprintf("mock-%d", dealID)
+	tag, err := r.pool.Exec(ctx, `
+		UPDATE "ProductDeal"
+		SET status = 'PAID'::"DealStatus",
+		    "paidAt" = NOW(),
+		    "updatedAt" = NOW(),
+		    "paymentId" = CASE
+		      WHEN "paymentId" IS NULL OR TRIM(BOTH FROM "paymentId") = '' THEN $2
+		      ELSE "paymentId"
+		    END
+		WHERE id = $1 AND status = 'CREATED'::"DealStatus"`, dealID, mockPID)
+	if err != nil {
+		return false, err
+	}
+	return tag.RowsAffected() > 0, nil
+}
+
+// TryMarkPaidByPaymentID — после CONFIRMED в Tinkoff (webhook или sync): сделка с этим paymentId.
+func (r *DealPG) TryMarkPaidByPaymentID(ctx context.Context, paymentID string) (bool, error) {
+	paymentID = strings.TrimSpace(paymentID)
+	if paymentID == "" {
+		return false, nil
+	}
+	tag, err := r.pool.Exec(ctx, `
+		UPDATE "ProductDeal"
+		SET status = 'PAID'::"DealStatus", "paidAt" = NOW(), "updatedAt" = NOW()
+		WHERE "paymentId" = $1 AND status = 'CREATED'::"DealStatus"`, paymentID)
+	if err != nil {
+		return false, err
+	}
+	if tag.RowsAffected() > 0 {
+		return true, nil
+	}
+	var st string
+	err = r.pool.QueryRow(ctx, `SELECT status::text FROM "ProductDeal" WHERE "paymentId" = $1 LIMIT 1`, paymentID).Scan(&st)
+	if err == nil && st == "PAID" {
+		return true, nil
+	}
+	return false, nil
 }
 
 func (r *DealPG) SetStatus(ctx context.Context, dealID int32, fromStatuses []string, toStatus string, timestampColumn string) error {

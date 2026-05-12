@@ -63,6 +63,8 @@ type Config struct {
 	DealPlatformFeePercent int
 	DealPayoutDelayDays    int
 	DealAutoCompleteDays   int
+	// DealAllowMockPayment — без Tinkoff POST /deals/:id/pay сразу переводит сделку в PAID (только dev/stage).
+	DealAllowMockPayment bool
 
 	ReservationDefaultHours int
 	ReservationMaxHours     int
@@ -239,6 +241,7 @@ func Load() Config {
 		DealPlatformFeePercent: feePercent,
 		DealPayoutDelayDays:    payoutDelay,
 		DealAutoCompleteDays:   autoComplete,
+		DealAllowMockPayment:   envTruthy(os.Getenv("DEAL_ALLOW_MOCK_PAYMENT")),
 
 		ReservationDefaultHours: resDefaultHours,
 		ReservationMaxHours:     resMaxHours,
@@ -253,4 +256,9 @@ func firstNonEmpty(a, b string) string {
 		return strings.TrimSpace(a)
 	}
 	return b
+}
+
+func envTruthy(raw string) bool {
+	v := strings.ToLower(strings.TrimSpace(raw))
+	return v == "1" || v == "true" || v == "yes" || v == "on"
 }

@@ -180,6 +180,228 @@ func (s *CDEKService) Tariffs(ctx context.Context, req CDEKTariffsRequest) ([]ma
 	return normalizeTariffList(raw), nil
 }
 
+// CDEKCreateOrderInput — минимальный набор для POST /v2/orders (безопасная сделка).
+type CDEKCreateOrderInput struct {
+	TariffCode       int
+	FromCityCode     int
+	ToCityCode       int
+	FromPVZ          *string
+	ToPVZ            *string
+	ClientNumber     string
+	Comment          string
+	SenderName       string
+	SenderPhone      string
+	RecipientName    string
+	RecipientPhone   string
+	PackageName      string
+	WareKey          string
+	DeclaredCostRub  float64
+	WeightGrams      int
+}
+
+// CDEKCreateOrderResult — uuid заказа в CDEK и трек, если API уже вернул.
+type CDEKCreateOrderResult struct {
+	OrderUUID *string
+	Track     *string
+}
+
+// CreateOrder — регистрация отправки в CDEK; number = ClientNumber для идемпотентности.
+// Если тариф «дверь-дверь», а в сделке остались коды ПВЗ — первый запрос может упасть; тогда повтор без ПВЗ.
+func (s *CDEKService) CreateOrder(ctx context.Context, in CDEKCreateOrderInput) (*CDEKCreateOrderResult, error) {
+	if !s.configured() {
+		return nil, &AppError{400, "CDEK не настроен (CDEK_CLIENT_ID / CDEK_CLIENT_SECRET)"}
+	}
+	if in.TariffCode <= 0 || in.FromCityCode <= 0 || in.ToCityCode <= 0 {
+		return nil, &AppError{400, "Нужны tariffCode, fromCityCode и toCityCode для заказа CDEK"}
+	}
+	clientNumber := strings.TrimSpace(in.ClientNumber)
+	if clientNumber == "" {
+		return nil, &AppError{400, "Пустой client number для CDEK"}
+	}
+
+	includePvz := cdekInputHasPvz(in)
+	res, err := s.postCdekOrder(ctx, in, includePvz)
+	if err != nil && includePvz {
+		var ae *AppError
+		if errors.As(err, &ae) && ae.Status >= 400 && ae.Status < 500 {
+			if res2, err2 := s.postCdekOrder(ctx, in, false); err2 == nil {
+				return res2, nil
+			}
+		}
+	}
+	return res, err
+}
+
+func cdekInputHasPvz(in CDEKCreateOrderInput) bool {
+	if in.ToPVZ != nil && strings.TrimSpace(*in.ToPVZ) != "" {
+		return true
+	}
+	if in.FromPVZ != nil && strings.TrimSpace(*in.FromPVZ) != "" {
+		return true
+	}
+	return false
+}
+
+func buildCdekOrderPayload(in CDEKCreateOrderInput, includePvz bool) map[string]any {
+	w := in.WeightGrams
+	if w <= 0 {
+		w = 1000
+	}
+	cost := in.DeclaredCostRub
+	if cost < 1 {
+		cost = 1
+	}
+	pkgName := strings.TrimSpace(in.PackageName)
+	if pkgName == "" {
+		pkgName = "Товар"
+	}
+	wareKey := strings.TrimSpace(in.WareKey)
+	if wareKey == "" {
+		wareKey = "item-1"
+	}
+	senderName := strings.TrimSpace(in.SenderName)
+	if senderName == "" {
+		senderName = "Отправитель"
+	}
+	recipientName := strings.TrimSpace(in.RecipientName)
+	if recipientName == "" {
+		recipientName = "Получатель"
+	}
+
+	payload := map[string]any{
+		"type":         1,
+		"number":       strings.TrimSpace(in.ClientNumber),
+		"tariff_code":  in.TariffCode,
+		"comment":      strings.TrimSpace(in.Comment),
+		"recipient":    map[string]any{"name": recipientName, "phones": []map[string]any{{"number": in.RecipientPhone}}},
+		"sender":       map[string]any{"name": senderName, "phones": []map[string]any{{"number": in.SenderPhone}}},
+		"from_location": map[string]any{"code": in.FromCityCode},
+		"to_location":   map[string]any{"code": in.ToCityCode},
+		"packages": []map[string]any{{
+			"number": "1",
+			"weight": w,
+			"length": 20, "width": 20, "height": 20,
+			"items": []map[string]any{{
+				"name":     pkgName,
+				"ware_key": wareKey,
+				"payment":  0,
+				"cost":     cost,
+				"weight":   w,
+				"amount":   1,
+			}},
+		}},
+	}
+	if includePvz {
+		if in.ToPVZ != nil {
+			if code := strings.TrimSpace(*in.ToPVZ); code != "" {
+				payload["delivery_point"] = code
+			}
+		}
+		if in.FromPVZ != nil {
+			if code := strings.TrimSpace(*in.FromPVZ); code != "" {
+				payload["shipment_point"] = code
+			}
+		}
+	}
+	return payload
+}
+
+func (s *CDEKService) postCdekOrder(ctx context.Context, in CDEKCreateOrderInput, includePvz bool) (*CDEKCreateOrderResult, error) {
+	payload := buildCdekOrderPayload(in, includePvz)
+	var raw map[string]any
+	if err := s.postJSON(ctx, "/orders", payload, &raw); err != nil {
+		return nil, err
+	}
+	res, soft := parseCDEKOrderCreateResponse(raw)
+	if res != nil && res.OrderUUID != nil && strings.TrimSpace(*res.OrderUUID) != "" {
+		return res, nil
+	}
+	if soft != "" {
+		return nil, &AppError{400, "CDEK: " + soft}
+	}
+	return nil, &AppError{502, "CDEK вернул пустой uuid при создании заказа"}
+}
+
+// LookupOrderByClientNumber — если заказ с таким number уже создан, подтягиваем uuid/трек.
+func (s *CDEKService) LookupOrderByClientNumber(ctx context.Context, clientNumber string) (*CDEKCreateOrderResult, error) {
+	clientNumber = strings.TrimSpace(clientNumber)
+	if clientNumber == "" {
+		return nil, nil
+	}
+	q := url.Values{}
+	q.Set("number", clientNumber)
+	q.Set("size", "10")
+	var raw map[string]any
+	if err := s.getJSON(ctx, "/orders?"+q.Encode(), &raw); err != nil {
+		return nil, err
+	}
+	if ent, ok := raw["entity"].(map[string]any); ok {
+		u := normalizeAnyString(ent["uuid"])
+		if u != nil {
+			t := normalizeAnyString(ent["cdek_number"])
+			return &CDEKCreateOrderResult{OrderUUID: u, Track: t}, nil
+		}
+	}
+	if arr, ok := raw["entity"].([]any); ok {
+		for _, it := range arr {
+			m, ok := it.(map[string]any)
+			if !ok {
+				continue
+			}
+			u := normalizeAnyString(m["uuid"])
+			if u == nil {
+				continue
+			}
+			t := normalizeAnyString(m["cdek_number"])
+			return &CDEKCreateOrderResult{OrderUUID: u, Track: t}, nil
+		}
+	}
+	return nil, nil
+}
+
+func parseCDEKOrderCreateResponse(body map[string]any) (*CDEKCreateOrderResult, string) {
+	if body == nil {
+		return nil, ""
+	}
+	if ent, ok := body["entity"].(map[string]any); ok {
+		u := normalizeAnyString(ent["uuid"])
+		t := normalizeAnyString(ent["cdek_number"])
+		if u != nil {
+			return &CDEKCreateOrderResult{OrderUUID: u, Track: t}, ""
+		}
+	}
+	if msg := collectCDEKRequestMessages(body); msg != "" {
+		return nil, msg
+	}
+	return nil, ""
+}
+
+func collectCDEKRequestMessages(body map[string]any) string {
+	reqs, ok := body["requests"].([]any)
+	if !ok {
+		return ""
+	}
+	var parts []string
+	for _, r := range reqs {
+		rm, ok := r.(map[string]any)
+		if !ok {
+			continue
+		}
+		if errs, ok := rm["errors"].([]any); ok {
+			for _, e := range errs {
+				em, ok := e.(map[string]any)
+				if !ok {
+					continue
+				}
+				if m := normalizeAnyString(em["message"]); m != nil {
+					parts = append(parts, *m)
+				}
+			}
+		}
+	}
+	return strings.Join(parts, "; ")
+}
+
 func (s *CDEKService) TrackNumberByOrderUUID(ctx context.Context, orderUUID string) *string {
 	orderUUID = strings.TrimSpace(orderUUID)
 	if orderUUID == "" {
