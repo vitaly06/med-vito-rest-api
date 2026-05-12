@@ -273,7 +273,7 @@ func (s *AuthService) VKAuthURL(state string) (string, error) {
 	return s.cfg.VkOAuthAuthorizeURL + "?" + q.Encode(), nil
 }
 
-func (s *AuthService) SignInWithVK(ctx context.Context, code, state string) (*signInResponse, string, error) {
+func (s *AuthService) SignInWithVK(ctx context.Context, code, state, deviceID string) (*signInResponse, string, error) {
 	code = strings.TrimSpace(code)
 	if code == "" {
 		return nil, "", &AppError{400, "Нужен code"}
@@ -304,6 +304,13 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code, state string) (*si
 			return nil, "", err
 		}
 		tokenQ.Set("code_verifier", verifier)
+		if state != "" {
+			tokenQ.Set("state", state)
+		}
+		deviceID = strings.TrimSpace(deviceID)
+		if deviceID != "" {
+			tokenQ.Set("device_id", deviceID)
+		}
 		_ = s.rdb.Del(ctx, vkidPKCEPrefix+state)
 	}
 	if strings.TrimSpace(s.cfg.VkOAuthClientSecret) != "" {
