@@ -184,6 +184,17 @@ func Load() Config {
 	}
 	vkIDEnabled := strings.ToLower(strings.TrimSpace(os.Getenv("VK_ID_ENABLED")))
 	vkIDMode := vkIDEnabled == "1" || vkIDEnabled == "true" || vkIDEnabled == "yes"
+	if vkIDMode {
+		if strings.TrimSpace(os.Getenv("VK_OAUTH_AUTHORIZE_URL")) == "" || vkAuthorize == "https://oauth.vk.com/authorize" {
+			vkAuthorize = "https://id.vk.com/authorize"
+		}
+		if strings.TrimSpace(os.Getenv("VK_OAUTH_TOKEN_URL")) == "" || vkToken == "https://oauth.vk.com/access_token" {
+			vkToken = "https://id.vk.com/oauth2/auth"
+		}
+		if strings.TrimSpace(os.Getenv("VK_OAUTH_USERINFO_URL")) == "" || vkUserinfo == "https://api.vk.com/method/users.get" {
+			vkUserinfo = "https://id.vk.com/oauth2/user_info"
+		}
+	}
 
 	return Config{
 		Port:        p,
