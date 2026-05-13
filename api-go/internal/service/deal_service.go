@@ -327,7 +327,7 @@ func (s *DealService) SyncDealPayment(ctx context.Context, buyerID, dealID int32
 		return nil, err
 	}
 	status := strings.TrimSpace(fmt.Sprint(st["status"]))
-	if status != "CONFIRMED" {
+	if status != "AUTHORIZED" && status != "CONFIRMED" {
 		return nil, &AppError{400, fmt.Sprintf("Платёж ещё не подтверждён (статус: %s)", status)}
 	}
 	ok, err := s.repo.TryMarkPaidByPaymentID(ctx, pid)
@@ -405,6 +405,14 @@ func (s *DealService) ConfirmDelivery(ctx context.Context, buyerID, dealID int32
 	if deal.Status != "SHIPPED" {
 		return nil, &AppError{400, "Получение можно подтвердить только после отправки"}
 	}
+	if deal.PaymentID != nil {
+		pid := strings.TrimSpace(*deal.PaymentID)
+		if pid != "" && !strings.HasPrefix(strings.ToLower(pid), "mock-") {
+			if err := s.payment.ConfirmDealPayment(ctx, pid, deal.TotalAmount); err != nil {
+				return nil, err
+			}
+		}
+	}
 	delay := s.cfg.DealPayoutDelayDays
 	if delay < 0 {
 		delay = 0
@@ -437,7 +445,21 @@ func (s *DealService) CancelDeal(ctx context.Context, userID, dealID int32) (map
 	if deal.Status != "CREATED" && deal.Status != "PAID" {
 		return nil, &AppError{400, "Отменить можно только до оформления доставки"}
 	}
-	if err := s.repo.SetStatus(ctx, dealID, []string{"CREATED", "PAID"}, "CANCELLED", "cancelledAt"); err != nil {
+	if deal.Status == "PAID" {
+		if deal.PaymentID != nil {
+			pid := strings.TrimSpace(*deal.PaymentID)
+			if pid != "" && !strings.HasPrefix(strings.ToLower(pid), "mock-") {
+				if err := s.payment.CancelDealPayment(ctx, pid); err != nil {
+					return nil, err
+				}
+			}
+		}
+		if err := s.repo.SetStatus(ctx, dealID, []string{"PAID"}, "REFUNDED", "refundedAt"); err != nil {
+			return nil, &AppError{400, "Не удалось отменить сделку"}
+		}
+		return s.GetDeal(ctx, userID, dealID)
+	}
+	if err := s.repo.SetStatus(ctx, dealID, []string{"CREATED"}, "CANCELLED", "cancelledAt"); err != nil {
 		return nil, &AppError{400, "Не удалось отменить сделку"}
 	}
 	return s.GetDeal(ctx, userID, dealID)

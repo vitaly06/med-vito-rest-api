@@ -10,6 +10,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"med-vito/api-go/internal/config"
@@ -123,6 +124,7 @@ func (s *PaymentService) CreatePayment(ctx context.Context, userID int32, amount
 		"Amount":      strconv.FormatInt(kopeks, 10),
 		"OrderId":     orderID,
 		"Description": description,
+		"PayType":     "T",
 	}
 
 	jsonBody := map[string]any{
@@ -130,6 +132,7 @@ func (s *PaymentService) CreatePayment(ctx context.Context, userID int32, amount
 		"Amount":      kopeks,
 		"OrderId":     orderID,
 		"Description": description,
+		"PayType":     "T",
 	}
 	data, err := s.tinkoffRequest(ctx, "/Init", params, jsonBody)
 	if err != nil {
@@ -185,6 +188,7 @@ func (s *PaymentService) CreateDealPayment(ctx context.Context, userID, dealID i
 		"Amount":      strconv.FormatInt(kopeks, 10),
 		"OrderId":     orderID,
 		"Description": description,
+		"PayType":     "T",
 	}
 
 	jsonBody := map[string]any{
@@ -192,17 +196,21 @@ func (s *PaymentService) CreateDealPayment(ctx context.Context, userID, dealID i
 		"Amount":      kopeks,
 		"OrderId":     orderID,
 		"Description": description,
+		"PayType":     "T",
 	}
 	data, err := s.tinkoffRequest(ctx, "/Init", params, jsonBody)
 	if err != nil {
-		return "", "", "", &AppError{400, fmt.Sprintf("РћС€РёР±РєР° РїСЂРё СЃРѕР·РґР°РЅРёРё РїР»Р°С‚РµР¶Р°: %v", err)}
+		return "", "", "", &AppError{400, fmt.Sprintf("Payment create error: %v", err)}
 	}
 	if !tinkoffBoolSuccess(data["Success"]) {
 		msg := tinkoff.ScalarString(data["Message"])
 		if msg == "" {
 			msg = tinkoff.ScalarString(data["Details"])
 		}
-		return "", "", "", &AppError{400, fmt.Sprintf("РћС€РёР±РєР° СЃРѕР·РґР°РЅРёСЏ РїР»Р°С‚РµР¶Р°: %s", msg)}
+		if strings.Contains(msg, "Неверные параметры") {
+			msg = msg + ". Проверь TerminalKey/SecretKey и включена ли двухстадийная оплата (hold/confirm) в терминале Тинькофф."
+		}
+		return "", "", "", &AppError{400, fmt.Sprintf("Payment create failed: %s", msg)}
 	}
 	pidRaw, err := json.Marshal(data["PaymentId"])
 	if err != nil {
@@ -214,6 +222,69 @@ func (s *PaymentService) CreateDealPayment(ctx context.Context, userID, dealID i
 	}
 	paymentURL := tinkoff.ScalarString(data["PaymentURL"])
 	return paymentID, paymentURL, orderID, nil
+}
+
+func (s *PaymentService) ConfirmDealPayment(ctx context.Context, paymentID string, amountRub int32) error {
+	if !s.tinkoffConfigured() {
+		return &AppError{400, "РџР»Р°С‚РµР¶РЅР°СЏ СЃРёСЃС‚РµРјР° РЅРµ РЅР°СЃС‚СЂРѕРµРЅР°"}
+	}
+	pid := strings.TrimSpace(paymentID)
+	if pid == "" {
+		return &AppError{400, "PaymentId РґР»СЏ confirm РїСѓСЃС‚РѕР№"}
+	}
+	kopeks := int64(amountRub) * 100
+	params := map[string]string{
+		"TerminalKey": s.cfg.TinkoffTerminalKey,
+		"PaymentId":   pid,
+		"Amount":      strconv.FormatInt(kopeks, 10),
+	}
+	jsonBody := map[string]any{
+		"TerminalKey": s.cfg.TinkoffTerminalKey,
+		"PaymentId":   pid,
+		"Amount":      kopeks,
+	}
+	data, err := s.tinkoffRequest(ctx, "/Confirm", params, jsonBody)
+	if err != nil {
+		return &AppError{400, fmt.Sprintf("РћС€РёР±РєР° confirm РїР»Р°С‚РµР¶Р°: %v", err)}
+	}
+	if !tinkoffBoolSuccess(data["Success"]) {
+		msg := tinkoff.ScalarString(data["Message"])
+		if msg == "" {
+			msg = tinkoff.ScalarString(data["Details"])
+		}
+		return &AppError{400, fmt.Sprintf("РћС€РёР±РєР° confirm РїР»Р°С‚РµР¶Р°: %s", msg)}
+	}
+	return nil
+}
+
+func (s *PaymentService) CancelDealPayment(ctx context.Context, paymentID string) error {
+	if !s.tinkoffConfigured() {
+		return &AppError{400, "РџР»Р°С‚РµР¶РЅР°СЏ СЃРёСЃС‚РµРјР° РЅРµ РЅР°СЃС‚СЂРѕРµРЅР°"}
+	}
+	pid := strings.TrimSpace(paymentID)
+	if pid == "" {
+		return &AppError{400, "PaymentId РґР»СЏ cancel РїСѓСЃС‚РѕР№"}
+	}
+	params := map[string]string{
+		"TerminalKey": s.cfg.TinkoffTerminalKey,
+		"PaymentId":   pid,
+	}
+	jsonBody := map[string]any{
+		"TerminalKey": s.cfg.TinkoffTerminalKey,
+		"PaymentId":   pid,
+	}
+	data, err := s.tinkoffRequest(ctx, "/Cancel", params, jsonBody)
+	if err != nil {
+		return &AppError{400, fmt.Sprintf("РћС€РёР±РєР° РѕС‚РјРµРЅС‹ РїР»Р°С‚РµР¶Р°: %v", err)}
+	}
+	if !tinkoffBoolSuccess(data["Success"]) {
+		msg := tinkoff.ScalarString(data["Message"])
+		if msg == "" {
+			msg = tinkoff.ScalarString(data["Details"])
+		}
+		return &AppError{400, fmt.Sprintf("РћС€РёР±РєР° РѕС‚РјРµРЅС‹ РїР»Р°С‚РµР¶Р°: %s", msg)}
+	}
+	return nil
 }
 
 // HandleNotification вЂ” webhook Рў-Р‘Р°РЅРє: РїСЂРѕРІРµСЂРєР° Token, РёРґРµРјРїРѕС‚РµРЅС‚РЅРѕРµ РЅР°С‡РёСЃР»РµРЅРёРµ.
@@ -242,6 +313,17 @@ func (s *PaymentService) HandleNotification(ctx context.Context, rawJSON []byte)
 	status := tinkoff.ScalarString(root["Status"])
 
 	switch status {
+	case "AUTHORIZED":
+		if s.deals != nil {
+			marked, errDeal := s.deals.TryMarkPaidByPaymentID(ctx, paymentID)
+			if errDeal != nil {
+				return nil, errDeal
+			}
+			if marked {
+				return map[string]any{"success": true, "message": "РЎРґРµР»РєР° РѕС‚РјРµС‡РµРЅР° РѕРїР»Р°С‡РµРЅРЅРѕР№ (hold)"}, nil
+			}
+		}
+		return map[string]any{"success": true}, nil
 	case "CONFIRMED":
 		already, err := s.repo.TryCompleteTopUp(ctx, paymentID)
 		if errors.Is(err, repository.ErrNotFound) {
