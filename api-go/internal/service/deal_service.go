@@ -281,7 +281,8 @@ func (s *DealService) PayDeal(ctx context.Context, buyerID, dealID int32) (map[s
 	if deal.PaymentID != nil && deal.PaymentURL != nil {
 		return map[string]any{"deal": s.formatDeal(*deal), "paymentId": *deal.PaymentID, "paymentUrl": *deal.PaymentURL, "orderId": deal.OrderID}, nil
 	}
-	paymentID, paymentURL, orderID, err := s.payment.CreateDealPayment(ctx, buyerID, deal.ID, float64(deal.TotalAmount), "Безопасная сделка: "+deal.ProductName)
+	// Temporary test mode: always initialize deal payment for 1 RUB.
+	paymentID, paymentURL, orderID, err := s.payment.CreateDealPayment(ctx, buyerID, deal.ID, 1, "Безопасная сделка: "+deal.ProductName)
 	if err != nil {
 		return nil, err
 	}
