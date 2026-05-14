@@ -284,7 +284,9 @@ func buildCdekOrderPayload(in CDEKCreateOrderInput, includePvz bool) map[string]
 			"items": []map[string]any{{
 				"name":     pkgName,
 				"ware_key": wareKey,
-				"payment":  0,
+				"payment": map[string]any{
+					"value": 0,
+				},
 				"cost":     cost,
 				"weight":   w,
 				"amount":   1,
