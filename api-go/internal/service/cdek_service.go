@@ -182,21 +182,22 @@ func (s *CDEKService) Tariffs(ctx context.Context, req CDEKTariffsRequest) ([]ma
 
 // CDEKCreateOrderInput — минимальный набор для POST /v2/orders (безопасная сделка).
 type CDEKCreateOrderInput struct {
-	TariffCode       int
-	FromCityCode     int
-	ToCityCode       int
-	FromPVZ          *string
-	ToPVZ            *string
-	ClientNumber     string
-	Comment          string
-	SenderName       string
-	SenderPhone      string
-	RecipientName    string
-	RecipientPhone   string
-	PackageName      string
-	WareKey          string
-	DeclaredCostRub  float64
-	WeightGrams      int
+	TariffCode      int
+	FromCityCode    int
+	ToCityCode      int
+	FromPVZ         *string
+	ToPVZ           *string
+	ToAddress       *string
+	ClientNumber    string
+	Comment         string
+	SenderName      string
+	SenderPhone     string
+	RecipientName   string
+	RecipientPhone  string
+	PackageName     string
+	WareKey         string
+	DeclaredCostRub float64
+	WeightGrams     int
 }
 
 // CDEKCreateOrderResult — uuid заказа в CDEK и трек, если API уже вернул.
@@ -226,6 +227,8 @@ func (s *CDEKService) CreateOrder(ctx context.Context, in CDEKCreateOrderInput) 
 		if errors.As(err, &ae) && ae.Status >= 400 && ae.Status < 500 {
 			if res2, err2 := s.postCdekOrder(ctx, in, false); err2 == nil {
 				return res2, nil
+			} else if err2 != nil {
+				return nil, err2
 			}
 		}
 	}
@@ -269,12 +272,12 @@ func buildCdekOrderPayload(in CDEKCreateOrderInput, includePvz bool) map[string]
 	}
 
 	payload := map[string]any{
-		"type":         1,
-		"number":       strings.TrimSpace(in.ClientNumber),
-		"tariff_code":  in.TariffCode,
-		"comment":      strings.TrimSpace(in.Comment),
-		"recipient":    map[string]any{"name": recipientName, "phones": []map[string]any{{"number": in.RecipientPhone}}},
-		"sender":       map[string]any{"name": senderName, "phones": []map[string]any{{"number": in.SenderPhone}}},
+		"type":          1,
+		"number":        strings.TrimSpace(in.ClientNumber),
+		"tariff_code":   in.TariffCode,
+		"comment":       strings.TrimSpace(in.Comment),
+		"recipient":     map[string]any{"name": recipientName, "phones": []map[string]any{{"number": in.RecipientPhone}}},
+		"sender":        map[string]any{"name": senderName, "phones": []map[string]any{{"number": in.SenderPhone}}},
 		"from_location": map[string]any{"code": in.FromCityCode},
 		"to_location":   map[string]any{"code": in.ToCityCode},
 		"packages": []map[string]any{{
@@ -287,11 +290,19 @@ func buildCdekOrderPayload(in CDEKCreateOrderInput, includePvz bool) map[string]
 				"payment": map[string]any{
 					"value": 0,
 				},
-				"cost":     cost,
-				"weight":   w,
-				"amount":   1,
+				"cost":   cost,
+				"weight": w,
+				"amount": 1,
 			}},
 		}},
+	}
+	if in.ToAddress != nil {
+		if addr := strings.TrimSpace(*in.ToAddress); addr != "" {
+			payload["to_location"] = map[string]any{
+				"code":    in.ToCityCode,
+				"address": addr,
+			}
+		}
 	}
 	if includePvz {
 		if in.ToPVZ != nil {

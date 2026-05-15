@@ -35,6 +35,7 @@ type CreateDealRequest struct {
 	CDEKToCity     *int32  `json:"cdekToCityCode"`
 	CDEKFromPVZ    *string `json:"cdekFromPvzCode"`
 	CDEKToPVZ      *string `json:"cdekToPvzCode"`
+	CDEKToAddress  *string `json:"cdekToAddress"`
 }
 
 type MarkShippedRequest struct {
@@ -99,6 +100,7 @@ func (s *DealService) ensureCdekOrderRegistered(ctx context.Context, deal *repos
 		ToCityCode:      int(*deal.CDEKToCity),
 		FromPVZ:         deal.CDEKFromPVZ,
 		ToPVZ:           deal.CDEKToPVZ,
+		ToAddress:       deal.CDEKToAddress,
 		ClientNumber:    clientNumber,
 		Comment:         fmt.Sprintf("Безопасная сделка #%d — %s", deal.ID, deal.ProductName),
 		SenderName:      seller.FullName,
@@ -119,6 +121,12 @@ func (s *DealService) ensureCdekOrderRegistered(ctx context.Context, deal *repos
 		}
 	}
 	if err != nil {
+		// For door-delivery tariffs CDEK requires to_location.address.
+		// We don't have recipient address in auto-registration payload yet,
+		// so skip auto-create silently to avoid noisy retries in lists/logs.
+		if cdekNeedsRecipientAddress(err) {
+			return nil, nil, nil
+		}
 		return nil, nil, err
 	}
 	if res == nil || res.OrderUUID == nil {
@@ -237,6 +245,7 @@ func (s *DealService) CreateDeal(ctx context.Context, buyerID int32, req CreateD
 		CDEKToCity:     req.CDEKToCity,
 		CDEKFromPVZ:    normalizeStringPtr(req.CDEKFromPVZ),
 		CDEKToPVZ:      normalizeStringPtr(req.CDEKToPVZ),
+		CDEKToAddress:  normalizeStringPtr(req.CDEKToAddress),
 	})
 	if err != nil {
 		return nil, err
@@ -703,6 +712,7 @@ func formatDealCDEK(deal repository.DealRow) map[string]any {
 		"toCityCode":   deal.CDEKToCity,
 		"fromPvzCode":  deal.CDEKFromPVZ,
 		"toPvzCode":    deal.CDEKToPVZ,
+		"toAddress":    deal.CDEKToAddress,
 		"orderUuid":    deal.CDEKOrderUUID,
 		"trackNumber":  deal.CDEKTrackNumber,
 		"trackingUrl":  buildCDEKTrackingURL(deal.CDEKTrackNumber),
@@ -831,4 +841,13 @@ func normalizeStringPtr(v *string) *string {
 		return nil
 	}
 	return &t
+}
+
+func cdekNeedsRecipientAddress(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "to_location.address") ||
+		strings.Contains(msg, "recipient address and recipient delivery point")
 }

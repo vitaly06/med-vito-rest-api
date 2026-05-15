@@ -43,6 +43,7 @@ type DealRow struct {
 	CDEKToCity      *int32
 	CDEKFromPVZ     *string
 	CDEKToPVZ       *string
+	CDEKToAddress   *string
 	CDEKOrderUUID   *string
 	CDEKTrackNumber *string
 	DisputeReason   *string
@@ -72,6 +73,7 @@ type CreateDealParams struct {
 	CDEKToCity     *int32
 	CDEKFromPVZ    *string
 	CDEKToPVZ      *string
+	CDEKToAddress  *string
 }
 
 type DealProductInfo struct {
@@ -105,14 +107,14 @@ func (r *DealPG) Create(ctx context.Context, p CreateDealParams) (*DealRow, erro
 		INSERT INTO "ProductDeal" (
 			"productId", "buyerId", "sellerId",
 			"productAmount", "deliveryCost", "platformFee", "sellerAmount", "totalAmount",
-			"cdekTariffCode", "cdekTariffName", "cdekFromCityCode", "cdekToCityCode", "cdekFromPvzCode", "cdekToPvzCode",
+			"cdekTariffCode", "cdekTariffName", "cdekFromCityCode", "cdekToCityCode", "cdekFromPvzCode", "cdekToPvzCode", "cdekToAddress",
 			"createdAt", "updatedAt"
 		)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,NOW(),NOW())
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NOW(),NOW())
 		RETURNING id`,
 		p.ProductID, p.BuyerID, p.SellerID,
 		p.ProductAmount, p.DeliveryCost, p.PlatformFee, p.SellerAmount, p.TotalAmount,
-		p.CDEKTariffCode, p.CDEKTariffName, p.CDEKFromCity, p.CDEKToCity, p.CDEKFromPVZ, p.CDEKToPVZ,
+		p.CDEKTariffCode, p.CDEKTariffName, p.CDEKFromCity, p.CDEKToCity, p.CDEKFromPVZ, p.CDEKToPVZ, p.CDEKToAddress,
 	).Scan(&id)
 	if err != nil {
 		return nil, err
@@ -338,7 +340,7 @@ const dealSelectSQL = `
 		d.status::text,
 		d."productAmount", d."deliveryCost", d."platformFee", d."sellerAmount", d."totalAmount",
 		d."paymentId", d."orderId", d."paymentUrl",
-		d."cdekTariffCode", d."cdekTariffName", d."cdekFromCityCode", d."cdekToCityCode", d."cdekFromPvzCode", d."cdekToPvzCode",
+		d."cdekTariffCode", d."cdekTariffName", d."cdekFromCityCode", d."cdekToCityCode", d."cdekFromPvzCode", d."cdekToPvzCode", d."cdekToAddress",
 		d."cdekOrderUuid", d."cdekTrackNumber",
 		d."disputeReason",
 		d."paidAt", d."shippedAt", d."deliveredAt", d."payoutAvailableAt", d."completedAt", d."cancelledAt", d."refundedAt",
@@ -357,7 +359,7 @@ func scanDeal(row pgx.Row) (*DealRow, error) {
 		&d.Status,
 		&d.ProductAmount, &d.DeliveryCost, &d.PlatformFee, &d.SellerAmount, &d.TotalAmount,
 		&d.PaymentID, &d.OrderID, &d.PaymentURL,
-		&d.CDEKTariffCode, &d.CDEKTariffName, &d.CDEKFromCity, &d.CDEKToCity, &d.CDEKFromPVZ, &d.CDEKToPVZ,
+		&d.CDEKTariffCode, &d.CDEKTariffName, &d.CDEKFromCity, &d.CDEKToCity, &d.CDEKFromPVZ, &d.CDEKToPVZ, &d.CDEKToAddress,
 		&d.CDEKOrderUUID, &d.CDEKTrackNumber,
 		&d.DisputeReason,
 		&d.PaidAt, &d.ShippedAt, &d.DeliveredAt, &d.PayoutAt, &d.CompletedAt, &d.CancelledAt, &d.RefundedAt,
