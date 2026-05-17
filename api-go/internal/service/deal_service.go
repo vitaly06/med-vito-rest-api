@@ -112,6 +112,14 @@ func (s *DealService) ensureCdekOrderRegistered(ctx context.Context, deal *repos
 		DeclaredCostRub: float64(deal.ProductAmount),
 		WeightGrams:     1000,
 	}
+	// CDEK can require to_location.address even for some "warehouse-warehouse" tariffs.
+	// If buyer selected PVZ but address is not saved, resolve address by PVZ code.
+	if (in.ToAddress == nil || strings.TrimSpace(*in.ToAddress) == "") &&
+		in.ToPVZ != nil && strings.TrimSpace(*in.ToPVZ) != "" {
+		if pvzAddr := s.resolvePvzAddress(ctx, in.ToCityCode, *in.ToPVZ); pvzAddr != nil {
+			in.ToAddress = pvzAddr
+		}
+	}
 	log.Printf(
 		"cdek auto-register start deal=%d status=%s tariff=%d fromCity=%d toCity=%d hasToPvz=%t hasFromPvz=%t hasToAddress=%t",
 		deal.ID,
@@ -164,6 +172,39 @@ func (s *DealService) ensureCdekOrderRegistered(ctx context.Context, deal *repos
 	}
 	log.Printf("cdek auto-register success deal=%d orderUUID=%s hasTrack=%t", deal.ID, uu, tt != nil && strings.TrimSpace(*tt) != "")
 	return &uu, tt, nil
+}
+
+func (s *DealService) resolvePvzAddress(ctx context.Context, toCityCode int, pvzCode string) *string {
+	if s.cdek == nil || toCityCode <= 0 {
+		return nil
+	}
+	code := strings.TrimSpace(pvzCode)
+	if code == "" {
+		return nil
+	}
+	points, err := s.cdek.DeliveryPoints(ctx, toCityCode)
+	if err != nil {
+		log.Printf("cdek pvz-address resolve failed city=%d pvz=%s: %v", toCityCode, code, err)
+		return nil
+	}
+	for _, p := range points {
+		rawCode := strings.TrimSpace(fmt.Sprint(p["code"]))
+		if !strings.EqualFold(rawCode, code) {
+			continue
+		}
+		loc, _ := p["location"].(map[string]any)
+		if loc == nil {
+			return nil
+		}
+		addr := strings.TrimSpace(fmt.Sprint(loc["address"]))
+		if addr == "" || addr == "<nil>" {
+			return nil
+		}
+		log.Printf("cdek pvz-address resolved city=%d pvz=%s addr=%s", toCityCode, code, addr)
+		return &addr
+	}
+	log.Printf("cdek pvz-address not found city=%d pvz=%s", toCityCode, code)
+	return nil
 }
 
 // ensureCdekOrdersInList — для PAID без uuid пробуем создать заказ CDEK (ограничение, чтобы не долбить API).
