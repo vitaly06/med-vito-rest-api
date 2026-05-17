@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -221,16 +222,32 @@ func (s *CDEKService) CreateOrder(ctx context.Context, in CDEKCreateOrderInput) 
 	}
 
 	includePvz := cdekInputHasPvz(in)
+	log.Printf(
+		"cdek create-order start clientNumber=%s tariff=%d fromCity=%d toCity=%d hasToPvz=%t hasFromPvz=%t hasToAddress=%t",
+		strings.TrimSpace(in.ClientNumber),
+		in.TariffCode,
+		in.FromCityCode,
+		in.ToCityCode,
+		in.ToPVZ != nil && strings.TrimSpace(*in.ToPVZ) != "",
+		in.FromPVZ != nil && strings.TrimSpace(*in.FromPVZ) != "",
+		in.ToAddress != nil && strings.TrimSpace(*in.ToAddress) != "",
+	)
 	res, err := s.postCdekOrder(ctx, in, includePvz)
 	if err != nil && includePvz {
+		log.Printf("cdek create-order retry without-pvz clientNumber=%s reason=%v", strings.TrimSpace(in.ClientNumber), err)
 		var ae *AppError
 		if errors.As(err, &ae) && ae.Status >= 400 && ae.Status < 500 {
 			if res2, err2 := s.postCdekOrder(ctx, in, false); err2 == nil {
+				log.Printf("cdek create-order success on retry without-pvz clientNumber=%s", strings.TrimSpace(in.ClientNumber))
 				return res2, nil
 			} else if err2 != nil {
+				log.Printf("cdek create-order retry failed clientNumber=%s err=%v", strings.TrimSpace(in.ClientNumber), err2)
 				return nil, err2
 			}
 		}
+	}
+	if err == nil && res != nil && res.OrderUUID != nil {
+		log.Printf("cdek create-order success clientNumber=%s orderUUID=%s", strings.TrimSpace(in.ClientNumber), strings.TrimSpace(*res.OrderUUID))
 	}
 	return res, err
 }
@@ -321,6 +338,21 @@ func buildCdekOrderPayload(in CDEKCreateOrderInput, includePvz bool) map[string]
 
 func (s *CDEKService) postCdekOrder(ctx context.Context, in CDEKCreateOrderInput, includePvz bool) (*CDEKCreateOrderResult, error) {
 	payload := buildCdekOrderPayload(in, includePvz)
+	log.Printf(
+		"cdek post /orders clientNumber=%s includePvz=%t hasDeliveryPoint=%t hasShipmentPoint=%t hasToAddress=%t",
+		strings.TrimSpace(in.ClientNumber),
+		includePvz,
+		payload["delivery_point"] != nil,
+		payload["shipment_point"] != nil,
+		func() bool {
+			to, ok := payload["to_location"].(map[string]any)
+			if !ok {
+				return false
+			}
+			_, ok = to["address"]
+			return ok
+		}(),
+	)
 	var raw map[string]any
 	if err := s.postJSON(ctx, "/orders", payload, &raw); err != nil {
 		return nil, err

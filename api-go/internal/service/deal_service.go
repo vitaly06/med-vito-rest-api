@@ -112,11 +112,24 @@ func (s *DealService) ensureCdekOrderRegistered(ctx context.Context, deal *repos
 		DeclaredCostRub: float64(deal.ProductAmount),
 		WeightGrams:     1000,
 	}
+	log.Printf(
+		"cdek auto-register start deal=%d status=%s tariff=%d fromCity=%d toCity=%d hasToPvz=%t hasFromPvz=%t hasToAddress=%t",
+		deal.ID,
+		deal.Status,
+		in.TariffCode,
+		in.FromCityCode,
+		in.ToCityCode,
+		in.ToPVZ != nil && strings.TrimSpace(*in.ToPVZ) != "",
+		in.FromPVZ != nil && strings.TrimSpace(*in.FromPVZ) != "",
+		in.ToAddress != nil && strings.TrimSpace(*in.ToAddress) != "",
+	)
 
 	res, err := s.cdek.CreateOrder(ctx, in)
 	if err != nil {
+		log.Printf("cdek auto-register create failed deal=%d clientNumber=%s err=%v", deal.ID, clientNumber, err)
 		res2, lookErr := s.cdek.LookupOrderByClientNumber(ctx, clientNumber)
 		if lookErr == nil && res2 != nil && res2.OrderUUID != nil && strings.TrimSpace(*res2.OrderUUID) != "" {
+			log.Printf("cdek auto-register found existing order by number deal=%d clientNumber=%s orderUUID=%s", deal.ID, clientNumber, strings.TrimSpace(*res2.OrderUUID))
 			res, err = res2, nil
 		}
 	}
@@ -125,6 +138,7 @@ func (s *DealService) ensureCdekOrderRegistered(ctx context.Context, deal *repos
 		// We don't have recipient address in auto-registration payload yet,
 		// so skip auto-create silently to avoid noisy retries in lists/logs.
 		if cdekNeedsRecipientAddress(err) {
+			log.Printf("cdek auto-register skipped deal=%d reason=needs_recipient_address", deal.ID)
 			return nil, nil, nil
 		}
 		return nil, nil, err
@@ -148,6 +162,7 @@ func (s *DealService) ensureCdekOrderRegistered(ctx context.Context, deal *repos
 	if err := s.repo.SetCDEKShipment(ctx, deal.ID, &uu, tt); err != nil {
 		return nil, nil, err
 	}
+	log.Printf("cdek auto-register success deal=%d orderUUID=%s hasTrack=%t", deal.ID, uu, tt != nil && strings.TrimSpace(*tt) != "")
 	return &uu, tt, nil
 }
 
