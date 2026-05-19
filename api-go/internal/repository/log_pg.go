@@ -40,3 +40,35 @@ func (r *LogPG) FindAll(ctx context.Context) ([]domain.Log, error) {
 	}
 	return out, nil
 }
+
+func (r *LogPG) Insert(ctx context.Context, userID int32, action string) error {
+	const q = `INSERT INTO "Log" ("userId", "action") VALUES ($1, $2)`
+	_, err := r.pool.Exec(ctx, q, userID, action)
+	if err != nil {
+		return fmt.Errorf("log insert: %w", err)
+	}
+	return nil
+}
+
+func (r *LogPG) FindByDealID(ctx context.Context, dealID int32) ([]domain.Log, error) {
+	const q = `SELECT "id", "userId", "action" FROM "Log" WHERE action ILIKE $1 ORDER BY "id" DESC`
+	pattern := fmt.Sprintf("%%deal_id=%d%%", dealID)
+	rows, err := r.pool.Query(ctx, q, pattern)
+	if err != nil {
+		return nil, fmt.Errorf("log findByDealID query: %w", err)
+	}
+	defer rows.Close()
+
+	var out []domain.Log
+	for rows.Next() {
+		var row domain.Log
+		if err := rows.Scan(&row.ID, &row.UserID, &row.Action); err != nil {
+			return nil, fmt.Errorf("log scan: %w", err)
+		}
+		out = append(out, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}

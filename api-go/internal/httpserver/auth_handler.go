@@ -155,13 +155,18 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 
 	g.Post("/forgot-password", func(c *fiber.Ctx) error {
 		var body struct {
-			Email string `json:"email"`
+			Email       string `json:"email"`
+			PhoneNumber string `json:"phoneNumber"`
+			Where       string `json:"where"`
 		}
 		if err := c.BodyParser(&body); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректное тело"})
 		}
-		if err := auth.ForgotPassword(c.UserContext(), body.Email); err != nil {
+		if err := auth.ForgotPasswordBy(c.UserContext(), body.Where, body.Email, body.PhoneNumber); err != nil {
 			return writeAppError(c, err)
+		}
+		if body.Where == "sms" {
+			return c.JSON(fiber.Map{"message": "Код восстановления отправлен на номер телефона"})
 		}
 		return c.JSON(fiber.Map{"message": "Письмо с кодом подтверждения отправлено на почту"})
 	})

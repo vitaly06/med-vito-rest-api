@@ -106,9 +106,14 @@ type CDEKTariffsRequest struct {
 	Height       int `json:"height"`
 }
 
+const cdekAllowedTariffCode = 136
+
 func (s *CDEKService) Calculate(ctx context.Context, req CDEKCalculateRequest) (map[string]any, error) {
 	if req.TariffCode <= 0 || req.FromCityCode <= 0 || req.ToCityCode <= 0 {
 		return nil, &AppError{400, "РќСѓР¶РЅС‹ tariffCode, fromCityCode Рё toCityCode"}
+	}
+	if req.TariffCode != cdekAllowedTariffCode {
+		return nil, &AppError{400, "Доступен только тариф 136 (склад-склад)"}
 	}
 	if req.Weight <= 0 {
 		req.Weight = 1000
@@ -178,7 +183,14 @@ func (s *CDEKService) Tariffs(ctx context.Context, req CDEKTariffsRequest) ([]ma
 	if err := s.postJSON(ctx, "/calculator/tarifflist", payload, &raw); err != nil {
 		return nil, err
 	}
-	return normalizeTariffList(raw), nil
+	normalized := normalizeTariffList(raw)
+	filtered := make([]map[string]any, 0, len(normalized))
+	for _, item := range normalized {
+		if code, ok := item["tariffCode"].(int); ok && code == cdekAllowedTariffCode {
+			filtered = append(filtered, item)
+		}
+	}
+	return filtered, nil
 }
 
 // CDEKCreateOrderInput — минимальный набор для POST /v2/orders (безопасная сделка).

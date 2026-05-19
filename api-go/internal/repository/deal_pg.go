@@ -252,6 +252,37 @@ func (r *DealPG) ListBySeller(ctx context.Context, sellerID int32) ([]DealRow, e
 	return scanDeals(rows)
 }
 
+func (r *DealPG) ListAll(ctx context.Context) ([]DealRow, error) {
+	rows, err := r.pool.Query(ctx, dealSelectSQL+` ORDER BY d."createdAt" DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanDeals(rows)
+}
+
+func (r *DealPG) AdminSetStatus(ctx context.Context, dealID int32, status string) error {
+	tag, err := r.pool.Exec(ctx, `
+		UPDATE "ProductDeal"
+		SET status = $2::"DealStatus",
+			"paidAt" = CASE WHEN $2 = 'PAID' THEN COALESCE("paidAt", NOW()) ELSE "paidAt" END,
+			"shippedAt" = CASE WHEN $2 = 'SHIPPED' THEN COALESCE("shippedAt", NOW()) ELSE "shippedAt" END,
+			"deliveredAt" = CASE WHEN $2 = 'DELIVERED' THEN COALESCE("deliveredAt", NOW()) ELSE "deliveredAt" END,
+			"completedAt" = CASE WHEN $2 = 'COMPLETED' THEN COALESCE("completedAt", NOW()) ELSE "completedAt" END,
+			"cancelledAt" = CASE WHEN $2 = 'CANCELLED' THEN COALESCE("cancelledAt", NOW()) ELSE "cancelledAt" END,
+			"refundedAt" = CASE WHEN $2 = 'REFUNDED' THEN COALESCE("refundedAt", NOW()) ELSE "refundedAt" END,
+			"updatedAt" = NOW()
+		WHERE id = $1
+	`, dealID, status)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 func (r *DealPG) CompleteDuePayouts(ctx context.Context, limit int) (int, error) {
 	if limit <= 0 {
 		limit = 20

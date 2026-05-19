@@ -492,28 +492,92 @@ func (s *AuthService) Me(ctx context.Context, userID int32) (*domain.MeResponse,
 }
 
 func (s *AuthService) ForgotPassword(ctx context.Context, email string) error {
-	if strings.TrimSpace(s.cfg.SMTPHost) == "" {
-		return &AppError{500, "SMTP не настроен (SMTP_HOST)"}
+	return s.ForgotPasswordBy(ctx, "email", email, "")
+}
+
+func (s *AuthService) ForgotPasswordBy(ctx context.Context, where, email, phone string) error {
+	where = strings.ToLower(strings.TrimSpace(where))
+	if where == "" {
+		where = "email"
 	}
-	u, err := s.users.FindUserByEmail(ctx, email)
-	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return &AppError{400, "Пользователя с такой почтой не существует"}
+
+	var (
+		u   *domain.UserEntity
+		err error
+	)
+	switch where {
+	case "email":
+		email = strings.TrimSpace(email)
+		if email == "" {
+			return &AppError{400, "Нужно указать email"}
 		}
-		return err
+		u, err = s.users.FindUserByEmail(ctx, email)
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return &AppError{400, "Пользователя с такой почтой не существует"}
+			}
+			return err
+		}
+	case "sms":
+		phone = strings.TrimSpace(phone)
+		if phone == "" {
+			return &AppError{400, "Нужно указать номер телефона"}
+		}
+		u, err = s.users.FindUserByLogin(ctx, phone)
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return &AppError{400, "Пользователя с таким номером не существует"}
+			}
+			return err
+		}
+	default:
+		return &AppError{400, "where должен быть email или sms"}
 	}
+
 	code := s.generateVerifyCode()
 	payload := map[string]string{"id": fmt.Sprintf("%d", u.ID), "code": code}
 	b, _ := json.Marshal(payload)
 	if err := s.rdb.Set(ctx, forgotKeyPrefix+code, b, forgotPassTTL).Err(); err != nil {
 		return err
 	}
+
+	if where == "sms" {
+		if s.cfg.MTSBearer == "" {
+			return &AppError{500, "MTS_TOKEN не задан"}
+		}
+		body := map[string]any{
+			"submits": []any{
+				map[string]any{"msid": u.PhoneNumber, "message": "Код восстановления пароля: " + code},
+			},
+			"naming": "Torguisamru",
+		}
+		if err := s.httpPostJSON(ctx,
+			"https://api.mts.ru/client-omni-adapter_production/1.0.2/mcom/messageManagement/messages",
+			body,
+			s.cfg.MTSBearer,
+			nil,
+		); err != nil {
+			return &AppError{400, "Ошибка отправки SMS: " + err.Error()}
+		}
+		return nil
+	}
+
+	if strings.TrimSpace(s.cfg.SMTPHost) == "" {
+		return &AppError{500, "SMTP не настроен (SMTP_HOST)"}
+	}
 	htmlBody, err := mailpkg.ForgotPasswordHTML(code)
 	if err != nil {
 		return &AppError{500, "Не удалось сформировать письмо"}
 	}
+	fromAddr := strings.TrimSpace(s.cfg.SMTPFrom)
+	if fromAddr == "" {
+		fromAddr = strings.TrimSpace(s.cfg.SMTPUser)
+	}
+	if fromAddr == "" {
+		return &AppError{500, "SMTP_FROM/SMTP_USER не задан"}
+	}
 	if err := mailpkg.SendHTMLSmart(s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword,
-		s.cfg.SMTPFrom, email, "Код восстановления пароля - Торгуй Сам", htmlBody, s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure); err != nil {
+		fromAddr, u.Email, "Код восстановления пароля - Торгуй Сам", htmlBody, s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure); err != nil {
 		return &AppError{400, "Ошибка отправки письма: " + err.Error()}
 	}
 	return nil
@@ -754,6 +818,8 @@ func parseVKUserInfo(body []byte, fallbackID int64) (id, fullName, email string,
 		Email     string `json:"email"`
 		FirstName string `json:"first_name"`
 		LastName  string `json:"last_name"`
+		MidName   string `json:"middle_name"`
+		Patronym  string `json:"patronymic"`
 		Name      string `json:"name"`
 	}
 	if e := json.Unmarshal(body, &vkid); e == nil {
@@ -761,14 +827,59 @@ func parseVKUserInfo(body []byte, fallbackID int64) (id, fullName, email string,
 		if id == "" && fallbackID > 0 {
 			id = strconv.FormatInt(fallbackID, 10)
 		}
-		fullName = strings.TrimSpace(strings.TrimSpace(vkid.FirstName) + " " + strings.TrimSpace(vkid.LastName))
+		middle := strings.TrimSpace(vkid.MidName)
+		if middle == "" {
+			middle = strings.TrimSpace(vkid.Patronym)
+		}
+		fullName = strings.TrimSpace(strings.Join([]string{
+			strings.TrimSpace(vkid.LastName),
+			strings.TrimSpace(vkid.FirstName),
+			middle,
+		}, " "))
 		if fullName == "" {
 			fullName = strings.TrimSpace(vkid.Name)
 		}
-		if fullName == "" {
-			fullName = vkFallbackName(id, fallbackID)
+		email = strings.TrimSpace(vkid.Email)
+		if fullName != "" {
+			return id, fullName, email, nil
 		}
-		return id, fullName, strings.TrimSpace(vkid.Email), nil
+	}
+
+	var generic map[string]any
+	if e := json.Unmarshal(body, &generic); e == nil {
+		if id == "" {
+			id = pickVKString(generic,
+				"sub",
+				"user_id",
+				"id",
+				"user.sub",
+				"user.user_id",
+				"user.id",
+				"user_info.sub",
+				"user_info.user_id",
+				"user_info.id",
+			)
+			if id == "" && fallbackID > 0 {
+				id = strconv.FormatInt(fallbackID, 10)
+			}
+		}
+		if email == "" {
+			email = pickVKString(generic, "email", "user.email", "user_info.email")
+		}
+		last := pickVKString(generic, "last_name", "user.last_name", "user_info.last_name")
+		first := pickVKString(generic, "first_name", "user.first_name", "user_info.first_name")
+		middle := pickVKString(generic, "middle_name", "patronymic", "user.middle_name", "user.patronymic", "user_info.middle_name", "user_info.patronymic")
+		fullName = strings.TrimSpace(strings.Join([]string{
+			strings.TrimSpace(last),
+			strings.TrimSpace(first),
+			strings.TrimSpace(middle),
+		}, " "))
+		if fullName == "" {
+			fullName = pickVKString(generic, "name", "user.name", "user_info.name")
+		}
+		if fullName != "" {
+			return id, fullName, strings.TrimSpace(email), nil
+		}
 	}
 
 	if fallbackID > 0 {
@@ -776,4 +887,43 @@ func parseVKUserInfo(body []byte, fallbackID int64) (id, fullName, email string,
 		return id, vkFallbackName(id, fallbackID), "", nil
 	}
 	return "", "", "", &AppError{401, "VK OAuth userinfo parse error"}
+}
+
+func pickVKString(payload map[string]any, paths ...string) string {
+	for _, path := range paths {
+		raw, ok := pickVKPath(payload, path)
+		if !ok {
+			continue
+		}
+		switch v := raw.(type) {
+		case string:
+			if s := strings.TrimSpace(v); s != "" {
+				return s
+			}
+		case float64:
+			return strconv.FormatInt(int64(v), 10)
+		case int64:
+			return strconv.FormatInt(v, 10)
+		case int:
+			return strconv.Itoa(v)
+		}
+	}
+	return ""
+}
+
+func pickVKPath(payload map[string]any, path string) (any, bool) {
+	cur := any(payload)
+	parts := strings.Split(path, ".")
+	for _, p := range parts {
+		m, ok := cur.(map[string]any)
+		if !ok {
+			return nil, false
+		}
+		next, ok := m[p]
+		if !ok {
+			return nil, false
+		}
+		cur = next
+	}
+	return cur, true
 }

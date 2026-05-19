@@ -15,6 +15,7 @@ import (
 type DealService struct {
 	cfg     config.Config
 	repo    *repository.DealPG
+	logs    *repository.LogPG
 	chat    *repository.ChatPG
 	payment *PaymentService
 	reserve *repository.ReservationPG
@@ -22,8 +23,8 @@ type DealService struct {
 	users   *repository.UserPG
 }
 
-func NewDealService(cfg config.Config, repo *repository.DealPG, chat *repository.ChatPG, payment *PaymentService, reserve *repository.ReservationPG, cdek *CDEKService, users *repository.UserPG) *DealService {
-	return &DealService{cfg: cfg, repo: repo, chat: chat, payment: payment, reserve: reserve, cdek: cdek, users: users}
+func NewDealService(cfg config.Config, repo *repository.DealPG, logs *repository.LogPG, chat *repository.ChatPG, payment *PaymentService, reserve *repository.ReservationPG, cdek *CDEKService, users *repository.UserPG) *DealService {
+	return &DealService{cfg: cfg, repo: repo, logs: logs, chat: chat, payment: payment, reserve: reserve, cdek: cdek, users: users}
 }
 
 type CreateDealRequest struct {
@@ -309,6 +310,7 @@ func (s *DealService) CreateDeal(ctx context.Context, buyerID int32, req CreateD
 	if s.reserve != nil {
 		_ = s.reserve.MarkDealCreated(ctx, deal.ProductID, buyerID)
 	}
+	s.writeDealLog(ctx, buyerID, deal.ID, "create", "deal created")
 	s.notifyOrderInChat(ctx, *deal)
 	return s.formatDeal(*deal), nil
 }
@@ -334,6 +336,7 @@ func (s *DealService) PayDeal(ctx context.Context, buyerID, dealID int32) (map[s
 		if err != nil {
 			return nil, err
 		}
+		s.writeDealLog(ctx, buyerID, deal.ID, "pay", "deal paid (mock)")
 		mockPID := fmt.Sprintf("mock-%d", deal.ID)
 		return map[string]any{
 			"deal":        s.formatDeal(*updated),
@@ -358,6 +361,7 @@ func (s *DealService) PayDeal(ctx context.Context, buyerID, dealID int32) (map[s
 	if err != nil {
 		return nil, err
 	}
+	s.writeDealLog(ctx, buyerID, deal.ID, "payment_init", fmt.Sprintf("payment initialized paymentId=%s orderId=%s", paymentID, orderID))
 	return map[string]any{"deal": s.formatDeal(*updated), "paymentId": paymentID, "paymentUrl": paymentURL, "orderId": orderID}, nil
 }
 
@@ -386,6 +390,7 @@ func (s *DealService) SyncDealPayment(ctx context.Context, buyerID, dealID int32
 		if err != nil {
 			return nil, err
 		}
+		s.writeDealLog(ctx, buyerID, deal.ID, "pay_sync", "deal paid via sync (mock)")
 		return map[string]any{"deal": s.formatDeal(*updated)}, nil
 	}
 	st, err := s.payment.CheckPaymentStatus(ctx, pid)
@@ -407,6 +412,7 @@ func (s *DealService) SyncDealPayment(ctx context.Context, buyerID, dealID int32
 	if err != nil {
 		return nil, err
 	}
+	s.writeDealLog(ctx, buyerID, deal.ID, "pay_sync", "deal paid via sync")
 	return map[string]any{"deal": s.formatDeal(*updated)}, nil
 }
 
@@ -460,6 +466,7 @@ func (s *DealService) MarkShipped(ctx context.Context, sellerID, dealID int32, r
 	if err := s.repo.SetStatus(ctx, dealID, []string{"PAID"}, "SHIPPED", "shippedAt"); err != nil {
 		return nil, &AppError{400, "Не удалось подтвердить отправку"}
 	}
+	s.writeDealLog(ctx, sellerID, dealID, "ship", "deal marked as shipped")
 	return s.GetDeal(ctx, sellerID, dealID)
 }
 
@@ -487,6 +494,7 @@ func (s *DealService) ConfirmDelivery(ctx context.Context, buyerID, dealID int32
 	if err := s.repo.MarkDelivered(ctx, dealID, payoutAt); err != nil {
 		return nil, &AppError{400, "Не удалось подтвердить получение"}
 	}
+	s.writeDealLog(ctx, buyerID, dealID, "deliver", "deal marked as delivered")
 	return s.GetDeal(ctx, buyerID, dealID)
 }
 
@@ -500,6 +508,7 @@ func (s *DealService) OpenDispute(ctx context.Context, userID, dealID int32, rea
 	if err := s.repo.OpenDispute(ctx, dealID, strings.TrimSpace(reason)); err != nil {
 		return nil, &AppError{400, "Не удалось открыть спор"}
 	}
+	s.writeDealLog(ctx, userID, dealID, "dispute", "dispute opened")
 	return s.GetDeal(ctx, userID, dealID)
 }
 
@@ -523,11 +532,13 @@ func (s *DealService) CancelDeal(ctx context.Context, userID, dealID int32) (map
 		if err := s.repo.SetStatus(ctx, dealID, []string{"PAID"}, "REFUNDED", "refundedAt"); err != nil {
 			return nil, &AppError{400, "Не удалось отменить сделку"}
 		}
+		s.writeDealLog(ctx, userID, dealID, "cancel", "deal cancelled with refund")
 		return s.GetDeal(ctx, userID, dealID)
 	}
 	if err := s.repo.SetStatus(ctx, dealID, []string{"CREATED"}, "CANCELLED", "cancelledAt"); err != nil {
 		return nil, &AppError{400, "Не удалось отменить сделку"}
 	}
+	s.writeDealLog(ctx, userID, dealID, "cancel", "deal cancelled")
 	return s.GetDeal(ctx, userID, dealID)
 }
 
@@ -774,7 +785,7 @@ func formatDealCDEK(deal repository.DealRow) map[string]any {
 		"trackingUrl":  buildCDEKTrackingURL(deal.CDEKTrackNumber),
 		"trackPending": trackPending,
 		// Тексты для UI — одна правда с бэка, без расхождений тариф/ПВЗ.
-		"registrationHint": regHint,
+		"registrationHint":  regHint,
 		"sellerHandoffHint": sellerNote,
 	}
 	if regHint == "" {
@@ -906,4 +917,69 @@ func cdekNeedsRecipientAddress(err error) bool {
 	msg := strings.ToLower(err.Error())
 	return strings.Contains(msg, "to_location.address") ||
 		strings.Contains(msg, "recipient address and recipient delivery point")
+}
+
+func (s *DealService) AdminListDeals(ctx context.Context) ([]map[string]any, error) {
+	deals, err := s.repo.ListAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return s.formatDeals(deals), nil
+}
+
+func (s *DealService) AdminGetDeal(ctx context.Context, dealID int32) (map[string]any, error) {
+	deal, err := s.repo.FindByID(ctx, dealID)
+	if errors.Is(err, repository.ErrNotFound) {
+		return nil, &AppError{404, "Сделка не найдена"}
+	}
+	if err != nil {
+		return nil, err
+	}
+	return s.formatDeal(*deal), nil
+}
+
+func (s *DealService) AdminSetStatus(ctx context.Context, actorUserID, dealID int32, status string) (map[string]any, error) {
+	status = strings.ToUpper(strings.TrimSpace(status))
+	switch status {
+	case "CREATED", "PAID", "SHIPPED", "DELIVERED", "COMPLETED", "CANCELLED", "REFUNDED", "DISPUTE":
+	default:
+		return nil, &AppError{400, "Недопустимый статус сделки"}
+	}
+	if err := s.repo.AdminSetStatus(ctx, dealID, status); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, &AppError{404, "Сделка не найдена"}
+		}
+		return nil, err
+	}
+	s.writeDealLog(ctx, actorUserID, dealID, "admin_status", "admin set status to "+status)
+	return s.AdminGetDeal(ctx, dealID)
+}
+
+func (s *DealService) AdminDealLogs(ctx context.Context, dealID int32) ([]map[string]any, error) {
+	if s.logs == nil {
+		return []map[string]any{}, nil
+	}
+	rows, err := s.logs.FindByDealID(ctx, dealID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]map[string]any, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, map[string]any{
+			"id":     row.ID,
+			"userId": row.UserID,
+			"action": row.Action,
+		})
+	}
+	return out, nil
+}
+
+func (s *DealService) writeDealLog(ctx context.Context, userID, dealID int32, event, details string) {
+	if s.logs == nil || userID <= 0 || dealID <= 0 {
+		return
+	}
+	action := fmt.Sprintf("deal_id=%d event=%s %s", dealID, strings.TrimSpace(event), strings.TrimSpace(details))
+	if err := s.logs.Insert(ctx, userID, action); err != nil {
+		log.Printf("deal log write failed deal=%d user=%d: %v", dealID, userID, err)
+	}
 }
