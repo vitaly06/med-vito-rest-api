@@ -534,10 +534,8 @@ func (s *AuthService) ForgotPasswordBy(ctx context.Context, where, email, phone 
 		return &AppError{400, "where должен быть email или sms"}
 	}
 
-	code := s.generateVerifyCode()
-	payload := map[string]string{"id": fmt.Sprintf("%d", u.ID), "code": code}
-	b, _ := json.Marshal(payload)
-	if err := s.rdb.Set(ctx, forgotKeyPrefix+code, b, forgotPassTTL).Err(); err != nil {
+	code, err := s.reserveUniqueForgotCode(ctx, u.ID)
+	if err != nil {
 		return err
 	}
 
@@ -581,6 +579,22 @@ func (s *AuthService) ForgotPasswordBy(ctx context.Context, where, email, phone 
 		return &AppError{400, "Ошибка отправки письма: " + err.Error()}
 	}
 	return nil
+}
+
+func (s *AuthService) reserveUniqueForgotCode(ctx context.Context, userID int32) (string, error) {
+	for i := 0; i < 20; i++ {
+		code := s.generateVerifyCode()
+		payload := map[string]string{"id": fmt.Sprintf("%d", userID), "code": code}
+		b, _ := json.Marshal(payload)
+		ok, err := s.rdb.SetNX(ctx, forgotKeyPrefix+code, b, forgotPassTTL).Result()
+		if err != nil {
+			return "", err
+		}
+		if ok {
+			return code, nil
+		}
+	}
+	return "", &AppError{500, "Не удалось создать уникальный код восстановления"}
 }
 
 func (s *AuthService) VerifyForgotCode(ctx context.Context, code string) (int32, error) {
