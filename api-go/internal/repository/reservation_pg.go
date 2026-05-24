@@ -223,6 +223,30 @@ func (r *ReservationPG) ExpireDue(ctx context.Context, now time.Time) (int, erro
 	return int(tag.RowsAffected()), nil
 }
 
+func (r *ReservationPG) ExpireDueAndReturn(ctx context.Context, now time.Time) ([]ReservationRow, error) {
+	rows, err := r.pool.Query(ctx, `
+		WITH upd AS (
+			UPDATE "ProductReservation"
+			SET status = 'EXPIRED', "updatedAt" = NOW()
+			WHERE status = 'ACTIVE' AND "expiresAt" <= $1
+			RETURNING id
+		)
+		SELECT
+			r.id, r."productId", p.name, r."buyerId", bu."fullName", r."sellerId", su."fullName",
+			r.status, r."hours", r.note, r."cancelReason", r."extendedOnce", r."expiresAt", r."createdAt", r."cancelledAt"
+		FROM upd
+		JOIN "ProductReservation" r ON r.id = upd.id
+		JOIN "Product" p ON p.id = r."productId"
+		JOIN "User" bu ON bu.id = r."buyerId"
+		JOIN "User" su ON su.id = r."sellerId"
+		ORDER BY r.id DESC`, now)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanReservations(rows)
+}
+
 func (r *ReservationPG) LastBuyerStatuses(ctx context.Context, buyerID int32, limit int) ([]string, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT status FROM "ProductReservation"

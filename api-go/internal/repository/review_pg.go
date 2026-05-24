@@ -33,12 +33,14 @@ func (r *ReviewPG) UserExists(ctx context.Context, id int32) (bool, error) {
 	return err == nil, err
 }
 
-func (r *ReviewPG) InsertReview(ctx context.Context, reviewedByID, reviewedUserID int32, rating float64, text *string) error {
-	_, err := r.pool.Exec(ctx, `
+func (r *ReviewPG) InsertReview(ctx context.Context, reviewedByID, reviewedUserID int32, rating float64, text *string) (int32, error) {
+	var id int32
+	err := r.pool.QueryRow(ctx, `
 		INSERT INTO "Review" ("reviewedById", "reviewedUserId", rating, text, "moderateState", "createdAt")
-		VALUES ($1, $2, $3, $4, 'MODERATE'::"ReviewModerate", NOW())`,
-		reviewedByID, reviewedUserID, rating, text)
-	return err
+		VALUES ($1, $2, $3, $4, 'MODERATE'::"ReviewModerate", NOW())
+		RETURNING id`,
+		reviewedByID, reviewedUserID, rating, text).Scan(&id)
+	return id, err
 }
 
 func (r *ReviewPG) HasDealOrReservation(ctx context.Context, authorID, sellerID int32) (bool, error) {
@@ -123,14 +125,42 @@ func (r *ReviewPG) ListPendingAIModeration(ctx context.Context, limit int) ([]Re
 	return out, rows.Err()
 }
 
-func (r *ReviewPG) GetReviewParties(ctx context.Context, reviewID int32) (authorName, authorEmail, sellerName, sellerEmail string, err error) {
+func (r *ReviewPG) GetReviewParties(ctx context.Context, reviewID int32) (authorName, authorEmail, authorPhone, sellerName, sellerEmail, sellerPhone string, err error) {
 	err = r.pool.QueryRow(ctx, `
-		SELECT a."fullName", a.email, s."fullName", s.email
+		SELECT a."fullName", a.email, a."phoneNumber", s."fullName", s.email, s."phoneNumber"
 		FROM "Review" r
 		JOIN "User" a ON a.id = r."reviewedById"
 		JOIN "User" s ON s.id = r."reviewedUserId"
-		WHERE r.id = $1`, reviewID).Scan(&authorName, &authorEmail, &sellerName, &sellerEmail)
+		WHERE r.id = $1`, reviewID).Scan(&authorName, &authorEmail, &authorPhone, &sellerName, &sellerEmail, &sellerPhone)
 	return
+}
+
+type ReviewMeta struct {
+	ID             int32
+	Rating         float64
+	Text           *string
+	ReviewedByID   int32
+	ReviewedByName string
+	ReviewedUserID int32
+	ReviewedName   string
+}
+
+func (r *ReviewPG) GetReviewMeta(ctx context.Context, reviewID int32) (*ReviewMeta, error) {
+	var out ReviewMeta
+	err := r.pool.QueryRow(ctx, `
+		SELECT r.id, r.rating, r.text, r."reviewedById", a."fullName", r."reviewedUserId", s."fullName"
+		FROM "Review" r
+		JOIN "User" a ON a.id = r."reviewedById"
+		JOIN "User" s ON s.id = r."reviewedUserId"
+		WHERE r.id = $1`, reviewID).
+		Scan(&out.ID, &out.Rating, &out.Text, &out.ReviewedByID, &out.ReviewedByName, &out.ReviewedUserID, &out.ReviewedName)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 func (r *ReviewPG) CreateReviewAppeal(ctx context.Context, reviewID, userID int32, reason string) error {

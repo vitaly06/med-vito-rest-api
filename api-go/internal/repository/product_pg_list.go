@@ -37,6 +37,7 @@ type ProductListRow struct {
 	ViewsCount      int32
 	PopularityScore float64
 	ModerateState   *string
+	IsReserved      bool
 }
 
 const productListSelect = `
@@ -64,7 +65,13 @@ const productListSelect = `
 		(COALESCE(u.rating, 0)::numeric * 0.3) +
 		(CASE WHEN array_length(p.images, 1) IS NULL OR array_length(p.images, 1) = 0 THEN 0 ELSE 20 END * 0.2)
 	)::float8,
-	p."moderateState"::text`
+	p."moderateState"::text,
+	EXISTS (
+		SELECT 1
+		FROM "ProductReservation" pr
+		WHERE pr."productId" = p.id
+		  AND pr.status = 'ACTIVE'
+	)`
 
 const productListFrom = `
 	FROM "Product" p
@@ -83,7 +90,7 @@ func (r *ProductPG) scanProductListRow(row pgx.Row) (*ProductListRow, error) {
 		&pr.CategoryID, &pr.CategoryName, &pr.CategorySlug,
 		&pr.SubCategoryID, &pr.SubCategoryName, &pr.SubCategorySlug,
 		&typeID, &typeName, &typeSlug,
-		&pr.PromotionLevel, &pr.PromotionName, &pr.SellerRating, &pr.SellerVerified, &pr.ViewsCount, &pr.PopularityScore, &mod,
+		&pr.PromotionLevel, &pr.PromotionName, &pr.SellerRating, &pr.SellerVerified, &pr.ViewsCount, &pr.PopularityScore, &mod, &pr.IsReserved,
 	)
 	pr.TypeID, pr.TypeName, pr.TypeSlug = typeID, typeName, typeSlug
 	pr.ModerateState = mod
@@ -126,7 +133,7 @@ func scanProductListRows(rows pgx.Rows) ([]ProductListRow, error) {
 			&pr.CategoryID, &pr.CategoryName, &pr.CategorySlug,
 			&pr.SubCategoryID, &pr.SubCategoryName, &pr.SubCategorySlug,
 			&typeID, &typeName, &typeSlug,
-			&pr.PromotionLevel, &pr.PromotionName, &pr.SellerRating, &pr.SellerVerified, &pr.ViewsCount, &pr.PopularityScore, &mod,
+			&pr.PromotionLevel, &pr.PromotionName, &pr.SellerRating, &pr.SellerVerified, &pr.ViewsCount, &pr.PopularityScore, &mod, &pr.IsReserved,
 		)
 		if err != nil {
 			return nil, err
@@ -188,7 +195,17 @@ func (r *ProductPG) RandomSubcategoriesWithProducts(ctx context.Context) ([]Prod
 	const subQ = `
 		SELECT sc.id FROM "SubCategory" sc
 		WHERE EXISTS (
-			SELECT 1 FROM "Product" p WHERE p."subCategoryId" = sc.id
+			SELECT 1
+			FROM "Product" p
+			WHERE p."subCategoryId" = sc.id
+			  AND p."moderateState" = 'APPROVED'::"ProductModerate"
+			  AND p."isHide" = false
+			  AND NOT EXISTS (
+			    SELECT 1
+			    FROM "ProductReservation" pr
+			    WHERE pr."productId" = p.id
+			      AND pr.status = 'ACTIVE'
+			  )
 		)
 		ORDER BY RANDOM() LIMIT 5`
 	rows, err := r.pool.Query(ctx, subQ)
@@ -211,7 +228,18 @@ func (r *ProductPG) RandomSubcategoriesWithProducts(ctx context.Context) ([]Prod
 
 	var out []ProductListRow
 	for _, sid := range subIDs {
-		q := fmt.Sprintf(`SELECT %s %s WHERE p."subCategoryId" = $1 ORDER BY RANDOM() LIMIT 1`, productListSelect, productListFrom)
+		q := fmt.Sprintf(`SELECT %s %s
+			WHERE p."subCategoryId" = $1
+			  AND p."moderateState" = 'APPROVED'::"ProductModerate"
+			  AND p."isHide" = false
+			  AND NOT EXISTS (
+			    SELECT 1
+			    FROM "ProductReservation" pr
+			    WHERE pr."productId" = p.id
+			      AND pr.status = 'ACTIVE'
+			  )
+			ORDER BY RANDOM()
+			LIMIT 1`, productListSelect, productListFrom)
 		row := r.pool.QueryRow(ctx, q, sid)
 		pr, err := r.scanProductListRow(row)
 		if err != nil {
@@ -269,9 +297,12 @@ type ProductSearchParams struct {
 	TypeID        *int32
 	MinPrice      *int32
 	MaxPrice      *int32
+	MinRating     *float64
+	MaxRating     *float64
 	State         *string
 	Region        *string
 	ProfileType   *string
+	HasSecureDeal *bool
 	FieldValues   map[string]string
 	SortBy        string
 	Page, Limit   int
@@ -348,6 +379,24 @@ func (r *ProductPG) SearchProducts(ctx context.Context, p ProductSearchParams) (
 		args = append(args, *p.ProfileType)
 		n++
 	}
+	if p.MinRating != nil {
+		where = append(where, fmt.Sprintf(`COALESCE(u.rating, 0)::numeric >= $%d`, n))
+		args = append(args, *p.MinRating)
+		n++
+	}
+	if p.MaxRating != nil {
+		where = append(where, fmt.Sprintf(`COALESCE(u.rating, 0)::numeric <= $%d`, n))
+		args = append(args, *p.MaxRating)
+		n++
+	}
+	if p.HasSecureDeal != nil {
+		if *p.HasSecureDeal {
+			// Базовая доступность безопасной сделки для карточки товара.
+			where = append(where, `p.price > 0 AND p.quantity > 0 AND COALESCE(NULLIF(TRIM(p.address), ''), '') <> ''`)
+		} else {
+			where = append(where, `NOT (p.price > 0 AND p.quantity > 0 AND COALESCE(NULLIF(TRIM(p.address), ''), '') <> '')`)
+		}
+	}
 	if len(p.FieldValues) > 0 {
 		var orParts []string
 		for fid, val := range p.FieldValues {
@@ -382,16 +431,23 @@ func (r *ProductPG) SearchProducts(ctx context.Context, p ProductSearchParams) (
 		order = paidRankSQL + ` ASC, p."createdAt" ASC`
 	case "seller_rating":
 		order = paidRankSQL + ` ASC, COALESCE(u.rating, 0) DESC, p."createdAt" DESC`
+	case "distance":
+		if p.Region != nil && strings.TrimSpace(*p.Region) != "" {
+			order = paidRankSQL + fmt.Sprintf(` ASC,
+		CASE WHEN p.address ILIKE $%d THEN 0 ELSE 1 END ASC,
+		p."createdAt" DESC`, n)
+			args = append(args, "%"+*p.Region+"%")
+			n++
+		} else {
+			order = paidRankSQL + ` ASC, p."createdAt" DESC`
+		}
 	case "popularity":
 		order = paidRankSQL + ` ASC,
 		COALESCE((SELECT COUNT(*) FROM "ProductView" pv WHERE pv."productId" = p.id),0) DESC,
 		COALESCE(u.rating, 0) DESC,
 		p."createdAt" DESC`
 	case "date_desc", "relevance", "":
-		order = paidRankSQL + ` ASC,
-		COALESCE((SELECT COUNT(*) FROM "ProductView" pv WHERE pv."productId" = p.id),0) DESC,
-		COALESCE(u.rating, 0) DESC,
-		p."createdAt" DESC`
+		order = paidRankSQL + ` ASC, p."createdAt" DESC`
 	}
 
 	whereSQL := strings.Join(where, " AND ")
@@ -502,15 +558,15 @@ func (r *ProductPG) LoadProductWithRelations(ctx context.Context, productID int3
 	}
 	out := map[string]any{
 		"id": card.ID, "name": card.Name, "description": card.Description, "price": card.Price, "quantity": card.Quantity,
-		"state":          nil,
-		"images":         card.Images,
-		"address":        card.Address,
-		"videoUrl":       card.VideoURL,
-		"moderateState":  card.ModerateState,
-		"category":       map[string]any{"id": card.CategoryID, "name": card.CategoryName},
-		"subCategory":    map[string]any{"id": card.SubCatID, "name": card.SubCatName},
-		"user":           map[string]any{"id": uid, "fullName": fullName, "email": email, "rating": rating},
-		"fieldValues":    fv,
+		"state":         nil,
+		"images":        card.Images,
+		"address":       card.Address,
+		"videoUrl":      card.VideoURL,
+		"moderateState": card.ModerateState,
+		"category":      map[string]any{"id": card.CategoryID, "name": card.CategoryName},
+		"subCategory":   map[string]any{"id": card.SubCatID, "name": card.SubCatName},
+		"user":          map[string]any{"id": uid, "fullName": fullName, "email": email, "rating": rating},
+		"fieldValues":   fv,
 	}
 	out["state"] = card.State
 	out["isDraft"] = card.ModerateState == "DRAFT"

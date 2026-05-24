@@ -3,6 +3,7 @@ package httpserver
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"strconv"
@@ -14,7 +15,7 @@ import (
 	"med-vito/api-go/internal/service"
 )
 
-const maxProductImages = 8
+const maxProductImages = 15
 
 func scalarToString(v any) string {
 	switch x := v.(type) {
@@ -55,7 +56,7 @@ func readImageFilesFromMultipart(form *multipart.Form, field string, max int) ([
 	}
 	fhs := form.File[field]
 	if len(fhs) > max {
-		fhs = fhs[:max]
+		return nil, fmt.Errorf("максимум %d изображений", max)
 	}
 	var out []service.UploadedFile
 	for _, fh := range fhs {
@@ -259,7 +260,7 @@ func collectImageFiles(c *fiber.Ctx, field string, max int) ([]service.UploadedF
 }
 
 func productSearchUseExpanded(c *fiber.Ctx) bool {
-	keys := []string{"search", "categorySlug", "subCategorySlug", "typeSlug", "minPrice", "maxPrice", "state", "region", "profileType", "fieldValues", "sortBy", "page", "limit"}
+	keys := []string{"search", "categorySlug", "subCategorySlug", "typeSlug", "minPrice", "maxPrice", "minRating", "maxRating", "state", "region", "profileType", "hasSecureDeal", "fieldValues", "sortBy", "page", "limit"}
 	for _, k := range keys {
 		if strings.TrimSpace(c.Query(k)) != "" {
 			return true
@@ -294,6 +295,16 @@ func parseProductSearchQuery(c *fiber.Ctx) service.ProductSearchQuery {
 			q.MaxPrice = &x
 		}
 	}
+	if v := strings.TrimSpace(c.Query("minRating")); v != "" {
+		if n, err := strconv.ParseFloat(v, 64); err == nil {
+			q.MinRating = &n
+		}
+	}
+	if v := strings.TrimSpace(c.Query("maxRating")); v != "" {
+		if n, err := strconv.ParseFloat(v, 64); err == nil {
+			q.MaxRating = &n
+		}
+	}
 	if v := strings.TrimSpace(c.Query("state")); v != "" {
 		q.State = &v
 	}
@@ -302,6 +313,11 @@ func parseProductSearchQuery(c *fiber.Ctx) service.ProductSearchQuery {
 	}
 	if v := strings.TrimSpace(c.Query("profileType")); v != "" {
 		q.ProfileType = &v
+	}
+	if v := strings.TrimSpace(c.Query("hasSecureDeal")); v != "" {
+		if b, err := strconv.ParseBool(v); err == nil {
+			q.HasSecureDeal = &b
+		}
 	}
 	if v := strings.TrimSpace(c.Query("fieldValues")); v != "" {
 		q.FieldValuesJSON = &v

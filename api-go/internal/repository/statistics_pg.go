@@ -138,6 +138,11 @@ type ProductAnalyticRow struct {
 	Views            int64    `json:"views"`
 	FavoritedBy      int64    `json:"favoritedBy"`
 	PhoneNumberViews int64    `json:"phoneNumberViews"`
+	IsPaid           bool     `json:"isPaid"`
+	PromotionLevel   int32    `json:"promotionLevel"`
+	PaidViews        int64    `json:"paidViews"`
+	Clicks           int64    `json:"clicks"`
+	Geo              map[string]int64 `json:"geo"`
 }
 
 func (r *StatisticsPG) ProductsAnalytic(ctx context.Context, userID int32) ([]ProductAnalyticRow, error) {
@@ -149,7 +154,16 @@ func (r *StatisticsPG) ProductsAnalytic(ctx context.Context, userID int32) ([]Pr
 	rows, err := r.pool.Query(ctx, `
 		SELECT p.id, p.name, p.price, p.images,
 			(SELECT COUNT(*)::bigint FROM "ProductView" pv WHERE pv."productId" = p.id) AS vcount,
-			(SELECT COUNT(*)::bigint FROM "_UserFavorites" uf WHERE uf."A" = p.id) AS fcount
+			(SELECT COUNT(*)::bigint FROM "_UserFavorites" uf WHERE uf."A" = p.id) AS fcount,
+			COALESCE((
+				SELECT MAX(pr."pricePerDay")
+				FROM "ProductPromotion" pp
+				JOIN "Promotion" pr ON pr.id = pp."promotionId"
+				WHERE pp."productId" = p.id
+				  AND pp."isActive" = true
+				  AND pp."isPaid" = true
+				  AND pp."endDate" >= NOW()
+			), 0)::int AS promotion_level
 		FROM "Product" p
 		WHERE p."userId" = $1
 		ORDER BY p."createdAt" DESC`, userID)
@@ -165,12 +179,18 @@ func (r *StatisticsPG) ProductsAnalytic(ctx context.Context, userID int32) ([]Pr
 		var price int32
 		var images []string
 		var vcount, fcount int64
-		if err := rows.Scan(&id, &name, &price, &images, &vcount, &fcount); err != nil {
+		var promoLevel int32
+		if err := rows.Scan(&id, &name, &price, &images, &vcount, &fcount, &promoLevel); err != nil {
 			return nil, err
 		}
 		var img *string
 		if len(images) > 0 && images[0] != "" {
 			img = &images[0]
+		}
+		isPaid := promoLevel > 0
+		paidViews := int64(0)
+		if isPaid {
+			paidViews = vcount
 		}
 		out = append(out, ProductAnalyticRow{
 			ID:               id,
@@ -180,6 +200,11 @@ func (r *StatisticsPG) ProductsAnalytic(ctx context.Context, userID int32) ([]Pr
 			Views:            vcount,
 			FavoritedBy:      fcount,
 			PhoneNumberViews: phoneTotal,
+			IsPaid:           isPaid,
+			PromotionLevel:   promoLevel,
+			PaidViews:        paidViews,
+			Clicks:           vcount,
+			Geo:              map[string]int64{},
 		})
 	}
 	return out, rows.Err()

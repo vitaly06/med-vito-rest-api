@@ -44,7 +44,6 @@ import (
 
 func main() {
 	loadEnvFiles()
-
 	cfg := config.Load()
 	if cfg.DatabaseURL == "" {
 		log.Fatal("нужен DATABASE_URL в окружении (PostgreSQL, как в Prisma schema)")
@@ -101,8 +100,8 @@ func main() {
 	moderationSvc := service.NewModerationService(cfg, prodRepo)
 	moderationAdminSvc := service.NewModerationAdminService(prodRepo)
 	revRepo := repository.NewReviewPG(pool)
-	revSvc := service.NewReviewService(revRepo, cfg)
 	chatRepo := repository.NewChatPG(pool)
+	revSvc := service.NewReviewService(revRepo, chatRepo, cfg)
 	chatSvc := service.NewChatService(chatRepo)
 	payRepo := repository.NewPaymentPG(pool)
 	dealRepo := repository.NewDealPG(pool)
@@ -111,7 +110,7 @@ func main() {
 	reservationRepo := repository.NewReservationPG(pool)
 	dealSvc := service.NewDealService(cfg, dealRepo, logRepo, chatRepo, paySvc, reservationRepo, cdekSvc, userRepo)
 	dealSvc.StartPayoutWorker(ctx)
-	reservationSvc := service.NewReservationService(cfg, reservationRepo, userRepo)
+	reservationSvc := service.NewReservationService(cfg, reservationRepo, userRepo, chatRepo)
 	reservationSvc.StartWorker(ctx)
 	promoRepo := repository.NewPromotionPG(pool)
 	promoSvc := service.NewPromotionService(promoRepo)

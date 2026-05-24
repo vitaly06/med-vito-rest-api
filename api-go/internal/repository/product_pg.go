@@ -14,6 +14,7 @@ import (
 
 // AdListingCost — стоимость платного объявления (как в Nest).
 const AdListingCost = 50
+const FreeAdsMonthlyLimit = 6
 
 // ErrInsufficientFunds — не хватает денег на платное объявление.
 var ErrInsufficientFunds = errors.New("INSUFFICIENT_FUNDS")
@@ -152,6 +153,7 @@ func (r *ProductPG) CreateProductTx(ctx context.Context, productID, userID int32
 		}
 	}
 
+	freeLimit = FreeAdsMonthlyLimit
 	if usedAds >= freeLimit {
 		total := balance + bonus
 		if total < float64(AdListingCost) {
@@ -272,6 +274,7 @@ func (r *ProductPG) PublishDraftTx(ctx context.Context, productID, userID int32)
 			return err
 		}
 	}
+	freeLimit = FreeAdsMonthlyLimit
 	if usedAds >= freeLimit {
 		total := balance + bonus
 		if total < float64(AdListingCost) {
@@ -686,6 +689,25 @@ func (r *ProductPG) ProductExists(ctx context.Context, id int32) (bool, error) {
 		return false, nil
 	}
 	return err == nil, err
+}
+
+func (r *ProductPG) HasActivePaidPromotionForProduct(ctx context.Context, productID int32) (bool, error) {
+	var one int
+	err := r.pool.QueryRow(ctx, `
+		SELECT 1
+		FROM "ProductPromotion" pp
+		WHERE pp."productId" = $1
+		  AND pp."isActive" = true
+		  AND pp."isPaid" = true
+		  AND pp."endDate" >= NOW()
+		LIMIT 1`, productID).Scan(&one)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (r *ProductPG) UpsertProductView(ctx context.Context, viewerID, productID int32) {

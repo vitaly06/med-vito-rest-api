@@ -15,10 +15,11 @@ import (
 func RegisterUserRoutes(app fiber.Router, u *service.UserService, auth *service.AuthService) {
 	g := app.Group("/user")
 	sess := authmw.RequireSession(auth)
+	mod := authmw.RequireModerator(auth)
 	adm := authmw.RequireAdmin(auth)
 
 	// Список юзеров только для admin (в Nest был открыт — у нас закрыто осознанно).
-	g.Get("/find-all", adm, func(c *fiber.Ctx) error {
+	g.Get("/find-all", mod, func(c *fiber.Ctx) error {
 		out, err := u.FindAllAdmin(c.UserContext())
 		if err != nil {
 			return writeAppError(c, err)
@@ -107,7 +108,7 @@ func RegisterUserRoutes(app fiber.Router, u *service.UserService, auth *service.
 		return c.JSON(out)
 	})
 
-	g.Put("/set-balance/:userId", adm, func(c *fiber.Ctx) error {
+	g.Put("/set-balance/:userId", mod, func(c *fiber.Ctx) error {
 		uid, err := strconv.ParseInt(c.Params("userId"), 10, 32)
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный userId"})
@@ -120,7 +121,7 @@ func RegisterUserRoutes(app fiber.Router, u *service.UserService, auth *service.
 		return c.JSON(out)
 	})
 
-	g.Put("/toggle-banned/:id", adm, func(c *fiber.Ctx) error {
+	g.Put("/toggle-banned/:id", mod, func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 32)
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})

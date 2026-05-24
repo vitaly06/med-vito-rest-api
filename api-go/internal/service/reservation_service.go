@@ -1,9 +1,14 @@
 ﻿package service
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
+	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -15,11 +20,12 @@ import (
 type ReservationService struct {
 	cfg  config.Config
 	repo *repository.ReservationPG
+	users *repository.UserPG
+	chat *repository.ChatPG
 }
 
-func NewReservationService(cfg config.Config, repo *repository.ReservationPG, users *repository.UserPG) *ReservationService {
-	_ = users
-	return &ReservationService{cfg: cfg, repo: repo}
+func NewReservationService(cfg config.Config, repo *repository.ReservationPG, users *repository.UserPG, chat *repository.ChatPG) *ReservationService {
+	return &ReservationService{cfg: cfg, repo: repo, users: users, chat: chat}
 }
 
 type CreateReservationRequest struct {
@@ -105,7 +111,8 @@ func (s *ReservationService) Create(ctx context.Context, buyerID int32, req Crea
 	if err != nil {
 		return nil, err
 	}
-	go s.sendReserveEmail(pr.SellerEmail, pr.ProductName, buyerName, row.ExpiresAt)
+	s.notifyReservationCreated(ctx, row, buyerName, pr.SellerEmail)
+	s.notifyReservationInChat(ctx, row)
 	return s.format(row), nil
 }
 
@@ -146,6 +153,7 @@ func (s *ReservationService) CancelByBuyer(ctx context.Context, userID int32, re
 	if err != nil {
 		return nil, err
 	}
+	s.notifyReservationCancelled(ctx, row, true)
 	return s.format(row), nil
 }
 
@@ -163,6 +171,7 @@ func (s *ReservationService) CancelBySeller(ctx context.Context, userID int32, r
 	if err != nil {
 		return nil, err
 	}
+	s.notifyReservationCancelled(ctx, row, false)
 	return s.format(row), nil
 }
 
@@ -206,13 +215,16 @@ func (s *ReservationService) StartWorker(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				n, err := s.repo.ExpireDue(ctx, time.Now())
+				expired, err := s.repo.ExpireDueAndReturn(ctx, time.Now())
 				if err != nil {
 					log.Printf("reservation worker: %v", err)
 					continue
 				}
-				if n > 0 {
-					log.Printf("reservation worker: expired %d reservation(s)", n)
+				if len(expired) > 0 {
+					log.Printf("reservation worker: expired %d reservation(s)", len(expired))
+					for i := range expired {
+						s.notifyReservationExpired(ctx, &expired[i])
+					}
 				}
 				_ = s.applyPenaltyForViolations(ctx)
 			}
@@ -287,5 +299,173 @@ func (s *ReservationService) sendReserveEmail(toEmail, productName, buyerName st
 		s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword,
 		s.cfg.SMTPFrom, toEmail, "Новый резерв товара", body, s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure,
 	)
+}
+
+func (s *ReservationService) notifyReservationInChat(ctx context.Context, row *repository.ReservationRow) {
+	if s.chat == nil || row == nil {
+		return
+	}
+	chat, err := s.chat.FindChatByProductParticipants(ctx, row.ProductID, row.BuyerID, row.SellerID)
+	if err != nil {
+		log.Printf("reservation chat find failed reservation=%d: %v", row.ID, err)
+		return
+	}
+	var chatID int32
+	if chat == nil {
+		chatID, err = s.chat.InsertProductChat(ctx, row.ProductID, row.BuyerID, row.SellerID)
+		if err != nil {
+			log.Printf("reservation chat create failed reservation=%d: %v", row.ID, err)
+			return
+		}
+	} else {
+		chatID = chat.ID
+	}
+	content := fmt.Sprintf(
+		"Товар \"%s\" зарезервирован до %s. Номер резерва: #%d.",
+		row.ProductName,
+		row.ExpiresAt.Format("02.01.2006 15:04"),
+		row.ID,
+	)
+	if _, _, _, _, _, err := s.chat.InsertChatMessage(ctx, chatID, row.BuyerID, content); err != nil {
+		log.Printf("reservation chat message failed reservation=%d chat=%d: %v", row.ID, chatID, err)
+	}
+}
+
+func (s *ReservationService) notifyReservationCreated(ctx context.Context, row *repository.ReservationRow, buyerName, sellerEmail string) {
+	buyerEmail, buyerPhone := s.userContacts(ctx, row.BuyerID)
+	_, sellerPhone := s.userContacts(ctx, row.SellerID)
+	expires := row.ExpiresAt.Format("2006-01-02 15:04")
+
+	sellerText := "Товар \"" + row.ProductName + "\" зарезервирован покупателем " + buyerName + " до " + expires + "."
+	buyerText := "Вы зарезервировали товар \"" + row.ProductName + "\" до " + expires + "."
+
+	go s.sendMail(sellerEmail, "Новый резерв товара", "<p>"+sellerText+"</p>")
+	go s.sendMail(buyerEmail, "Резерв подтвержден", "<p>"+buyerText+"</p>")
+	go s.sendSMS(sellerPhone, sellerText)
+	go s.sendSMS(buyerPhone, buyerText)
+}
+
+func (s *ReservationService) notifyReservationCancelled(ctx context.Context, row *repository.ReservationRow, byBuyer bool) {
+	buyerEmail, buyerPhone := s.userContacts(ctx, row.BuyerID)
+	sellerEmail, sellerPhone := s.userContacts(ctx, row.SellerID)
+
+	reason := ""
+	if row.CancelReason != nil && strings.TrimSpace(*row.CancelReason) != "" {
+		reason = " Причина: " + strings.TrimSpace(*row.CancelReason)
+	}
+
+	var sellerText, buyerText string
+	if byBuyer {
+		sellerText = "Покупатель отменил резерв товара \"" + row.ProductName + "\"." + reason
+		buyerText = "Вы отменили резерв товара \"" + row.ProductName + "\"."
+	} else {
+		sellerText = "Вы отменили резерв товара \"" + row.ProductName + "\"."
+		buyerText = "Продавец отменил резерв товара \"" + row.ProductName + "\"." + reason
+	}
+
+	go s.sendMail(sellerEmail, "Резерв отменен", "<p>"+sellerText+"</p>")
+	go s.sendMail(buyerEmail, "Резерв отменен", "<p>"+buyerText+"</p>")
+	go s.sendSMS(sellerPhone, sellerText)
+	go s.sendSMS(buyerPhone, buyerText)
+}
+
+func (s *ReservationService) notifyReservationExpired(ctx context.Context, row *repository.ReservationRow) {
+	buyerEmail, buyerPhone := s.userContacts(ctx, row.BuyerID)
+	sellerEmail, sellerPhone := s.userContacts(ctx, row.SellerID)
+
+	sellerText := "Срок резерва товара \"" + row.ProductName + "\" истек."
+	buyerText := "Срок вашего резерва товара \"" + row.ProductName + "\" истек."
+
+	go s.sendMail(sellerEmail, "Срок резерва истек", "<p>"+sellerText+"</p>")
+	go s.sendMail(buyerEmail, "Срок резерва истек", "<p>"+buyerText+"</p>")
+	go s.sendSMS(sellerPhone, sellerText)
+	go s.sendSMS(buyerPhone, buyerText)
+}
+
+func (s *ReservationService) userContacts(ctx context.Context, userID int32) (email, phone string) {
+	if s.users == nil || userID <= 0 {
+		return "", ""
+	}
+	email, phone, err := s.users.GetUserEmailPhone(ctx, userID)
+	if err != nil {
+		return "", ""
+	}
+	return strings.TrimSpace(email), strings.TrimSpace(phone)
+}
+
+func (s *ReservationService) sendMail(toEmail, subject, html string) {
+	toEmail = strings.TrimSpace(toEmail)
+	if toEmail == "" || strings.TrimSpace(s.cfg.SMTPHost) == "" {
+		return
+	}
+	if err := mailpkg.SendHTMLSmart(
+		s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword,
+		s.cfg.SMTPFrom, toEmail, subject, html, s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure,
+	); err != nil {
+		log.Printf("reservation notify mail failed: to=%s err=%v", toEmail, err)
+	}
+}
+
+func (s *ReservationService) sendSMS(phone, message string) {
+	phone = strings.TrimSpace(phone)
+	message = strings.TrimSpace(message)
+	if phone == "" || message == "" {
+		return
+	}
+
+	if strings.TrimSpace(s.cfg.MTSBearer) != "" {
+		body := map[string]any{
+			"submits": []any{
+				map[string]any{"msid": phone, "message": message},
+			},
+			"naming": "Torguisamru",
+		}
+		if err := s.httpPostJSON(
+			context.Background(),
+			"https://api.mts.ru/client-omni-adapter_production/1.0.2/mcom/messageManagement/messages",
+			body,
+			s.cfg.MTSBearer,
+		); err != nil {
+			log.Printf("reservation notify sms(mts) failed: phone=%s err=%v", phone, err)
+		}
+		return
+	}
+
+	if strings.TrimSpace(s.cfg.NotisendAPIKey) != "" {
+		u := "https://sms.notisend.ru/api/message/send?project=" + url.QueryEscape(s.cfg.NotisendProject) +
+			"&message=" + url.QueryEscape(message) +
+			"&recipients=" + url.QueryEscape(phone) +
+			"&apikey=" + url.QueryEscape(s.cfg.NotisendAPIKey)
+		resp, err := http.Get(u)
+		if err != nil {
+			log.Printf("reservation notify sms(notisend) failed: phone=%s err=%v", phone, err)
+			return
+		}
+		_ = resp.Body.Close()
+	}
+}
+
+func (s *ReservationService) httpPostJSON(ctx context.Context, endpoint string, body any, bearer string) error {
+	b, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(b))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if strings.TrimSpace(bearer) != "" {
+		req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(bearer))
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		return errors.New("sms gateway status " + resp.Status)
+	}
+	return nil
 }
 

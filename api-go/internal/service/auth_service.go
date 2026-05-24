@@ -216,12 +216,12 @@ func (s *AuthService) SignIn(ctx context.Context, login, password string) (*sign
 	u, err := s.users.FindUserByLogin(ctx, login)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, "", &AppError{401, "Неверные данные для входа"}
+			return nil, "", &AppError{401, "Пользователь не существует"}
 		}
 		return nil, "", err
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)); err != nil {
-		return nil, "", &AppError{401, "Неверные данные для входа"}
+		return nil, "", &AppError{401, "Неверный пароль"}
 	}
 	sid := generateSessionID()
 	sp := sessionPayload{UserID: u.ID, Email: u.Email, ProfileType: u.ProfileType}
@@ -334,54 +334,23 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code, state, deviceID st
 	if tokenRes.StatusCode < 200 || tokenRes.StatusCode >= 300 {
 		return nil, "", &AppError{401, "VK OAuth token error: " + truncateForErr(string(tokenBody))}
 	}
-	var tokenPayload struct {
-		AccessToken string `json:"access_token"`
-		UserID      int64  `json:"user_id"`
-		Email       string `json:"email"`
-		Error       string `json:"error"`
-	}
-	if err := json.Unmarshal(tokenBody, &tokenPayload); err != nil {
+	accessToken, tokenEmail, tokenUserID, err := parseVKTokenResponse(tokenBody)
+	if err != nil {
 		return nil, "", err
 	}
-	if strings.TrimSpace(tokenPayload.Error) != "" {
-		return nil, "", &AppError{401, "VK OAuth token error: " + tokenPayload.Error}
-	}
-	if strings.TrimSpace(tokenPayload.AccessToken) == "" {
+	if accessToken == "" {
 		return nil, "", &AppError{401, "VK OAuth: пустой access_token"}
 	}
 
-	userQ := url.Values{}
-	if !s.cfg.VkIDEnabled {
-		userQ.Set("access_token", tokenPayload.AccessToken)
-		userQ.Set("v", "5.131")
-		userQ.Set("fields", "photo_200,screen_name")
-	}
-	userURL := s.cfg.VkOAuthUserInfoURL
-	if enc := userQ.Encode(); enc != "" {
-		userURL += "?" + enc
-	}
-	userReq, err := http.NewRequestWithContext(ctx, http.MethodGet, userURL, nil)
+	userBody, err := s.fetchVKUserProfile(ctx, accessToken)
 	if err != nil {
 		return nil, "", err
 	}
-	userReq.Header.Set("Authorization", "Bearer "+tokenPayload.AccessToken)
-	userRes, err := s.client.Do(userReq)
+	vkID, fullName, emailFromProfile, err := parseVKUserInfo(userBody, tokenUserID)
 	if err != nil {
 		return nil, "", err
 	}
-	defer userRes.Body.Close()
-	userBody, err := io.ReadAll(userRes.Body)
-	if err != nil {
-		return nil, "", err
-	}
-	if userRes.StatusCode < 200 || userRes.StatusCode >= 300 {
-		return nil, "", &AppError{401, "VK OAuth userinfo error: " + truncateForErr(string(userBody))}
-	}
-	vkID, fullName, emailFromProfile, err := parseVKUserInfo(userBody, tokenPayload.UserID)
-	if err != nil {
-		return nil, "", err
-	}
-	email := strings.ToLower(strings.TrimSpace(tokenPayload.Email))
+	email := strings.ToLower(strings.TrimSpace(tokenEmail))
 	if email == "" {
 		email = strings.ToLower(strings.TrimSpace(emailFromProfile))
 	}
@@ -390,6 +359,7 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code, state, deviceID st
 	if err != nil {
 		return nil, "", err
 	}
+	user = s.applyVKProfileName(ctx, user, fullName)
 
 	sid := generateSessionID()
 	sp := sessionPayload{UserID: user.ID, Email: user.Email, ProfileType: user.ProfileType}
@@ -797,6 +767,143 @@ func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, provider, exter
 	return nil, &AppError{500, "Не удалось создать пользователя MAX"}
 }
 
+const vkLegacyUsersGetURL = "https://api.vk.com/method/users.get"
+
+func parseVKTokenResponse(body []byte) (accessToken, email string, userID int64, err error) {
+	var raw map[string]any
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return "", "", 0, err
+	}
+	if e, _ := raw["error"].(string); strings.TrimSpace(e) != "" {
+		return "", "", 0, &AppError{401, "VK OAuth token error: " + e}
+	}
+	accessToken, _ = raw["access_token"].(string)
+	email, _ = raw["email"].(string)
+	userID = vkAnyToInt64(raw["user_id"])
+	return strings.TrimSpace(accessToken), strings.TrimSpace(email), userID, nil
+}
+
+func (s *AuthService) fetchVKUserProfile(ctx context.Context, accessToken string) ([]byte, error) {
+	if s.cfg.VkIDEnabled {
+		body, err := s.postVKIDUserInfo(ctx, accessToken)
+		if err != nil {
+			return nil, err
+		}
+		_, name, _, parseErr := parseVKUserInfo(body, 0)
+		if parseErr == nil && strings.TrimSpace(name) != "" && !isVKPlaceholderFullName(name) {
+			return body, nil
+		}
+		legacyBody, legErr := s.getVKLegacyUsersGet(ctx, accessToken)
+		if legErr == nil {
+			_, legName, _, _ := parseVKUserInfo(legacyBody, 0)
+			if strings.TrimSpace(legName) != "" && !isVKPlaceholderFullName(legName) {
+				return legacyBody, nil
+			}
+		}
+		return body, nil
+	}
+	return s.getVKLegacyUsersGet(ctx, accessToken)
+}
+
+func (s *AuthService) postVKIDUserInfo(ctx context.Context, accessToken string) ([]byte, error) {
+	form := url.Values{}
+	form.Set("client_id", s.cfg.VkOAuthClientID)
+	form.Set("access_token", accessToken)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.cfg.VkOAuthUserInfoURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+	return s.doVKHTTP(req)
+}
+
+func (s *AuthService) getVKLegacyUsersGet(ctx context.Context, accessToken string) ([]byte, error) {
+	q := url.Values{}
+	q.Set("access_token", accessToken)
+	q.Set("v", "5.131")
+	q.Set("fields", "photo_200,screen_name")
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, vkLegacyUsersGetURL+"?"+q.Encode(), nil)
+	if err != nil {
+		return nil, err
+	}
+	return s.doVKHTTP(req)
+}
+
+func (s *AuthService) doVKHTTP(req *http.Request) ([]byte, error) {
+	res, err := s.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return nil, &AppError{401, "VK OAuth userinfo error: " + truncateForErr(string(body))}
+	}
+	return body, nil
+}
+
+func isVKPlaceholderFullName(name string) bool {
+	name = strings.TrimSpace(name)
+	return name == "" ||
+		strings.HasPrefix(name, "Пользователь VK") ||
+		strings.EqualFold(name, "VK USER")
+}
+
+func (s *AuthService) applyVKProfileName(ctx context.Context, user *domain.UserEntity, fullName string) *domain.UserEntity {
+	fullName = strings.TrimSpace(fullName)
+	if fullName == "" || isVKPlaceholderFullName(fullName) || !isVKPlaceholderFullName(user.FullName) {
+		return user
+	}
+	if err := s.users.UpdateUserSettings(ctx, user.ID, repository.UserSettingsPatch{FullName: &fullName}); err != nil {
+		return user
+	}
+	user.FullName = fullName
+	return user
+}
+
+func joinVKFullName(last, first, middle string) string {
+	return strings.TrimSpace(strings.Join([]string{
+		strings.TrimSpace(last),
+		strings.TrimSpace(first),
+		strings.TrimSpace(middle),
+	}, " "))
+}
+
+func vkExternalIDFromAny(v any) string {
+	switch t := v.(type) {
+	case string:
+		return strings.TrimSpace(t)
+	case float64:
+		return strconv.FormatInt(int64(t), 10)
+	case int64:
+		return strconv.FormatInt(t, 10)
+	case int:
+		return strconv.Itoa(t)
+	default:
+		return ""
+	}
+}
+
+func vkAnyToInt64(v any) int64 {
+	switch t := v.(type) {
+	case float64:
+		return int64(t)
+	case int64:
+		return t
+	case int:
+		return int64(t)
+	case string:
+		n, _ := strconv.ParseInt(strings.TrimSpace(t), 10, 64)
+		return n
+	default:
+		return 0
+	}
+}
+
 func parseVKUserInfo(body []byte, fallbackID int64) (id, fullName, email string, err error) {
 	vkFallbackName := func(externalID string, numericID int64) string {
 		if strings.TrimSpace(externalID) != "" {
@@ -827,6 +934,26 @@ func parseVKUserInfo(body []byte, fallbackID int64) (id, fullName, email string,
 		return id, fullName, "", nil
 	}
 
+	var wrapped struct {
+		User struct {
+			UserID    any    `json:"user_id"`
+			FirstName string `json:"first_name"`
+			LastName  string `json:"last_name"`
+			Email     string `json:"email"`
+		} `json:"user"`
+	}
+	if e := json.Unmarshal(body, &wrapped); e == nil && wrapped.User.UserID != nil {
+		id = vkExternalIDFromAny(wrapped.User.UserID)
+		if id == "" && fallbackID > 0 {
+			id = strconv.FormatInt(fallbackID, 10)
+		}
+		fullName = joinVKFullName(wrapped.User.LastName, wrapped.User.FirstName, "")
+		email = strings.TrimSpace(wrapped.User.Email)
+		if fullName != "" {
+			return id, fullName, email, nil
+		}
+	}
+
 	var vkid struct {
 		Sub       string `json:"sub"`
 		Email     string `json:"email"`
@@ -845,11 +972,7 @@ func parseVKUserInfo(body []byte, fallbackID int64) (id, fullName, email string,
 		if middle == "" {
 			middle = strings.TrimSpace(vkid.Patronym)
 		}
-		fullName = strings.TrimSpace(strings.Join([]string{
-			strings.TrimSpace(vkid.LastName),
-			strings.TrimSpace(vkid.FirstName),
-			middle,
-		}, " "))
+		fullName = joinVKFullName(vkid.LastName, vkid.FirstName, middle)
 		if fullName == "" {
 			fullName = strings.TrimSpace(vkid.Name)
 		}
@@ -883,11 +1006,7 @@ func parseVKUserInfo(body []byte, fallbackID int64) (id, fullName, email string,
 		last := pickVKString(generic, "last_name", "user.last_name", "user_info.last_name")
 		first := pickVKString(generic, "first_name", "user.first_name", "user_info.first_name")
 		middle := pickVKString(generic, "middle_name", "patronymic", "user.middle_name", "user.patronymic", "user_info.middle_name", "user_info.patronymic")
-		fullName = strings.TrimSpace(strings.Join([]string{
-			strings.TrimSpace(last),
-			strings.TrimSpace(first),
-			strings.TrimSpace(middle),
-		}, " "))
+		fullName = joinVKFullName(last, first, middle)
 		if fullName == "" {
 			fullName = pickVKString(generic, "name", "user.name", "user_info.name")
 		}
@@ -896,8 +1015,10 @@ func parseVKUserInfo(body []byte, fallbackID int64) (id, fullName, email string,
 		}
 	}
 
-	if fallbackID > 0 {
+	if id == "" && fallbackID > 0 {
 		id = strconv.FormatInt(fallbackID, 10)
+	}
+	if id != "" && fullName == "" {
 		return id, vkFallbackName(id, fallbackID), "", nil
 	}
 	return "", "", "", &AppError{401, "VK OAuth userinfo parse error"}

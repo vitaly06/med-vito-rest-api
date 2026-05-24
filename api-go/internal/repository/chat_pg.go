@@ -98,6 +98,33 @@ func (r *ChatPG) InsertProductChat(ctx context.Context, productID, buyerID, sell
 	return id, err
 }
 
+func (r *ChatPG) FindDirectChatBetweenUsers(ctx context.Context, userA, userB int32) (*ChatFullRow, error) {
+	q := `SELECT ` + chatFullSelect + chatFullJoins + `
+		WHERE c."isModerationChat" = false
+		  AND c."productId" IS NULL
+		  AND ((c."buyerId" = $1 AND c."sellerId" = $2) OR (c."buyerId" = $2 AND c."sellerId" = $1))
+		ORDER BY c."lastMessageAt" DESC
+		LIMIT 1`
+	row := r.pool.QueryRow(ctx, q, userA, userB)
+	c, err := r.scanChatFull(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
+func (r *ChatPG) InsertDirectChat(ctx context.Context, buyerID, sellerID int32) (int32, error) {
+	var id int32
+	err := r.pool.QueryRow(ctx, `
+		INSERT INTO "Chat" ("buyerId", "sellerId", "productId", "isModerationChat", "lastMessageAt", "createdAt", "updatedAt")
+		VALUES ($1,$2,NULL,false,NOW(),NOW(),NOW())
+		RETURNING id`, buyerID, sellerID).Scan(&id)
+	return id, err
+}
+
 func (r *ChatPG) GetChatFull(ctx context.Context, chatID int32) (*ChatFullRow, error) {
 	q := `SELECT ` + chatFullSelect + chatFullJoins + ` WHERE c.id = $1`
 	c, err := r.scanChatFull(r.pool.QueryRow(ctx, q, chatID))

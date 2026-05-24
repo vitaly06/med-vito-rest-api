@@ -73,6 +73,10 @@ func (s *ProductService) formatListItem(pr repository.ProductListRow, isFav bool
 		"viewsCount":      pr.ViewsCount,
 		"popularityScore": pr.PopularityScore,
 		"badges":          badges,
+		"isReserved":      pr.IsReserved,
+		"isPaid":          hasPromo,
+		"highlighted":     promoLevel > 0,
+		"hasBanner":       promoLevel >= 100,
 	}
 	if pr.ModerateState != nil {
 		out["moderateState"] = *pr.ModerateState
@@ -82,29 +86,87 @@ func (s *ProductService) formatListItem(pr repository.ProductListRow, isFav bool
 }
 
 func enforcePaidSlots(rows []repository.ProductListRow, page, limit int) []repository.ProductListRow {
-	if page != 1 || limit <= 0 {
+	if limit <= 0 || len(rows) == 0 {
 		return rows
 	}
-	maxPaid := 3
-	if maxPaid > limit {
-		maxPaid = limit
+
+	maxPaid := 5
+	minPaid := 2
+	if limit < 20 {
+		maxPaid = limit / 4
+		if maxPaid < 1 {
+			maxPaid = 1
+		}
+		minPaid = 0
 	}
-	out := make([]repository.ProductListRow, 0, len(rows))
-	paidUsed := 0
-	var overflowPaid []repository.ProductListRow
+
+	var paid []repository.ProductListRow
+	var free []repository.ProductListRow
 	for _, r := range rows {
 		if r.PromotionLevel > 0 {
-			if paidUsed < maxPaid {
-				out = append(out, r)
-				paidUsed++
-			} else {
-				overflowPaid = append(overflowPaid, r)
-			}
+			paid = append(paid, r)
+		} else {
+			free = append(free, r)
+		}
+	}
+
+	targetPaid := len(paid)
+	if targetPaid > maxPaid {
+		targetPaid = maxPaid
+	}
+	if targetPaid < minPaid && len(paid) >= minPaid {
+		targetPaid = minPaid
+	}
+	targetFree := limit - targetPaid
+	if targetFree < 0 {
+		targetFree = 0
+	}
+	if targetFree > len(free) {
+		targetFree = len(free)
+	}
+
+	// Добираем до лимита оставшимися платными/бесплатными, если одна из групп закончилась.
+	for targetPaid+targetFree < limit {
+		if targetFree < len(free) {
+			targetFree++
 			continue
 		}
-		out = append(out, r)
+		if targetPaid < len(paid) {
+			targetPaid++
+			continue
+		}
+		break
 	}
-	return append(out, overflowPaid...)
+
+	usePaid := paid[:targetPaid]
+	useFree := free[:targetFree]
+	out := make([]repository.ProductListRow, 0, targetPaid+targetFree)
+
+	// Равномерно распределяем платные внутри ленты.
+	pi := 0
+	fi := 0
+	segment := 0
+	if targetPaid > 0 {
+		segment = targetFree / targetPaid
+	}
+	if segment < 1 {
+		segment = 1
+	}
+	for fi < len(useFree) || pi < len(usePaid) {
+		for k := 0; k < segment && fi < len(useFree); k++ {
+			out = append(out, useFree[fi])
+			fi++
+		}
+		if pi < len(usePaid) {
+			out = append(out, usePaid[pi])
+			pi++
+		}
+	}
+
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	return out
 }
 
 func interleaveLuxRegular(rows []repository.ProductListRow) []repository.ProductListRow {
@@ -162,6 +224,9 @@ func (s *ProductService) CreateProduct(ctx context.Context, userID int32, name, 
 	}
 	if strings.TrimSpace(state) == "" {
 		return nil, &AppError{400, "Состояние обязательно (NEW или USED)"}
+	}
+	if err := validateProductContentLimits(len(files), description, false); err != nil {
+		return nil, err
 	}
 	price, err := strconv.Atoi(strings.TrimSpace(priceStr))
 	if err != nil || price < 1 {

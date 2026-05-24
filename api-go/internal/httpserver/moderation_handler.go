@@ -12,9 +12,10 @@ import (
 
 func RegisterModerationRoutes(app fiber.Router, moderation *service.ModerationAdminService, auth *service.AuthService) {
 	g := app.Group("/admin/moderation")
+	mod := authmw.RequireModerator(auth)
 	adm := authmw.RequireAdmin(auth)
 
-	g.Get("/products", adm, func(c *fiber.Ctx) error {
+	g.Get("/products", mod, func(c *fiber.Ctx) error {
 		page := 1
 		if raw := c.Query("page"); raw != "" {
 			if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 {
@@ -28,7 +29,7 @@ func RegisterModerationRoutes(app fiber.Router, moderation *service.ModerationAd
 		return c.JSON(out)
 	})
 
-	g.Get("/products/:id", adm, func(c *fiber.Ctx) error {
+	g.Get("/products/:id", mod, func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 32)
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
@@ -54,7 +55,7 @@ func RegisterModerationRoutes(app fiber.Router, moderation *service.ModerationAd
 		return c.JSON(out)
 	})
 
-	g.Get("/audit-logs", adm, func(c *fiber.Ctx) error {
+	g.Get("/audit-logs", mod, func(c *fiber.Ctx) error {
 		limit := 100
 		if v := strings.TrimSpace(c.Query("limit")); v != "" {
 			if n, err := strconv.Atoi(v); err == nil && n > 0 {
@@ -68,7 +69,7 @@ func RegisterModerationRoutes(app fiber.Router, moderation *service.ModerationAd
 		return c.JSON(out)
 	})
 
-	g.Get("/appeals", adm, func(c *fiber.Ctx) error {
+	g.Get("/appeals", mod, func(c *fiber.Ctx) error {
 		me := authmw.UserFromLocals(c)
 		out, err := moderation.Appeals(c.UserContext(), me, false)
 		if err != nil {
@@ -77,7 +78,7 @@ func RegisterModerationRoutes(app fiber.Router, moderation *service.ModerationAd
 		return c.JSON(out)
 	})
 
-	g.Put("/appeals/:id/review", adm, func(c *fiber.Ctx) error {
+	g.Put("/appeals/:id/review", mod, func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 		if err != nil || id < 1 {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})

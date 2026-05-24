@@ -12,6 +12,7 @@ import (
 func RegisterDealRoutes(app fiber.Router, deals *service.DealService, auth *service.AuthService) {
 	g := app.Group("/deals")
 	sess := authmw.RequireSession(auth)
+	mod := authmw.RequireModerator(auth)
 	adm := authmw.RequireAdmin(auth)
 
 	g.Post("/", sess, func(c *fiber.Ctx) error {
@@ -170,7 +171,7 @@ func RegisterDealRoutes(app fiber.Router, deals *service.DealService, auth *serv
 		return c.JSON(out)
 	})
 
-	app.Get("/admin/deals/list", adm, func(c *fiber.Ctx) error {
+	app.Get("/admin/deals/list", mod, func(c *fiber.Ctx) error {
 		out, err := deals.AdminListDeals(c.UserContext())
 		if err != nil {
 			return writeAppError(c, err)
@@ -178,7 +179,7 @@ func RegisterDealRoutes(app fiber.Router, deals *service.DealService, auth *serv
 		return c.JSON(out)
 	})
 
-	app.Get("/admin/deals/:id", adm, func(c *fiber.Ctx) error {
+	app.Get("/admin/deals/:id", mod, func(c *fiber.Ctx) error {
 		id, err := parseDealID(c)
 		if err != nil {
 			return err
@@ -209,7 +210,7 @@ func RegisterDealRoutes(app fiber.Router, deals *service.DealService, auth *serv
 		return c.JSON(out)
 	})
 
-	app.Get("/admin/deals/:id/logs", adm, func(c *fiber.Ctx) error {
+	app.Get("/admin/deals/:id/logs", mod, func(c *fiber.Ctx) error {
 		id, err := parseDealID(c)
 		if err != nil {
 			return err

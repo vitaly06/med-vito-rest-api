@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -46,13 +48,15 @@ func isAllowedReviewRating(r float64) bool {
 
 type ReviewService struct {
 	repo       *repository.ReviewPG
+	chat       *repository.ChatPG
 	cfg        config.Config
 	httpClient *http.Client
 }
 
-func NewReviewService(repo *repository.ReviewPG, cfg config.Config) *ReviewService {
+func NewReviewService(repo *repository.ReviewPG, chat *repository.ChatPG, cfg config.Config) *ReviewService {
 	return &ReviewService{
 		repo:       repo,
+		chat:       chat,
 		cfg:        cfg,
 		httpClient: &http.Client{Timeout: 20 * time.Second},
 	}
@@ -82,13 +86,16 @@ func (s *ReviewService) SendReview(ctx context.Context, authorID int32, reviewed
 	if !eligible {
 		return nil, &AppError{403, "Оставить отзыв можно только после покупки или резерва"}
 	}
-	if err := s.repo.InsertReview(ctx, authorID, reviewedUserID, rating, text); err != nil {
+	reviewID, err := s.repo.InsertReview(ctx, authorID, reviewedUserID, rating, text)
+	if err != nil {
 		if repository.IsPgUniqueViolation(err) {
 			return nil, &AppError{400, "Вы уже оставили отзыв этому пользователю"}
 		}
 		return nil, err
 	}
-	s.notifyNewReviewAsync(ctx, reviewedUserID)
+
+	s.notifyReviewStatusAsync(ctx, reviewID, "MODERATE")
+	s.notifyReviewInChatAsync(ctx, reviewID)
 	return map[string]any{"message": "Отзыв успешно оставлен и отправлен на модерацию"}, nil
 }
 
@@ -134,6 +141,7 @@ func (s *ReviewService) ModerateReview(ctx context.Context, reviewID int32, stat
 		return nil, err
 	}
 	s.notifyReviewStatusAsync(ctx, reviewID, st)
+	s.notifyReviewStatusInChatAsync(ctx, reviewID, st)
 	if st == "APPROVED" {
 		return map[string]any{"message": "Отзыв успешно опубликован"}, nil
 	}
@@ -197,11 +205,13 @@ func (s *ReviewService) runReviewAIPoll(ctx context.Context) error {
 		case "APPROVED":
 			_ = s.repo.SetReviewModeration(ctx, it.ID, "APPROVED")
 			s.notifyReviewStatusAsync(ctx, it.ID, "APPROVED")
+			s.notifyReviewStatusInChatAsync(ctx, it.ID, "APPROVED")
 		case "DENIED":
 			_ = s.repo.SetReviewModeration(ctx, it.ID, "DENIDED")
 			s.notifyReviewStatusAsync(ctx, it.ID, "DENIDED")
+			s.notifyReviewStatusInChatAsync(ctx, it.ID, "DENIDED")
 		default:
-			// manual queue: остаётся MODERATE
+			// Остается в ручной очереди MODERATE.
 		}
 	}
 	return nil
@@ -265,34 +275,83 @@ func (s *ReviewService) aiReviewDecision(ctx context.Context, text *string) (str
 	return d, parsed.Reason, nil
 }
 
-func (s *ReviewService) notifyNewReviewAsync(ctx context.Context, sellerID int32) {
-	if s.cfg.SMTPHost == "" {
+func (s *ReviewService) notifyReviewStatusAsync(ctx context.Context, reviewID int32, status string) {
+	authorName, authorEmail, authorPhone, sellerName, sellerEmail, sellerPhone, err := s.repo.GetReviewParties(ctx, reviewID)
+	if err != nil {
 		return
 	}
-	name, email, err := s.repo.UserEmailAndName(ctx, sellerID)
+	subjectAuthor := "Статус вашего отзыва"
+	subjectSeller := "Новый/обновленный отзыв"
+	bodyAuthor := fmt.Sprintf("<p>Здравствуйте, %s.</p><p>Статус отзыва: <b>%s</b>.</p>", authorName, status)
+	bodySeller := fmt.Sprintf("<p>По вашему профилю обновился статус отзыва: <b>%s</b>.</p>", status)
+	authorSMS := "Статус вашего отзыва: " + status
+	sellerSMS := "По вашему профилю обновился статус отзыва: " + status
+	if status == "MODERATE" {
+		subjectAuthor = "Ваш отзыв отправлен на модерацию"
+		bodyAuthor = fmt.Sprintf("<p>Здравствуйте, %s.</p><p>Ваш отзыв принят и отправлен на модерацию.</p>", authorName)
+		subjectSeller = "Новый отзыв ожидает модерацию"
+		bodySeller = fmt.Sprintf("<p>Здравствуйте, %s.</p><p>По вашему профилю оставили новый отзыв. После модерации он появится публично.</p>", sellerName)
+		authorSMS = "Ваш отзыв отправлен на модерацию."
+		sellerSMS = "Новый отзыв о вас ожидает модерацию."
+	}
+	go func() {
+		if strings.TrimSpace(s.cfg.SMTPHost) != "" {
+			_ = mailpkg.SendHTMLSmart(s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword, s.cfg.SMTPFrom, authorEmail, subjectAuthor, bodyAuthor, s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure)
+			_ = mailpkg.SendHTMLSmart(s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword, s.cfg.SMTPFrom, sellerEmail, subjectSeller, bodySeller, s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure)
+		}
+		s.sendSMS(authorPhone, authorSMS)
+		s.sendSMS(sellerPhone, sellerSMS)
+	}()
+}
+
+func (s *ReviewService) notifyReviewInChatAsync(ctx context.Context, reviewID int32) {
+	if s.chat == nil {
+		return
+	}
+	meta, err := s.repo.GetReviewMeta(ctx, reviewID)
 	if err != nil {
 		return
 	}
 	go func() {
-		_ = mailpkg.SendHTMLSmart(s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword, s.cfg.SMTPFrom, email,
-			"Новый отзыв", fmt.Sprintf("<p>Здравствуйте, %s.</p><p>По вашему профилю оставлен новый отзыв. Он пройдет модерацию перед публикацией.</p>", name),
-			s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure)
+		chat, err := s.chat.FindDirectChatBetweenUsers(context.Background(), meta.ReviewedByID, meta.ReviewedUserID)
+		if err != nil {
+			log.Printf("review chat find failed review=%d: %v", reviewID, err)
+			return
+		}
+		var chatID int32
+		if chat == nil {
+			chatID, err = s.chat.InsertDirectChat(context.Background(), meta.ReviewedByID, meta.ReviewedUserID)
+			if err != nil {
+				log.Printf("review chat create failed review=%d: %v", reviewID, err)
+				return
+			}
+		} else {
+			chatID = chat.ID
+		}
+		content := fmt.Sprintf("Оставлен новый отзыв (%0.1f★) пользователю \"%s\". Отзыв отправлен на модерацию.", meta.Rating, meta.ReviewedName)
+		if _, _, _, _, _, err := s.chat.InsertChatMessage(context.Background(), chatID, meta.ReviewedByID, content); err != nil {
+			log.Printf("review chat notify failed review=%d chat=%d: %v", reviewID, chatID, err)
+		}
 	}()
 }
 
-func (s *ReviewService) notifyReviewStatusAsync(ctx context.Context, reviewID int32, status string) {
-	authorName, authorEmail, sellerName, sellerEmail, err := s.repo.GetReviewParties(ctx, reviewID)
-	if err != nil || s.cfg.SMTPHost == "" {
+func (s *ReviewService) notifyReviewStatusInChatAsync(ctx context.Context, reviewID int32, status string) {
+	if s.chat == nil {
 		return
 	}
-	_ = sellerName
+	meta, err := s.repo.GetReviewMeta(ctx, reviewID)
+	if err != nil {
+		return
+	}
 	go func() {
-		_ = mailpkg.SendHTMLSmart(s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword, s.cfg.SMTPFrom, authorEmail,
-			"Статус вашего отзыва", fmt.Sprintf("<p>Здравствуйте, %s.</p><p>Статус отзыва: <b>%s</b>.</p>", authorName, status),
-			s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure)
-		_ = mailpkg.SendHTMLSmart(s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword, s.cfg.SMTPFrom, sellerEmail,
-			"Новый/обновленный отзыв", fmt.Sprintf("<p>По вашему профилю обновился статус отзыва: <b>%s</b>.</p>", status),
-			s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure)
+		chat, err := s.chat.FindDirectChatBetweenUsers(context.Background(), meta.ReviewedByID, meta.ReviewedUserID)
+		if err != nil || chat == nil {
+			return
+		}
+		content := fmt.Sprintf("Статус отзыва (%0.1f★) обновлен: %s.", meta.Rating, status)
+		if _, _, _, _, _, err := s.chat.InsertChatMessage(context.Background(), chat.ID, meta.ReviewedUserID, content); err != nil {
+			log.Printf("review chat status failed review=%d chat=%d: %v", reviewID, chat.ID, err)
+		}
 	}()
 }
 
@@ -307,7 +366,11 @@ func (s *ReviewService) CreateAppeal(ctx context.Context, userID, reviewID int32
 	if strings.TrimSpace(reason) == "" {
 		return &AppError{400, "Причина апелляции обязательна"}
 	}
-	return s.repo.CreateReviewAppeal(ctx, reviewID, userID, reason)
+	if err := s.repo.CreateReviewAppeal(ctx, reviewID, userID, reason); err != nil {
+		return err
+	}
+	s.notifyAppealInChatAsync(ctx, userID, reviewID, reason)
+	return nil
 }
 
 func (s *ReviewService) MyAppeals(ctx context.Context, userID int32) ([]repository.ReviewAppealRow, error) {
@@ -325,4 +388,82 @@ func (s *ReviewService) ResolveAppeal(ctx context.Context, moderatorID int32, ap
 		return &AppError{400, "status должен быть APPROVED или REJECTED"}
 	}
 	return s.repo.ResolveReviewAppeal(ctx, appealID, moderatorID, st, note)
+}
+
+func (s *ReviewService) notifyAppealInChatAsync(ctx context.Context, userID, reviewID int32, reason string) {
+	if s.chat == nil {
+		return
+	}
+	meta, err := s.repo.GetReviewMeta(ctx, reviewID)
+	if err != nil {
+		return
+	}
+	go func() {
+		chat, err := s.chat.FindDirectChatBetweenUsers(context.Background(), meta.ReviewedByID, meta.ReviewedUserID)
+		if err != nil || chat == nil {
+			return
+		}
+		senderID := meta.ReviewedByID
+		if userID == meta.ReviewedUserID {
+			senderID = meta.ReviewedUserID
+		}
+		content := "Подана апелляция по отзыву. Причина: " + strings.TrimSpace(reason)
+		if _, _, _, _, _, err := s.chat.InsertChatMessage(context.Background(), chat.ID, senderID, content); err != nil {
+			log.Printf("review appeal chat failed review=%d chat=%d: %v", reviewID, chat.ID, err)
+		}
+	}()
+}
+
+func (s *ReviewService) sendSMS(phone, message string) {
+	phone = strings.TrimSpace(phone)
+	message = strings.TrimSpace(message)
+	if phone == "" || message == "" {
+		return
+	}
+	if strings.TrimSpace(s.cfg.MTSBearer) != "" {
+		body := map[string]any{
+			"submits": []any{map[string]any{"msid": phone, "message": message}},
+			"naming":  "Torguisamru",
+		}
+		if err := s.httpPostJSON(context.Background(), "https://api.mts.ru/client-omni-adapter_production/1.0.2/mcom/messageManagement/messages", body, s.cfg.MTSBearer); err != nil {
+			log.Printf("review notify sms(mts) failed: phone=%s err=%v", phone, err)
+		}
+		return
+	}
+	if strings.TrimSpace(s.cfg.NotisendAPIKey) != "" {
+		u := "https://sms.notisend.ru/api/message/send?project=" + url.QueryEscape(s.cfg.NotisendProject) +
+			"&message=" + url.QueryEscape(message) +
+			"&recipients=" + url.QueryEscape(phone) +
+			"&apikey=" + url.QueryEscape(s.cfg.NotisendAPIKey)
+		resp, err := http.Get(u)
+		if err != nil {
+			log.Printf("review notify sms(notisend) failed: phone=%s err=%v", phone, err)
+			return
+		}
+		_ = resp.Body.Close()
+	}
+}
+
+func (s *ReviewService) httpPostJSON(ctx context.Context, endpoint string, body any, bearer string) error {
+	b, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(b))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if strings.TrimSpace(bearer) != "" {
+		req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(bearer))
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		return errors.New("sms gateway status " + resp.Status)
+	}
+	return nil
 }

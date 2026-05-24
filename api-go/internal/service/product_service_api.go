@@ -166,6 +166,14 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 		vidPtr = &v
 	}
 
+	hasPaid, err := s.prod.HasActivePaidPromotionForProduct(ctx, productID)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateProductContentLimits(len(existingImages)+len(files), description, hasPaid); err != nil {
+		return nil, err
+	}
+
 	var newImages []string
 	for _, f := range files {
 		u, err := s.s3.Upload(ctx, "products", f.Name, f.ContentType, f.Body)
@@ -209,7 +217,9 @@ func (s *ProductService) AvailableFilters(ctx context.Context, catSlug, subSlug,
 type ProductSearchQuery struct {
 	Search, CategorySlug, SubCategorySlug, TypeSlug *string
 	MinPrice, MaxPrice                              *int32
+	MinRating, MaxRating                            *float64
 	State, Region, ProfileType                      *string
+	HasSecureDeal                                   *bool
 	FieldValuesJSON                                 *string
 	SortBy                                          string
 	Page, Limit                                     int
@@ -276,7 +286,9 @@ func (s *ProductService) FindAll(ctx context.Context, viewer *int32, q ProductSe
 		sp.TypeID = id
 	}
 	sp.MinPrice, sp.MaxPrice = q.MinPrice, q.MaxPrice
+	sp.MinRating, sp.MaxRating = q.MinRating, q.MaxRating
 	sp.State, sp.Region, sp.ProfileType = q.State, q.Region, q.ProfileType
+	sp.HasSecureDeal = q.HasSecureDeal
 	if q.FieldValuesJSON != nil && strings.TrimSpace(*q.FieldValuesJSON) != "" {
 		m, err := parseFieldValuesMap(*q.FieldValuesJSON)
 		if err != nil {
