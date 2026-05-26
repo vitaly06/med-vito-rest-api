@@ -211,6 +211,17 @@ type CDEKCreateOrderInput struct {
 	WareKey         string
 	DeclaredCostRub float64
 	WeightGrams     int
+	LengthCm        int
+	WidthCm         int
+	HeightCm        int
+	FromAddress     *string
+}
+
+// CDEKOrderDetails — трек и последний статус из GET /orders/{uuid}.
+type CDEKOrderDetails struct {
+	Track      *string
+	StatusCode string
+	StatusName string
 }
 
 // CDEKCreateOrderResult — uuid заказа в CDEK и трек, если API уже вернул.
@@ -279,6 +290,18 @@ func buildCdekOrderPayload(in CDEKCreateOrderInput, includePvz bool) map[string]
 	if w <= 0 {
 		w = 1000
 	}
+	length := in.LengthCm
+	if length <= 0 {
+		length = 20
+	}
+	width := in.WidthCm
+	if width <= 0 {
+		width = 20
+	}
+	height := in.HeightCm
+	if height <= 0 {
+		height = 20
+	}
 	cost := in.DeclaredCostRub
 	if cost < 1 {
 		cost = 1
@@ -312,7 +335,7 @@ func buildCdekOrderPayload(in CDEKCreateOrderInput, includePvz bool) map[string]
 		"packages": []map[string]any{{
 			"number": "1",
 			"weight": w,
-			"length": 20, "width": 20, "height": 20,
+			"length": length, "width": width, "height": height,
 			"items": []map[string]any{{
 				"name":     pkgName,
 				"ware_key": wareKey,
@@ -329,6 +352,14 @@ func buildCdekOrderPayload(in CDEKCreateOrderInput, includePvz bool) map[string]
 		if addr := strings.TrimSpace(*in.ToAddress); addr != "" {
 			payload["to_location"] = map[string]any{
 				"code":    in.ToCityCode,
+				"address": addr,
+			}
+		}
+	}
+	if in.FromAddress != nil {
+		if addr := strings.TrimSpace(*in.FromAddress); addr != "" {
+			payload["from_location"] = map[string]any{
+				"code":    in.FromCityCode,
 				"address": addr,
 			}
 		}
@@ -460,6 +491,14 @@ func collectCDEKRequestMessages(body map[string]any) string {
 }
 
 func (s *CDEKService) TrackNumberByOrderUUID(ctx context.Context, orderUUID string) *string {
+	details := s.OrderDetailsByOrderUUID(ctx, orderUUID)
+	if details == nil {
+		return nil
+	}
+	return details.Track
+}
+
+func (s *CDEKService) OrderDetailsByOrderUUID(ctx context.Context, orderUUID string) *CDEKOrderDetails {
 	orderUUID = strings.TrimSpace(orderUUID)
 	if orderUUID == "" {
 		return nil
@@ -470,21 +509,62 @@ func (s *CDEKService) TrackNumberByOrderUUID(ctx context.Context, orderUUID stri
 		return nil
 	}
 
-	if v, ok := out["cdek_number"]; ok {
-		if track := strings.TrimSpace(fmt.Sprint(v)); track != "" && track != "<nil>" {
-			return &track
-		}
+	entity := out
+	if ent, ok := out["entity"].(map[string]any); ok {
+		entity = ent
 	}
-	if v, ok := out["entity"]; ok {
-		if entity, ok := v.(map[string]any); ok {
-			if t, ok := entity["cdek_number"]; ok {
-				if track := strings.TrimSpace(fmt.Sprint(t)); track != "" && track != "<nil>" {
-					return &track
-				}
+
+	details := &CDEKOrderDetails{}
+	if t := pickTrackFromOrderEntity(entity); t != nil {
+		details.Track = t
+	}
+	if t := pickTrackFromOrderEntity(out); t != nil && details.Track == nil {
+		details.Track = t
+	}
+	code, name := pickLastStatusFromOrderEntity(entity)
+	if code == "" && name == "" {
+		code, name = pickLastStatusFromOrderEntity(out)
+	}
+	details.StatusCode = code
+	details.StatusName = name
+	return details
+}
+
+func pickTrackFromOrderEntity(entity map[string]any) *string {
+	if entity == nil {
+		return nil
+	}
+	for _, key := range []string{"cdek_number", "tracking_number", "track_number"} {
+		if v, ok := entity[key]; ok {
+			if s := normalizeAnyString(v); s != nil {
+				return s
 			}
 		}
 	}
 	return nil
+}
+
+func pickLastStatusFromOrderEntity(entity map[string]any) (code, name string) {
+	if entity == nil {
+		return "", ""
+	}
+	if statuses, ok := entity["statuses"].([]any); ok && len(statuses) > 0 {
+		last := statuses[len(statuses)-1]
+		if m, ok := last.(map[string]any); ok {
+			if c := normalizeAnyString(m["code"]); c != nil {
+				code = strings.ToUpper(*c)
+			}
+			if n := normalizeAnyString(m["name"]); n != nil {
+				name = *n
+			}
+		}
+	}
+	if code == "" {
+		if c := normalizeAnyString(entity["status"]); c != nil {
+			code = strings.ToUpper(*c)
+		}
+	}
+	return code, name
 }
 
 func (s *CDEKService) QRByOrderUUID(ctx context.Context, orderUUID string) (*string, *string) {

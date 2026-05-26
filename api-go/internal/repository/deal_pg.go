@@ -44,9 +44,18 @@ type DealRow struct {
 	CDEKFromPVZ     *string
 	CDEKToPVZ       *string
 	CDEKToAddress   *string
-	CDEKOrderUUID   *string
-	CDEKTrackNumber *string
-	DisputeReason   *string
+	CDEKOrderUUID      *string
+	CDEKTrackNumber    *string
+	CDEKPackageWeight  *int32
+	CDEKPackageLength  *int32
+	CDEKPackageWidth   *int32
+	CDEKPackageHeight  *int32
+	CDEKRecipientMode  *string
+	CDEKSellerHandoff  *string
+	CDEKFromAddress    *string
+	CDEKStatus         *string
+	CDEKStatusAt       *time.Time
+	DisputeReason      *string
 	PaidAt          *time.Time
 	ShippedAt       *time.Time
 	DeliveredAt     *time.Time
@@ -71,9 +80,14 @@ type CreateDealParams struct {
 	CDEKTariffName *string
 	CDEKFromCity   *int32
 	CDEKToCity     *int32
-	CDEKFromPVZ    *string
-	CDEKToPVZ      *string
-	CDEKToAddress  *string
+	CDEKFromPVZ       *string
+	CDEKToPVZ         *string
+	CDEKToAddress     *string
+	CDEKPackageWeight *int32
+	CDEKPackageLength *int32
+	CDEKPackageWidth  *int32
+	CDEKPackageHeight *int32
+	CDEKRecipientMode *string
 }
 
 type DealProductInfo struct {
@@ -108,13 +122,15 @@ func (r *DealPG) Create(ctx context.Context, p CreateDealParams) (*DealRow, erro
 			"productId", "buyerId", "sellerId",
 			"productAmount", "deliveryCost", "platformFee", "sellerAmount", "totalAmount",
 			"cdekTariffCode", "cdekTariffName", "cdekFromCityCode", "cdekToCityCode", "cdekFromPvzCode", "cdekToPvzCode", "cdekToAddress",
+			"cdekPackageWeight", "cdekPackageLength", "cdekPackageWidth", "cdekPackageHeight", "cdekRecipientMode",
 			"createdAt", "updatedAt"
 		)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NOW(),NOW())
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,NOW(),NOW())
 		RETURNING id`,
 		p.ProductID, p.BuyerID, p.SellerID,
 		p.ProductAmount, p.DeliveryCost, p.PlatformFee, p.SellerAmount, p.TotalAmount,
 		p.CDEKTariffCode, p.CDEKTariffName, p.CDEKFromCity, p.CDEKToCity, p.CDEKFromPVZ, p.CDEKToPVZ, p.CDEKToAddress,
+		p.CDEKPackageWeight, p.CDEKPackageLength, p.CDEKPackageWidth, p.CDEKPackageHeight, p.CDEKRecipientMode,
 	).Scan(&id)
 	if err != nil {
 		return nil, err
@@ -197,6 +213,35 @@ func (r *DealPG) SetCDEKShipment(ctx context.Context, dealID int32, orderUUID, t
 		    "cdekTrackNumber" = COALESCE($3, "cdekTrackNumber"),
 		    "updatedAt" = NOW()
 		WHERE id = $1`, dealID, orderUUID, trackNumber)
+	return err
+}
+
+func (r *DealPG) SetCDEKSellerHandoff(ctx context.Context, dealID int32, handoff string, fromPvz, fromAddress *string) error {
+	tag, err := r.pool.Exec(ctx, `
+		UPDATE "ProductDeal"
+		SET "cdekSellerHandoff" = $2,
+		    "cdekFromPvzCode" = COALESCE($3, "cdekFromPvzCode"),
+		    "cdekFromAddress" = COALESCE($4, "cdekFromAddress"),
+		    "updatedAt" = NOW()
+		WHERE id = $1 AND status = 'PAID'::"DealStatus"`, dealID, handoff, fromPvz, fromAddress)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *DealPG) SetCDEKStatus(ctx context.Context, dealID int32, statusCode string) error {
+	statusCode = strings.TrimSpace(statusCode)
+	if statusCode == "" {
+		return nil
+	}
+	_, err := r.pool.Exec(ctx, `
+		UPDATE "ProductDeal"
+		SET "cdekStatus" = $2, "cdekStatusAt" = NOW(), "updatedAt" = NOW()
+		WHERE id = $1`, dealID, statusCode)
 	return err
 }
 
@@ -373,6 +418,8 @@ const dealSelectSQL = `
 		d."paymentId", d."orderId", d."paymentUrl",
 		d."cdekTariffCode", d."cdekTariffName", d."cdekFromCityCode", d."cdekToCityCode", d."cdekFromPvzCode", d."cdekToPvzCode", d."cdekToAddress",
 		d."cdekOrderUuid", d."cdekTrackNumber",
+		d."cdekPackageWeight", d."cdekPackageLength", d."cdekPackageWidth", d."cdekPackageHeight",
+		d."cdekRecipientMode", d."cdekSellerHandoff", d."cdekFromAddress", d."cdekStatus", d."cdekStatusAt",
 		d."disputeReason",
 		d."paidAt", d."shippedAt", d."deliveredAt", d."payoutAvailableAt", d."completedAt", d."cancelledAt", d."refundedAt",
 		d."createdAt", d."updatedAt"
@@ -392,6 +439,8 @@ func scanDeal(row pgx.Row) (*DealRow, error) {
 		&d.PaymentID, &d.OrderID, &d.PaymentURL,
 		&d.CDEKTariffCode, &d.CDEKTariffName, &d.CDEKFromCity, &d.CDEKToCity, &d.CDEKFromPVZ, &d.CDEKToPVZ, &d.CDEKToAddress,
 		&d.CDEKOrderUUID, &d.CDEKTrackNumber,
+		&d.CDEKPackageWeight, &d.CDEKPackageLength, &d.CDEKPackageWidth, &d.CDEKPackageHeight,
+		&d.CDEKRecipientMode, &d.CDEKSellerHandoff, &d.CDEKFromAddress, &d.CDEKStatus, &d.CDEKStatusAt,
 		&d.DisputeReason,
 		&d.PaidAt, &d.ShippedAt, &d.DeliveredAt, &d.PayoutAt, &d.CompletedAt, &d.CancelledAt, &d.RefundedAt,
 		&d.CreatedAt, &d.UpdatedAt,

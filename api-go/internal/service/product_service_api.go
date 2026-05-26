@@ -13,13 +13,13 @@ import (
 func (s *ProductService) DeleteProduct(ctx context.Context, productID, userID int32) (map[string]any, error) {
 	uid, imgs, err := s.prod.GetProductOwnerAndImages(ctx, productID)
 	if errors.Is(err, repository.ErrNotFound) {
-		return nil, &AppError{400, "РўРѕРІР°СЂ РґР»СЏ СѓРґР°Р»РµРЅРёСЏ РЅРµ РЅР°Р№РґРµРЅ"}
+		return nil, &AppError{400, "Товар для удаления не найден"}
 	}
 	if err != nil {
 		return nil, err
 	}
 	if uid != userID {
-		return nil, &AppError{403, "Р’С‹ РЅРµ РјРѕР¶РµС‚Рµ СѓРґР°Р»РёС‚СЊ С‡СѓР¶РѕР№ С‚РѕРІР°СЂ"}
+		return nil, &AppError{403, "Вы не можете удалить чужой товар"}
 	}
 	if s.s3 != nil {
 		for _, u := range imgs {
@@ -29,22 +29,22 @@ func (s *ProductService) DeleteProduct(ctx context.Context, productID, userID in
 	if err := s.prod.DeleteProductByID(ctx, productID); err != nil {
 		return nil, err
 	}
-	return map[string]any{"message": "РўРѕРІР°СЂ СѓСЃРїРµС€РЅРѕ СѓРґР°Р»С‘РЅ"}, nil
+	return map[string]any{"message": "Товар успешно удалён"}, nil
 }
 
 func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID int32, name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, videoStr, fieldJSON string, files []UploadedFile) (map[string]any, error) {
 	if s.s3 == nil && len(files) > 0 {
-		return nil, &AppError{500, "S3 РЅРµ РЅР°СЃС‚СЂРѕРµРЅ"}
+		return nil, &AppError{500, "S3 не настроен"}
 	}
 	uid, currentTypeID, existingImages, modState, err := s.prod.ProductWithTypeForUpdate(ctx, productID)
 	if errors.Is(err, repository.ErrNotFound) {
-		return nil, &AppError{400, "РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ"}
+		return nil, &AppError{400, "Товар не найден"}
 	}
 	if err != nil {
 		return nil, err
 	}
 	if uid != userID {
-		return nil, &AppError{403, "Р’С‹ РЅРµ РјРѕР¶РµС‚Рµ СЂРµРґР°РєС‚РёСЂРѕРІР°С‚СЊ С‡СѓР¶РѕР№ С‚РѕРІР°СЂ"}
+		return nil, &AppError{403, "Вы не можете редактировать чужой товар"}
 	}
 	isDraft := modState == "DRAFT"
 	fvMap, err := parseFieldValuesMap(fieldJSON)
@@ -109,7 +109,7 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 				return nil, err
 			}
 			if len(badNames) > 0 {
-				return nil, &AppError{400, fmt.Sprintf("РџРѕР»СЏ %s РЅРµ РїСЂРёРЅР°РґР»РµР¶Р°С‚ С‚РёРїСѓ СЌС‚РѕРіРѕ С‚РѕРІР°СЂР°", strings.Join(badNames, ", "))}
+				return nil, &AppError{400, fmt.Sprintf("Поля %s не принадлежат типу этого товара", strings.Join(badNames, ", "))}
 			}
 		}
 	}
@@ -125,7 +125,7 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 		p, err := strconv.Atoi(strings.TrimSpace(priceStr))
 		if err != nil || p < 1 {
 			if !isDraft {
-				return nil, &AppError{400, "РќРµРєРѕСЂСЂРµРєС‚РЅР°СЏ С†РµРЅР°"}
+				return nil, &AppError{400, "Некорректная цена"}
 			}
 		} else {
 			pp := int32(p)
@@ -178,7 +178,7 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 	for _, f := range files {
 		u, err := s.s3.Upload(ctx, "products", f.Name, f.ContentType, f.Body)
 		if err != nil {
-			return nil, &AppError{400, "РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РІ S3: " + err.Error()}
+			return nil, &AppError{400, "Ошибка загрузки в S3: " + err.Error()}
 		}
 		newImages = append(newImages, u)
 	}
@@ -189,9 +189,9 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 
 	if err := s.prod.UpdateProductPartial(ctx, productID, namePtr, pricePtr, quantityPtr, statePtr, descPtr, addrPtr, categoryIDPtr, subCategoryIDPtr, typeIDPtr, vidPtr, imgsArg); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, &AppError{400, "РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ"}
+			return nil, &AppError{400, "Товар не найден"}
 		}
-		return nil, &AppError{400, "РћС€РёР±РєР° РїСЂРё РѕР±РЅРѕРІР»РµРЅРёРё: " + err.Error()}
+		return nil, &AppError{400, "Ошибка при обновлении: " + err.Error()}
 	}
 	for k, v := range fvMap {
 		fid64, err := strconv.ParseInt(k, 10, 32)
@@ -206,14 +206,14 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"message": "РўРѕРІР°СЂ СѓСЃРїРµС€РЅРѕ РѕР±РЅРѕРІР»С‘РЅ", "product": prod}, nil
+	return map[string]any{"message": "Товар успешно обновлён", "product": prod}, nil
 }
 
 func (s *ProductService) AvailableFilters(ctx context.Context, catSlug, subSlug, typeSlug *string) (map[string]any, error) {
 	return s.prod.BuildAvailableFilters(ctx, catSlug, subSlug, typeSlug)
 }
 
-// ProductSearchQuery вЂ” query-РїР°СЂР°РјРµС‚СЂС‹ РїРѕРёСЃРєР°.
+// ProductSearchQuery — query-параметры поиска.
 type ProductSearchQuery struct {
 	Search, CategorySlug, SubCategorySlug, TypeSlug *string
 	MinPrice, MaxPrice                              *int32
@@ -358,7 +358,7 @@ func (s *ProductService) ProductsByUserID(ctx context.Context, viewer *int32, us
 		return nil, err
 	}
 	if !ok {
-		return nil, &AppError{400, "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ"}
+		return nil, &AppError{400, "Пользователь не найден"}
 	}
 	rows, err := s.prod.ListProductsByUser(ctx, userID)
 	if err != nil {
@@ -469,15 +469,15 @@ func (s *ProductService) RemoveFavorite(ctx context.Context, userID, productID i
 		return nil, err
 	}
 	if !ok {
-		return nil, &AppError{400, "РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ"}
+		return nil, &AppError{400, "Товар не найден"}
 	}
 	if err := s.prod.RemoveFavorite(ctx, userID, productID); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, &AppError{400, "РўРѕРІР°СЂ РЅРµ РІ РёР·Р±СЂР°РЅРЅРѕРј"}
+			return nil, &AppError{400, "Товар не в избранном"}
 		}
 		return nil, err
 	}
-	return map[string]any{"message": "РўРѕРІР°СЂ СѓСЃРїРµС€РЅРѕ СѓРґР°Р»С‘РЅ РёР· РёР·Р±СЂР°РЅРЅРѕРіРѕ"}, nil
+	return map[string]any{"message": "Товар успешно удалён из избранного"}, nil
 }
 
 func (s *ProductService) MyFavorites(ctx context.Context, userID int32) ([]map[string]any, error) {
@@ -495,13 +495,13 @@ func (s *ProductService) MyFavorites(ctx context.Context, userID int32) ([]map[s
 func (s *ProductService) GetProductCard(ctx context.Context, productID int32, viewer *int32) (map[string]any, error) {
 	card, err := s.prod.GetProductCard(ctx, productID)
 	if errors.Is(err, repository.ErrNotFound) {
-		return nil, &AppError{400, "РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ"}
+		return nil, &AppError{400, "Товар не найден"}
 	}
 	if err != nil {
 		return nil, err
 	}
 	if card.ModerateState == "DRAFT" && (viewer == nil || *viewer != card.UserID) {
-		return nil, &AppError{404, "РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ"}
+		return nil, &AppError{404, "Товар не найден"}
 	}
 	if viewer != nil && *viewer != card.UserID {
 		s.prod.UpsertProductView(ctx, *viewer, productID)
@@ -538,34 +538,34 @@ func (s *ProductService) GetProductCard(ctx context.Context, productID int32, vi
 func (s *ProductService) ToggleProduct(ctx context.Context, productID, userID int32) (map[string]any, error) {
 	uid, _, err := s.prod.GetProductOwnerAndImages(ctx, productID)
 	if errors.Is(err, repository.ErrNotFound) {
-		return nil, &AppError{404, "РўРѕРІР°СЂ РЅРµ РЅР°РґР№РµРЅ"}
+		return nil, &AppError{404, "Товар не найден"}
 	}
 	if err != nil {
 		return nil, err
 	}
 	if uid != userID {
-		return nil, &AppError{403, "Р’С‹ РЅРµ РјРѕР¶РµС‚Рµ СЂРµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РЅРµ СЃРІРѕР№ С‚РѕРІР°СЂ"}
+		return nil, &AppError{403, "Вы не можете редактировать не свой товар"}
 	}
 	if err := s.prod.ToggleProductHide(ctx, productID); err != nil {
 		return nil, err
 	}
-	return map[string]any{"message": "РЎС‚Р°С‚СѓСЃ Р°РєС‚РёРІРЅРѕСЃС‚Рё С‚РѕРІР°СЂР° СЃРјРµРЅРµРЅ"}, nil
+	return map[string]any{"message": "Статус активности товара сменён"}, nil
 }
 
 func (s *ProductService) ModerateProduct(ctx context.Context, productID int32, status, reason string) error {
 	st := strings.TrimSpace(strings.ToUpper(status))
 	if st != "APPROVED" && st != "DENIDED" {
-		return &AppError{400, "РќРµРІРµСЂРЅС‹Р№ СЃС‚Р°С‚СѓСЃ РјРѕРґРµСЂР°С†РёРё. Р”РѕСЃС‚СѓРїРЅС‹Рµ СЃС‚Р°С‚СѓС‚С‹: APPROVED, DENIDED"}
+		return &AppError{400, "Неверный статус модерации. Доступные статусы: APPROVED, DENIDED"}
 	}
 	name, sellerID, err := s.prod.GetProductNameAndSeller(ctx, productID)
 	if errors.Is(err, repository.ErrNotFound) {
-		return &AppError{404, "РўРѕРІР°СЂ РґР»СЏ РјРѕРґРµСЂР°С†РёРё РЅРµ РЅР°Р№РґРµРЅ"}
+		return &AppError{404, "Товар для модерации не найден"}
 	}
 	if err != nil {
 		return err
 	}
 	if st == "DENIDED" && strings.TrimSpace(reason) == "" {
-		return &AppError{400, "РќРµРѕР±С…РѕРґРёРјРѕ СѓРєР°Р·Р°С‚СЊ РїСЂРёС‡РёРЅСѓ РѕС‚РєР°Р·Р° РІ РјРѕРґРµСЂР°С†РёРё"}
+		return &AppError{400, "Необходимо указать причину отказа в модерации"}
 	}
 	var rptr *string
 	if st == "DENIDED" {
@@ -597,7 +597,7 @@ func (s *ProductService) ModerateProduct(ctx context.Context, productID int32, s
 		if err != nil {
 			return nil
 		}
-		msg := fmt.Sprintf("вќЊ Р’Р°С€ С‚РѕРІР°СЂ \"%s\" Р±С‹Р» РѕС‚РєР»РѕРЅРµРЅ РјРѕРґРµСЂР°С†РёРµР№.\n\nРџСЂРёС‡РёРЅР° РѕС‚РєР°Р·Р°: %s", name, *rptr)
+		msg := fmt.Sprintf("❌ Ваш товар \"%s\" был отклонён модерацией.\n\nПричина отказа: %s", name, *rptr)
 		mid, err := s.prod.InsertChatMessage(ctx, cid, *adminID, msg, productID)
 		if err != nil {
 			return nil
@@ -638,17 +638,17 @@ func (s *ProductService) AllPromotedProducts(ctx context.Context) ([]map[string]
 func (s *ProductService) TogglePromotion(ctx context.Context, promotionID int32) (map[string]any, error) {
 	pid, pName, promoName, active, start, end, err := s.prod.TogglePromotionActive(ctx, promotionID)
 	if errors.Is(err, repository.ErrNotFound) {
-		return nil, &AppError{404, "РџСЂРѕРґРІРёР¶РµРЅРёРµ РЅРµ РЅР°Р№РґРµРЅРѕ"}
+		return nil, &AppError{404, "Продвижение не найдено"}
 	}
 	if err != nil {
 		return nil, err
 	}
-	msg := "РѕС‚РєР»СЋС‡РµРЅРѕ"
+	msg := "отключено"
 	if active {
-		msg = "РІРєР»СЋС‡РµРЅРѕ"
+		msg = "включено"
 	}
 	return map[string]any{
-		"message": fmt.Sprintf("РџСЂРѕРґРІРёР¶РµРЅРёРµ %s", msg),
+		"message": fmt.Sprintf("Продвижение %s", msg),
 		"promotion": map[string]any{
 			"id": promotionID, "productId": pid, "productName": pName, "promotionType": promoName,
 			"isActive": active, "startDate": start, "endDate": end,

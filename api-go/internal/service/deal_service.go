@@ -28,15 +28,26 @@ func NewDealService(cfg config.Config, repo *repository.DealPG, logs *repository
 }
 
 type CreateDealRequest struct {
-	ProductID      int32   `json:"productId"`
-	DeliveryCost   int32   `json:"deliveryCost"`
-	CDEKTariffCode *int32  `json:"cdekTariffCode"`
-	CDEKTariffName *string `json:"cdekTariffName"`
-	CDEKFromCity   *int32  `json:"cdekFromCityCode"`
-	CDEKToCity     *int32  `json:"cdekToCityCode"`
-	CDEKFromPVZ    *string `json:"cdekFromPvzCode"`
-	CDEKToPVZ      *string `json:"cdekToPvzCode"`
-	CDEKToAddress  *string `json:"cdekToAddress"`
+	ProductID         int32   `json:"productId"`
+	DeliveryCost      int32   `json:"deliveryCost"`
+	CDEKTariffCode    *int32  `json:"cdekTariffCode"`
+	CDEKTariffName    *string `json:"cdekTariffName"`
+	CDEKFromCity      *int32  `json:"cdekFromCityCode"`
+	CDEKToCity        *int32  `json:"cdekToCityCode"`
+	CDEKFromPVZ       *string `json:"cdekFromPvzCode"`
+	CDEKToPVZ         *string `json:"cdekToPvzCode"`
+	CDEKToAddress     *string `json:"cdekToAddress"`
+	CDEKPackageWeight *int32  `json:"cdekPackageWeight"`
+	CDEKPackageLength *int32  `json:"cdekPackageLength"`
+	CDEKPackageWidth  *int32  `json:"cdekPackageWidth"`
+	CDEKPackageHeight *int32  `json:"cdekPackageHeight"`
+	CDEKRecipientMode *string `json:"cdekRecipientMode"`
+}
+
+type SetCdekHandoffRequest struct {
+	Mode          string  `json:"mode"`
+	CDEKFromPVZ   *string `json:"cdekFromPvzCode"`
+	CDEKFromAddress *string `json:"cdekFromAddress"`
 }
 
 type MarkShippedRequest struct {
@@ -55,7 +66,43 @@ func dealHasCdekAutoRoute(deal *repository.DealRow) bool {
 	return true
 }
 
-// ensureCdekOrderRegistered — создаёт заказ в CDEK и пишет uuid/трек в БД (идемпотентно по number).
+// sellerHandoffReady — продавец указал способ передачи (ПВЗ или курьер).
+func sellerHandoffReady(deal *repository.DealRow) bool {
+	if deal == nil || deal.CDEKSellerHandoff == nil {
+		return false
+	}
+	mode := strings.TrimSpace(*deal.CDEKSellerHandoff)
+	switch mode {
+	case "pvz":
+		return deal.CDEKFromPVZ != nil && strings.TrimSpace(*deal.CDEKFromPVZ) != ""
+	case "courier":
+		return deal.CDEKFromAddress != nil && strings.TrimSpace(*deal.CDEKFromAddress) != ""
+	default:
+		return false
+	}
+}
+
+func dealPackageDims(deal *repository.DealRow) (weight, length, width, height int) {
+	weight, length, width, height = 1000, 20, 20, 20
+	if deal == nil {
+		return
+	}
+	if deal.CDEKPackageWeight != nil && *deal.CDEKPackageWeight > 0 {
+		weight = int(*deal.CDEKPackageWeight)
+	}
+	if deal.CDEKPackageLength != nil && *deal.CDEKPackageLength > 0 {
+		length = int(*deal.CDEKPackageLength)
+	}
+	if deal.CDEKPackageWidth != nil && *deal.CDEKPackageWidth > 0 {
+		width = int(*deal.CDEKPackageWidth)
+	}
+	if deal.CDEKPackageHeight != nil && *deal.CDEKPackageHeight > 0 {
+		height = int(*deal.CDEKPackageHeight)
+	}
+	return
+}
+
+// ensureCdekOrderRegistered — создаёт заказ в CDEK после выбора передачи продавцом (идемпотентно по number).
 func (s *DealService) ensureCdekOrderRegistered(ctx context.Context, deal *repository.DealRow) (*string, *string, error) {
 	if deal == nil {
 		return nil, nil, nil
@@ -64,6 +111,9 @@ func (s *DealService) ensureCdekOrderRegistered(ctx context.Context, deal *repos
 		return nil, nil, nil
 	}
 	if !dealHasCdekAutoRoute(deal) {
+		return nil, nil, nil
+	}
+	if !sellerHandoffReady(deal) {
 		return nil, nil, nil
 	}
 	if s.cdek == nil || !s.cdek.configured() {
@@ -111,7 +161,10 @@ func (s *DealService) ensureCdekOrderRegistered(ctx context.Context, deal *repos
 		PackageName:     deal.ProductName,
 		WareKey:         fmt.Sprintf("deal-%d", deal.ID),
 		DeclaredCostRub: float64(deal.ProductAmount),
-		WeightGrams:     1000,
+	}
+	in.WeightGrams, in.LengthCm, in.WidthCm, in.HeightCm = dealPackageDims(deal)
+	if deal.CDEKSellerHandoff != nil && strings.TrimSpace(*deal.CDEKSellerHandoff) == "courier" {
+		in.FromAddress = deal.CDEKFromAddress
 	}
 	// CDEK can require to_location.address even for some "warehouse-warehouse" tariffs.
 	// If buyer selected PVZ but address is not saved, resolve address by PVZ code.
@@ -218,7 +271,7 @@ func (s *DealService) ensureCdekOrdersInList(ctx context.Context, deals []reposi
 		if used >= max {
 			break
 		}
-		if deals[i].Status != "PAID" || !dealHasCdekAutoRoute(&deals[i]) {
+		if deals[i].Status != "PAID" || !dealHasCdekAutoRoute(&deals[i]) || !sellerHandoffReady(&deals[i]) {
 			continue
 		}
 		if deals[i].CDEKOrderUUID != nil && strings.TrimSpace(*deals[i].CDEKOrderUUID) != "" {
@@ -283,9 +336,22 @@ func (s *DealService) CreateDeal(ctx context.Context, buyerID int32, req CreateD
 	if feePercent < 0 {
 		feePercent = 0
 	}
+	toPvz := normalizeStringPtr(req.CDEKToPVZ)
+	if toPvz == nil {
+		return nil, &AppError{400, "Укажи ПВЗ получателя (cdekToPvzCode)"}
+	}
+	if req.CDEKTariffCode != nil && *req.CDEKTariffCode != 136 {
+		return nil, &AppError{400, "Доступен только тариф 136 (склад-склад)"}
+	}
+	recipientMode := "pvz"
+	if req.CDEKPackageWeight != nil && *req.CDEKPackageWeight <= 0 {
+		return nil, &AppError{400, "Вес посылки должен быть больше 0"}
+	}
+
 	platformFee := int32(int(product.Price) * feePercent / 100)
 	sellerAmount := product.Price - platformFee
 	totalAmount := product.Price + req.DeliveryCost
+	recipientModePtr := recipientMode
 
 	deal, err := s.repo.Create(ctx, repository.CreateDealParams{
 		ProductID:      product.ID,
@@ -300,9 +366,14 @@ func (s *DealService) CreateDeal(ctx context.Context, buyerID int32, req CreateD
 		CDEKTariffName: normalizeStringPtr(req.CDEKTariffName),
 		CDEKFromCity:   req.CDEKFromCity,
 		CDEKToCity:     req.CDEKToCity,
-		CDEKFromPVZ:    normalizeStringPtr(req.CDEKFromPVZ),
-		CDEKToPVZ:      normalizeStringPtr(req.CDEKToPVZ),
-		CDEKToAddress:  normalizeStringPtr(req.CDEKToAddress),
+		CDEKFromPVZ:       normalizeStringPtr(req.CDEKFromPVZ),
+		CDEKToPVZ:         toPvz,
+		CDEKToAddress:     normalizeStringPtr(req.CDEKToAddress),
+		CDEKPackageWeight: req.CDEKPackageWeight,
+		CDEKPackageLength: req.CDEKPackageLength,
+		CDEKPackageWidth:  req.CDEKPackageWidth,
+		CDEKPackageHeight: req.CDEKPackageHeight,
+		CDEKRecipientMode: &recipientModePtr,
 	})
 	if err != nil {
 		return nil, err
@@ -416,6 +487,51 @@ func (s *DealService) SyncDealPayment(ctx context.Context, buyerID, dealID int32
 	return map[string]any{"deal": s.formatDeal(*updated)}, nil
 }
 
+func (s *DealService) SetCdekHandoff(ctx context.Context, sellerID, dealID int32, req SetCdekHandoffRequest) (map[string]any, error) {
+	deal, err := s.getUserDeal(ctx, dealID, sellerID, "seller")
+	if err != nil {
+		return nil, err
+	}
+	if deal.Status != "PAID" {
+		return nil, &AppError{400, "Способ передачи можно указать только после оплаты"}
+	}
+	mode := strings.ToLower(strings.TrimSpace(req.Mode))
+	if mode != "pvz" && mode != "courier" {
+		return nil, &AppError{400, "mode: pvz или courier"}
+	}
+	var fromPvz, fromAddr *string
+	switch mode {
+	case "pvz":
+		fromPvz = normalizeStringPtr(req.CDEKFromPVZ)
+		if fromPvz == nil {
+			return nil, &AppError{400, "Укажи код ПВЗ СДЭК, куда сдашь посылку (cdekFromPvzCode)"}
+		}
+	case "courier":
+		fromAddr = normalizeStringPtr(req.CDEKFromAddress)
+		if fromAddr == nil {
+			return nil, &AppError{400, "Укажи адрес забора курьером (cdekFromAddress)"}
+		}
+	}
+	if err := s.repo.SetCDEKSellerHandoff(ctx, dealID, mode, fromPvz, fromAddr); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, &AppError{400, "Не удалось сохранить способ передачи"}
+		}
+		return nil, err
+	}
+	fresh, err := s.repo.FindByID(ctx, dealID)
+	if err != nil {
+		return nil, err
+	}
+	if _, _, regErr := s.ensureCdekOrderRegistered(ctx, fresh); regErr != nil {
+		return nil, regErr
+	}
+	if updated, e := s.repo.FindByID(ctx, dealID); e == nil {
+		fresh = updated
+	}
+	s.writeDealLog(ctx, sellerID, dealID, "cdek_handoff", "seller handoff: "+mode)
+	return s.formatDeal(*s.refreshDealFromCDEK(ctx, fresh)), nil
+}
+
 func (s *DealService) MarkShipped(ctx context.Context, sellerID, dealID int32, req MarkShippedRequest) (map[string]any, error) {
 	deal, err := s.getUserDeal(ctx, dealID, sellerID, "seller")
 	if err != nil {
@@ -423,6 +539,9 @@ func (s *DealService) MarkShipped(ctx context.Context, sellerID, dealID int32, r
 	}
 	if deal.Status != "PAID" {
 		return nil, &AppError{400, "Отправку можно подтвердить только после оплаты"}
+	}
+	if dealHasCdekAutoRoute(deal) && !sellerHandoffReady(deal) {
+		return nil, &AppError{400, "Сначала выбери способ передачи в СДЭК (ПВЗ или курьер)"}
 	}
 	orderUUID := normalizeStringPtr(req.CDEKOrderUUID)
 	trackNumber := normalizeStringPtr(req.CDEKTrackNumber)
@@ -450,8 +569,8 @@ func (s *DealService) MarkShipped(ctx context.Context, sellerID, dealID int32, r
 			trackNumber = tt
 		}
 	}
-	if hasRoute && cdekOn && orderUUID == nil && trackNumber == nil {
-		return nil, &AppError{400, "Нужны данные отправки CDEK (uuid или трек). Проверь ключи CDEK и телефоны участников."}
+	if hasRoute && cdekOn && orderUUID == nil {
+		return nil, &AppError{400, "Сначала оформи передачу в СДЭК — должен появиться UUID заказа"}
 	}
 	if trackNumber == nil && orderUUID != nil && s.cdek != nil {
 		if fetchedTrack := s.cdek.TrackNumberByOrderUUID(ctx, *orderUUID); fetchedTrack != nil {
@@ -547,15 +666,7 @@ func (s *DealService) GetDeal(ctx context.Context, userID, dealID int32) (map[st
 	if err != nil {
 		return nil, err
 	}
-	// Автозаказ CDEK только у продавца при открытии карточки (покупатель не дергает CDEK зря).
-	if deal.Status == "PAID" && userID == deal.SellerID {
-		if _, _, regErr := s.ensureCdekOrderRegistered(ctx, deal); regErr != nil {
-			log.Printf("cdek auto-order getDeal seller deal=%d: %v", deal.ID, regErr)
-		} else if fresh, e := s.repo.FindByID(ctx, deal.ID); e == nil {
-			deal = fresh
-		}
-	}
-	deal = s.refreshDealTrackFromCDEK(ctx, deal)
+	deal = s.refreshDealFromCDEK(ctx, deal)
 	return s.formatDeal(*deal), nil
 }
 
@@ -564,14 +675,7 @@ func (s *DealService) GetDealCDEKQR(ctx context.Context, userID, dealID int32) (
 	if err != nil {
 		return nil, err
 	}
-	if deal.Status == "PAID" {
-		if _, _, regErr := s.ensureCdekOrderRegistered(ctx, deal); regErr != nil {
-			log.Printf("cdek auto-order qr deal=%d: %v", deal.ID, regErr)
-		} else if fresh, e := s.repo.FindByID(ctx, deal.ID); e == nil {
-			deal = fresh
-		}
-	}
-	deal = s.refreshDealTrackFromCDEK(ctx, deal)
+	deal = s.refreshDealFromCDEK(ctx, deal)
 	if deal.CDEKOrderUUID == nil || strings.TrimSpace(*deal.CDEKOrderUUID) == "" {
 		return nil, &AppError{404, "Для сделки еще не сохранен orderUuid CDEK"}
 	}
@@ -599,7 +703,7 @@ func (s *DealService) MyPurchases(ctx context.Context, buyerID int32) ([]map[str
 		return nil, err
 	}
 	s.ensureCdekOrdersInList(ctx, deals, 12)
-	deals, _ = s.refreshDealsTracksFromCDEK(ctx, deals, 5)
+	deals, _ = s.refreshDealsFromCDEK(ctx, deals, 5)
 	return s.formatDeals(deals), nil
 }
 
@@ -609,7 +713,7 @@ func (s *DealService) MySales(ctx context.Context, sellerID int32) ([]map[string
 		return nil, err
 	}
 	s.ensureCdekOrdersInList(ctx, deals, 12)
-	deals, _ = s.refreshDealsTracksFromCDEK(ctx, deals, 5)
+	deals, _ = s.refreshDealsFromCDEK(ctx, deals, 5)
 	return s.formatDeals(deals), nil
 }
 
@@ -624,12 +728,12 @@ func (s *DealService) MyAllDeals(ctx context.Context, userID int32) ([]map[strin
 	}
 	s.ensureCdekOrdersInList(ctx, purchases, 12)
 	s.ensureCdekOrdersInList(ctx, sales, 12)
-	purchases, usedBudget := s.refreshDealsTracksFromCDEK(ctx, purchases, 5)
+	purchases, usedBudget := s.refreshDealsFromCDEK(ctx, purchases, 5)
 	remainingBudget := 5 - usedBudget
 	if remainingBudget < 0 {
 		remainingBudget = 0
 	}
-	sales, _ = s.refreshDealsTracksFromCDEK(ctx, sales, remainingBudget)
+	sales, _ = s.refreshDealsFromCDEK(ctx, sales, remainingBudget)
 	all := make([]map[string]any, 0, len(purchases)+len(sales))
 	for _, deal := range purchases {
 		item := s.formatDeal(deal)
@@ -772,21 +876,41 @@ func formatDealCDEK(deal repository.DealRow) map[string]any {
 	}
 	regHint := buildCdekRegistrationHint(deal)
 	sellerNote := buildCdekSellerHandoffNote(deal)
+	pkg := map[string]any{}
+	if deal.CDEKPackageWeight != nil {
+		pkg["weight"] = *deal.CDEKPackageWeight
+	}
+	if deal.CDEKPackageLength != nil {
+		pkg["length"] = *deal.CDEKPackageLength
+	}
+	if deal.CDEKPackageWidth != nil {
+		pkg["width"] = *deal.CDEKPackageWidth
+	}
+	if deal.CDEKPackageHeight != nil {
+		pkg["height"] = *deal.CDEKPackageHeight
+	}
 	out := map[string]any{
-		"tariffCode":   deal.CDEKTariffCode,
-		"tariffName":   deal.CDEKTariffName,
-		"fromCityCode": deal.CDEKFromCity,
-		"toCityCode":   deal.CDEKToCity,
-		"fromPvzCode":  deal.CDEKFromPVZ,
-		"toPvzCode":    deal.CDEKToPVZ,
-		"toAddress":    deal.CDEKToAddress,
-		"orderUuid":    deal.CDEKOrderUUID,
-		"trackNumber":  deal.CDEKTrackNumber,
-		"trackingUrl":  buildCDEKTrackingURL(deal.CDEKTrackNumber),
-		"trackPending": trackPending,
-		// Тексты для UI — одна правда с бэка, без расхождений тариф/ПВЗ.
+		"tariffCode":      deal.CDEKTariffCode,
+		"tariffName":      deal.CDEKTariffName,
+		"fromCityCode":    deal.CDEKFromCity,
+		"toCityCode":      deal.CDEKToCity,
+		"fromPvzCode":     deal.CDEKFromPVZ,
+		"toPvzCode":       deal.CDEKToPVZ,
+		"toAddress":       deal.CDEKToAddress,
+		"fromAddress":     deal.CDEKFromAddress,
+		"recipientMode":   deal.CDEKRecipientMode,
+		"sellerHandoff":   deal.CDEKSellerHandoff,
+		"cdekStatus":      deal.CDEKStatus,
+		"orderUuid":       deal.CDEKOrderUUID,
+		"trackNumber":     deal.CDEKTrackNumber,
+		"trackingUrl":     buildCDEKTrackingURL(deal.CDEKTrackNumber),
+		"trackPending":    trackPending,
 		"registrationHint":  regHint,
 		"sellerHandoffHint": sellerNote,
+		"deliveryStages":    buildCdekDeliveryStages(deal),
+	}
+	if len(pkg) > 0 {
+		out["package"] = pkg
 	}
 	if regHint == "" {
 		delete(out, "registrationHint")
@@ -806,7 +930,7 @@ func buildCDEKTrackingURL(trackNumber *string) *string {
 	return &url
 }
 
-func (s *DealService) refreshDealTrackFromCDEK(ctx context.Context, deal *repository.DealRow) *repository.DealRow {
+func (s *DealService) refreshDealFromCDEK(ctx context.Context, deal *repository.DealRow) *repository.DealRow {
 	if deal == nil || s.cdek == nil || deal.CDEKOrderUUID == nil {
 		return deal
 	}
@@ -815,21 +939,38 @@ func (s *DealService) refreshDealTrackFromCDEK(ctx context.Context, deal *reposi
 		return deal
 	}
 
-	liveTrack := s.cdek.TrackNumberByOrderUUID(ctx, orderUUID)
-	if liveTrack == nil {
+	details := s.cdek.OrderDetailsByOrderUUID(ctx, orderUUID)
+	if details == nil {
 		return deal
 	}
+
 	currentTrack := ""
 	if deal.CDEKTrackNumber != nil {
 		currentTrack = strings.TrimSpace(*deal.CDEKTrackNumber)
 	}
-	if currentTrack == strings.TrimSpace(*liveTrack) {
+	newTrack := ""
+	if details.Track != nil {
+		newTrack = strings.TrimSpace(*details.Track)
+	}
+	currentStatus := ""
+	if deal.CDEKStatus != nil {
+		currentStatus = strings.TrimSpace(*deal.CDEKStatus)
+	}
+	statusChanged := details.StatusCode != "" && details.StatusCode != currentStatus
+	trackChanged := newTrack != "" && newTrack != currentTrack
+
+	if !trackChanged && !statusChanged {
 		return deal
 	}
 
-	// Обновляем трек в БД, чтобы дальше фронт получал консистентные данные.
-	if err := s.repo.SetCDEKShipment(ctx, deal.ID, nil, liveTrack); err != nil {
-		return deal
+	if trackChanged {
+		if err := s.repo.SetCDEKShipment(ctx, deal.ID, nil, &newTrack); err != nil {
+			return deal
+		}
+		s.notifyCdekTrackToBuyer(ctx, *deal, newTrack)
+	}
+	if statusChanged {
+		_ = s.repo.SetCDEKStatus(ctx, deal.ID, details.StatusCode)
 	}
 	updated, err := s.repo.FindByID(ctx, deal.ID)
 	if err != nil {
@@ -838,7 +979,23 @@ func (s *DealService) refreshDealTrackFromCDEK(ctx context.Context, deal *reposi
 	return updated
 }
 
-func (s *DealService) refreshDealsTracksFromCDEK(ctx context.Context, deals []repository.DealRow, maxLive int) ([]repository.DealRow, int) {
+func (s *DealService) notifyCdekTrackToBuyer(ctx context.Context, deal repository.DealRow, track string) {
+	if s.chat == nil || track == "" {
+		return
+	}
+	chat, err := s.chat.FindChatByProductParticipants(ctx, deal.ProductID, deal.BuyerID, deal.SellerID)
+	if err != nil || chat == nil {
+		return
+	}
+	url := "https://www.cdek.ru/ru/tracking?order_id=" + track
+	content := fmt.Sprintf(
+		"Посылка по сделке #%d принята СДЭК. Трек: %s. Отслеживание: %s. Когда груз прибудет, СДЭК пришлёт SMS с кодом для получения.",
+		deal.ID, track, url,
+	)
+	_, _, _, _, _, _ = s.chat.InsertChatMessage(ctx, chat.ID, deal.SellerID, content)
+}
+
+func (s *DealService) refreshDealsFromCDEK(ctx context.Context, deals []repository.DealRow, maxLive int) ([]repository.DealRow, int) {
 	if maxLive <= 0 || len(deals) == 0 {
 		return deals, 0
 	}
@@ -850,7 +1007,7 @@ func (s *DealService) refreshDealsTracksFromCDEK(ctx context.Context, deals []re
 		if !dealNeedsLiveTrackSync(deals[i]) {
 			continue
 		}
-		updated := s.refreshDealTrackFromCDEK(ctx, &deals[i])
+		updated := s.refreshDealFromCDEK(ctx, &deals[i])
 		if updated != nil {
 			deals[i] = *updated
 		}

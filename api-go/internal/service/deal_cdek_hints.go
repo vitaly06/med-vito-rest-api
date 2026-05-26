@@ -7,8 +7,31 @@ import (
 	"med-vito/api-go/internal/repository"
 )
 
-// buildCdekSellerHandoffNote — текст для продавца из тарифа и ПВЗ (без противоречия «дверь-дверь» vs «сдай в ПВЗ»).
 func buildCdekSellerHandoffNote(deal repository.DealRow) string {
+	if deal.CDEKSellerHandoff == nil || strings.TrimSpace(*deal.CDEKSellerHandoff) == "" {
+		return "После оплаты выбери способ передачи: сдать в ПВЗ СДЭК или вызвать курьера. Затем принеси посылку — сотрудник проверит и упакует."
+	}
+	switch strings.TrimSpace(*deal.CDEKSellerHandoff) {
+	case "courier":
+		addr := ""
+		if deal.CDEKFromAddress != nil {
+			addr = strings.TrimSpace(*deal.CDEKFromAddress)
+		}
+		if addr != "" {
+			return fmt.Sprintf("Курьер СДЭК заберёт посылку по адресу: %s. Дождись приезда, передай груз после проверки.", addr)
+		}
+		return "Курьер СДЭК заберёт посылку с указанного адреса. После приёма в сеть появится трек-номер."
+	case "pvz":
+		if deal.CDEKFromPVZ != nil && strings.TrimSpace(*deal.CDEKFromPVZ) != "" {
+			return fmt.Sprintf("Принеси посылку в пункт СДЭК %s. Сотрудник проверит содержимое, упакует и примет отправление.", strings.TrimSpace(*deal.CDEKFromPVZ))
+		}
+		return "Принеси посылку в выбранный пункт СДЭК — сотрудник проверит содержимое и упакует груз."
+	default:
+		return buildCdekSellerHandoffNoteLegacy(deal)
+	}
+}
+
+func buildCdekSellerHandoffNoteLegacy(deal repository.DealRow) string {
 	tn := ""
 	if deal.CDEKTariffName != nil {
 		tn = strings.ToLower(strings.TrimSpace(*deal.CDEKTariffName))
@@ -17,35 +40,15 @@ func buildCdekSellerHandoffNote(deal repository.DealRow) string {
 	if deal.CDEKToPVZ != nil {
 		toPvz = strings.TrimSpace(*deal.CDEKToPVZ)
 	}
-	fromPvz := ""
-	if deal.CDEKFromPVZ != nil {
-		fromPvz = strings.TrimSpace(*deal.CDEKFromPVZ)
+	if strings.Contains(tn, "дверь") && toPvz != "" {
+		return fmt.Sprintf("Тариф с доставкой до двери. ПВЗ покупателя в сделке: %s — уточни в ЛК СДЭК точку вручения.", toPvz)
 	}
-
-	hasDoor := strings.Contains(tn, "дверь")
-	hasPvzWord := strings.Contains(tn, "пвз") || strings.Contains(tn, "склад") ||
-		strings.Contains(tn, "постамат") || strings.Contains(tn, "пункт")
-
-	if hasDoor && !hasPvzWord {
-		if toPvz != "" {
-			return fmt.Sprintf(
-				"Тариф с доставкой до двери: при сдаче в CDEK согласуй адреса забора и вручения. В сделке также указан ПВЗ покупателя %s — если фактическая выдача там, проверь в ЛК CDEK, что тариф и точка согласованы.",
-				toPvz,
-			)
-		}
-		return "Тариф с доставкой до двери: при сдаче в CDEK согласуй адреса забора и вручения в личном кабинете или с менеджером."
-	}
-
 	if toPvz != "" {
-		return fmt.Sprintf("Передай отправление в CDEK для выдачи в ПВЗ покупателя: %s.", toPvz)
+		return fmt.Sprintf("Передай отправление в СДЭК для выдачи покупателю в ПВЗ: %s.", toPvz)
 	}
-	if fromPvz != "" {
-		return fmt.Sprintf("Сдай отправление в своём пункте CDEK: %s.", fromPvz)
-	}
-	return "Проверь в личном кабинете CDEK тариф и точки отправления/получения по этой сделке."
+	return "Проверь в личном кабинете СДЭК тариф и точки по этой сделке."
 }
 
-// buildCdekRegistrationHint — когда ждать UUID/трек (данные с нашей логики + CDEK API).
 func buildCdekRegistrationHint(deal repository.DealRow) string {
 	hasUUID := deal.CDEKOrderUUID != nil && strings.TrimSpace(*deal.CDEKOrderUUID) != ""
 	track := ""
@@ -54,7 +57,7 @@ func buildCdekRegistrationHint(deal repository.DealRow) string {
 	}
 
 	if hasUUID && track == "" {
-		return "Трек-номер присвоит CDEK после приёма отправления в сеть — обнови страницу позже или открой трекинг по ссылке, когда появится."
+		return "Трек-номер присвоит СДЭК после приёма посылки в сеть (этап «Передача»). Обнови страницу позже."
 	}
 	if hasUUID {
 		return ""
@@ -62,12 +65,15 @@ func buildCdekRegistrationHint(deal repository.DealRow) string {
 
 	switch deal.Status {
 	case "CREATED":
-		return "Заказ в CDEK создаётся после оплаты покупателем — здесь появятся UUID и трек из API CDEK."
+		return "После оплаты продавец оформит заявку в СДЭК (получатель и вес уже указаны при создании сделки)."
 	case "PAID":
-		return "Ожидаем регистрацию в CDEK (автоматически). Обнови через 1–2 минуты. Если UUID пустой — проверь ключи CDEK на сервере и логи API."
+		if deal.CDEKSellerHandoff == nil || strings.TrimSpace(*deal.CDEKSellerHandoff) == "" {
+			return "Продавец должен выбрать способ передачи (ПВЗ или курьер) — затем создастся заказ в СДЭК."
+		}
+		return "Заказ в СДЭК создаётся после выбора способа передачи. Если UUID пустой — обнови через минуту или проверь ключи CDEK."
 	default:
 		if deal.Status == "SHIPPED" || deal.Status == "DELIVERED" {
-			return "UUID заказа CDEK в этой сделке не сохранён — расширенные данные из API CDEK могут быть недоступны."
+			return "UUID заказа СДЭК не сохранён — трекинг может быть ограничен."
 		}
 		return ""
 	}

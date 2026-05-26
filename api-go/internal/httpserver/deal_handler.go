@@ -107,6 +107,23 @@ func RegisterDealRoutes(app fiber.Router, deals *service.DealService, auth *serv
 		return c.JSON(out)
 	})
 
+	g.Post("/:id/cdek-handoff", sess, func(c *fiber.Ctx) error {
+		id, err := parseDealID(c)
+		if err != nil {
+			return err
+		}
+		var body service.SetCdekHandoffRequest
+		if err := c.BodyParser(&body); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректное тело"})
+		}
+		me := authmw.UserFromLocals(c)
+		out, err := deals.SetCdekHandoff(c.UserContext(), me.ID, id, body)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
 	g.Post("/:id/mark-shipped", sess, func(c *fiber.Ctx) error {
 		id, err := parseDealID(c)
 		if err != nil {
