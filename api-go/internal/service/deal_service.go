@@ -208,6 +208,16 @@ func (s *DealService) ensureCdekOrderRegistered(ctx context.Context, deal *repos
 	if res == nil || res.OrderUUID == nil {
 		return nil, nil, &AppError{502, "CDEK не вернул uuid заказа"}
 	}
+	if byNumber, lookErr := s.cdek.LookupOrderByClientNumber(ctx, clientNumber); lookErr == nil && byNumber != nil {
+		// Prefer canonical lookup by client number: CDEK can return a request UUID in create response,
+		// while list lookup contains the final order UUID and sometimes track.
+		if byNumber.OrderUUID != nil && strings.TrimSpace(*byNumber.OrderUUID) != "" {
+			res.OrderUUID = byNumber.OrderUUID
+		}
+		if byNumber.Track != nil && strings.TrimSpace(*byNumber.Track) != "" {
+			res.Track = byNumber.Track
+		}
+	}
 	u := strings.TrimSpace(*res.OrderUUID)
 	uu := u
 	var tt *string
@@ -961,7 +971,21 @@ func (s *DealService) refreshDealFromCDEK(ctx context.Context, deal *repository.
 
 	details := s.cdek.OrderDetailsByOrderUUID(ctx, orderUUID)
 	if details == nil {
-		return deal
+		details = &CDEKOrderDetails{}
+	}
+	if details.Track == nil || strings.TrimSpace(*details.Track) == "" {
+		if byNumber, err := s.cdek.LookupOrderByClientNumber(ctx, fmt.Sprintf("med-vito-deal-%d", deal.ID)); err == nil && byNumber != nil {
+			if byNumber.Track != nil && strings.TrimSpace(*byNumber.Track) != "" {
+				details.Track = byNumber.Track
+			}
+			if byNumber.OrderUUID != nil {
+				lookupUUID := strings.TrimSpace(*byNumber.OrderUUID)
+				if lookupUUID != "" && lookupUUID != orderUUID {
+					_ = s.repo.SetCDEKShipment(ctx, deal.ID, &lookupUUID, nil)
+					orderUUID = lookupUUID
+				}
+			}
+		}
 	}
 
 	currentTrack := ""
