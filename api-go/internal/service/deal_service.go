@@ -45,8 +45,8 @@ type CreateDealRequest struct {
 }
 
 type SetCdekHandoffRequest struct {
-	Mode          string  `json:"mode"`
-	CDEKFromPVZ   *string `json:"cdekFromPvzCode"`
+	Mode            string  `json:"mode"`
+	CDEKFromPVZ     *string `json:"cdekFromPvzCode"`
 	CDEKFromAddress *string `json:"cdekFromAddress"`
 }
 
@@ -354,18 +354,18 @@ func (s *DealService) CreateDeal(ctx context.Context, buyerID int32, req CreateD
 	recipientModePtr := recipientMode
 
 	deal, err := s.repo.Create(ctx, repository.CreateDealParams{
-		ProductID:      product.ID,
-		BuyerID:        buyerID,
-		SellerID:       product.UserID,
-		ProductAmount:  product.Price,
-		DeliveryCost:   req.DeliveryCost,
-		PlatformFee:    platformFee,
-		SellerAmount:   sellerAmount,
-		TotalAmount:    totalAmount,
-		CDEKTariffCode: req.CDEKTariffCode,
-		CDEKTariffName: normalizeStringPtr(req.CDEKTariffName),
-		CDEKFromCity:   req.CDEKFromCity,
-		CDEKToCity:     req.CDEKToCity,
+		ProductID:         product.ID,
+		BuyerID:           buyerID,
+		SellerID:          product.UserID,
+		ProductAmount:     product.Price,
+		DeliveryCost:      req.DeliveryCost,
+		PlatformFee:       platformFee,
+		SellerAmount:      sellerAmount,
+		TotalAmount:       totalAmount,
+		CDEKTariffCode:    req.CDEKTariffCode,
+		CDEKTariffName:    normalizeStringPtr(req.CDEKTariffName),
+		CDEKFromCity:      req.CDEKFromCity,
+		CDEKToCity:        req.CDEKToCity,
 		CDEKFromPVZ:       normalizeStringPtr(req.CDEKFromPVZ),
 		CDEKToPVZ:         toPvz,
 		CDEKToAddress:     normalizeStringPtr(req.CDEKToAddress),
@@ -505,6 +505,26 @@ func (s *DealService) SetCdekHandoff(ctx context.Context, sellerID, dealID int32
 		fromPvz = normalizeStringPtr(req.CDEKFromPVZ)
 		if fromPvz == nil {
 			return nil, &AppError{400, "Укажи код ПВЗ СДЭК, куда сдашь посылку (cdekFromPvzCode)"}
+		}
+		if deal.CDEKFromCity == nil || *deal.CDEKFromCity <= 0 {
+			return nil, &AppError{400, "Не удалось определить город отправителя для выбора ПВЗ"}
+		}
+		if s.cdek != nil {
+			points, pErr := s.cdek.DeliveryPoints(ctx, int(*deal.CDEKFromCity))
+			if pErr != nil {
+				return nil, &AppError{400, "Не удалось проверить ПВЗ отправителя"}
+			}
+			valid := false
+			wanted := strings.TrimSpace(*fromPvz)
+			for _, p := range points {
+				if strings.EqualFold(strings.TrimSpace(fmt.Sprint(p["code"])), wanted) {
+					valid = true
+					break
+				}
+			}
+			if !valid {
+				return nil, &AppError{400, "Выбранный ПВЗ не найден в городе отправителя"}
+			}
 		}
 	case "courier":
 		fromAddr = normalizeStringPtr(req.CDEKFromAddress)
@@ -890,21 +910,21 @@ func formatDealCDEK(deal repository.DealRow) map[string]any {
 		pkg["height"] = *deal.CDEKPackageHeight
 	}
 	out := map[string]any{
-		"tariffCode":      deal.CDEKTariffCode,
-		"tariffName":      deal.CDEKTariffName,
-		"fromCityCode":    deal.CDEKFromCity,
-		"toCityCode":      deal.CDEKToCity,
-		"fromPvzCode":     deal.CDEKFromPVZ,
-		"toPvzCode":       deal.CDEKToPVZ,
-		"toAddress":       deal.CDEKToAddress,
-		"fromAddress":     deal.CDEKFromAddress,
-		"recipientMode":   deal.CDEKRecipientMode,
-		"sellerHandoff":   deal.CDEKSellerHandoff,
-		"cdekStatus":      deal.CDEKStatus,
-		"orderUuid":       deal.CDEKOrderUUID,
-		"trackNumber":     deal.CDEKTrackNumber,
-		"trackingUrl":     buildCDEKTrackingURL(deal.CDEKTrackNumber),
-		"trackPending":    trackPending,
+		"tariffCode":        deal.CDEKTariffCode,
+		"tariffName":        deal.CDEKTariffName,
+		"fromCityCode":      deal.CDEKFromCity,
+		"toCityCode":        deal.CDEKToCity,
+		"fromPvzCode":       deal.CDEKFromPVZ,
+		"toPvzCode":         deal.CDEKToPVZ,
+		"toAddress":         deal.CDEKToAddress,
+		"fromAddress":       deal.CDEKFromAddress,
+		"recipientMode":     deal.CDEKRecipientMode,
+		"sellerHandoff":     deal.CDEKSellerHandoff,
+		"cdekStatus":        deal.CDEKStatus,
+		"orderUuid":         deal.CDEKOrderUUID,
+		"trackNumber":       deal.CDEKTrackNumber,
+		"trackingUrl":       buildCDEKTrackingURL(deal.CDEKTrackNumber),
+		"trackPending":      trackPending,
 		"registrationHint":  regHint,
 		"sellerHandoffHint": sellerNote,
 		"deliveryStages":    buildCdekDeliveryStages(deal),

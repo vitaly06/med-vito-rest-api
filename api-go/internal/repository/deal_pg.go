@@ -20,66 +20,66 @@ func NewDealPG(pool *pgxpool.Pool) *DealPG {
 }
 
 type DealRow struct {
-	ID              int32
-	ProductID       int32
-	ProductName     string
-	ProductImages   []string
-	BuyerID         int32
-	BuyerName       string
-	SellerID        int32
-	SellerName      string
-	Status          string
-	ProductAmount   int32
-	DeliveryCost    int32
-	PlatformFee     int32
-	SellerAmount    int32
-	TotalAmount     int32
-	PaymentID       *string
-	OrderID         *string
-	PaymentURL      *string
-	CDEKTariffCode  *int32
-	CDEKTariffName  *string
-	CDEKFromCity    *int32
-	CDEKToCity      *int32
-	CDEKFromPVZ     *string
-	CDEKToPVZ       *string
-	CDEKToAddress   *string
-	CDEKOrderUUID      *string
-	CDEKTrackNumber    *string
-	CDEKPackageWeight  *int32
-	CDEKPackageLength  *int32
-	CDEKPackageWidth   *int32
-	CDEKPackageHeight  *int32
-	CDEKRecipientMode  *string
-	CDEKSellerHandoff  *string
-	CDEKFromAddress    *string
-	CDEKStatus         *string
-	CDEKStatusAt       *time.Time
-	DisputeReason      *string
-	PaidAt          *time.Time
-	ShippedAt       *time.Time
-	DeliveredAt     *time.Time
-	PayoutAt        *time.Time
-	CompletedAt     *time.Time
-	CancelledAt     *time.Time
-	RefundedAt      *time.Time
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	ID                int32
+	ProductID         int32
+	ProductName       string
+	ProductImages     []string
+	BuyerID           int32
+	BuyerName         string
+	SellerID          int32
+	SellerName        string
+	Status            string
+	ProductAmount     int32
+	DeliveryCost      int32
+	PlatformFee       int32
+	SellerAmount      int32
+	TotalAmount       int32
+	PaymentID         *string
+	OrderID           *string
+	PaymentURL        *string
+	CDEKTariffCode    *int32
+	CDEKTariffName    *string
+	CDEKFromCity      *int32
+	CDEKToCity        *int32
+	CDEKFromPVZ       *string
+	CDEKToPVZ         *string
+	CDEKToAddress     *string
+	CDEKOrderUUID     *string
+	CDEKTrackNumber   *string
+	CDEKPackageWeight *int32
+	CDEKPackageLength *int32
+	CDEKPackageWidth  *int32
+	CDEKPackageHeight *int32
+	CDEKRecipientMode *string
+	CDEKSellerHandoff *string
+	CDEKFromAddress   *string
+	CDEKStatus        *string
+	CDEKStatusAt      *time.Time
+	DisputeReason     *string
+	PaidAt            *time.Time
+	ShippedAt         *time.Time
+	DeliveredAt       *time.Time
+	PayoutAt          *time.Time
+	CompletedAt       *time.Time
+	CancelledAt       *time.Time
+	RefundedAt        *time.Time
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 type CreateDealParams struct {
-	ProductID      int32
-	BuyerID        int32
-	SellerID       int32
-	ProductAmount  int32
-	DeliveryCost   int32
-	PlatformFee    int32
-	SellerAmount   int32
-	TotalAmount    int32
-	CDEKTariffCode *int32
-	CDEKTariffName *string
-	CDEKFromCity   *int32
-	CDEKToCity     *int32
+	ProductID         int32
+	BuyerID           int32
+	SellerID          int32
+	ProductAmount     int32
+	DeliveryCost      int32
+	PlatformFee       int32
+	SellerAmount      int32
+	TotalAmount       int32
+	CDEKTariffCode    *int32
+	CDEKTariffName    *string
+	CDEKFromCity      *int32
+	CDEKToCity        *int32
 	CDEKFromPVZ       *string
 	CDEKToPVZ         *string
 	CDEKToAddress     *string
@@ -220,8 +220,8 @@ func (r *DealPG) SetCDEKSellerHandoff(ctx context.Context, dealID int32, handoff
 	tag, err := r.pool.Exec(ctx, `
 		UPDATE "ProductDeal"
 		SET "cdekSellerHandoff" = $2,
-		    "cdekFromPvzCode" = COALESCE($3, "cdekFromPvzCode"),
-		    "cdekFromAddress" = COALESCE($4, "cdekFromAddress"),
+		    "cdekFromPvzCode" = CASE WHEN $2 = 'pvz' THEN $3 ELSE NULL END,
+		    "cdekFromAddress" = CASE WHEN $2 = 'courier' THEN $4 ELSE NULL END,
 		    "updatedAt" = NOW()
 		WHERE id = $1 AND status = 'PAID'::"DealStatus"`, dealID, handoff, fromPvz, fromAddress)
 	if err != nil {
