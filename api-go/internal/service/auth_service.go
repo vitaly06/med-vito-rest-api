@@ -855,7 +855,8 @@ func isVKPlaceholderFullName(name string) bool {
 
 func (s *AuthService) applyVKProfileName(ctx context.Context, user *domain.UserEntity, fullName string) *domain.UserEntity {
 	fullName = strings.TrimSpace(fullName)
-	if fullName == "" || isVKPlaceholderFullName(fullName) || !isVKPlaceholderFullName(user.FullName) {
+	currentName := strings.TrimSpace(user.FullName)
+	if fullName == "" || isVKPlaceholderFullName(fullName) || strings.EqualFold(fullName, currentName) {
 		return user
 	}
 	if err := s.users.UpdateUserSettings(ctx, user.ID, repository.UserSettingsPatch{FullName: &fullName}); err != nil {
