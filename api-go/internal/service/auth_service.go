@@ -1,4 +1,4 @@
-package service
+﻿package service
 
 import (
 	"bytes"
@@ -96,18 +96,18 @@ func (s *AuthService) SignUp(ctx context.Context, where string, fullName, email,
 		return err
 	}
 	if ok {
-		return &AppError{400, "Данный пользователь уже существует"}
+		return &AppError{400, "Р”Р°РЅРЅС‹Р№ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚"}
 	}
 	code := s.generateVerifyCode()
 	switch strings.ToLower(strings.TrimSpace(where)) {
 	case "telegram":
 		if s.cfg.NotisendAPIKey == "" {
-			return &AppError{500, "NOTISEND_API_KEY не задан"}
+			return &AppError{500, "NOTISEND_API_KEY РЅРµ Р·Р°РґР°РЅ"}
 		}
 		u := fmt.Sprintf(
 			"https://sms.notisend.ru/api/message/send?project=%s&message=%s&recipients=%s&apikey=%s",
 			url.QueryEscape(s.cfg.NotisendProject),
-			url.QueryEscape("Код подтверждения: "+code),
+			url.QueryEscape("РљРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ: "+code),
 			url.QueryEscape(phone),
 			url.QueryEscape(s.cfg.NotisendAPIKey),
 		)
@@ -116,15 +116,15 @@ func (s *AuthService) SignUp(ctx context.Context, where string, fullName, email,
 			return err
 		}
 		if st, _ := resp["status"].(string); st == "error" {
-			return &AppError{500, "Не удалось отправить сообщение"}
+			return &AppError{500, "РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ СЃРѕРѕР±С‰РµРЅРёРµ"}
 		}
 	case "sms":
 		if s.cfg.MTSBearer == "" {
-			return &AppError{500, "MTS_TOKEN не задан"}
+			return &AppError{500, "MTS_TOKEN РЅРµ Р·Р°РґР°РЅ"}
 		}
 		body := map[string]any{
 			"submits": []any{
-				map[string]any{"msid": phone, "message": "Код подтверждения: " + code},
+				map[string]any{"msid": phone, "message": "РљРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ: " + code},
 			},
 			"naming": "Torguisamru",
 		}
@@ -137,7 +137,7 @@ func (s *AuthService) SignUp(ctx context.Context, where string, fullName, email,
 			return err
 		}
 	default:
-		return &AppError{400, "Where должен быть telegram или sms"}
+		return &AppError{400, "Where РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ telegram РёР»Рё sms"}
 	}
 	payload := signUpCache{Code: code}
 	payload.Data.FullName = fullName
@@ -154,7 +154,7 @@ func (s *AuthService) SignUp(ctx context.Context, where string, fullName, email,
 func (s *AuthService) VerifyMobileCode(ctx context.Context, code string) (*signInResponse, string, error) {
 	raw, err := s.rdb.Get(ctx, verifyKeyPrefix+code).Bytes()
 	if err == redis.Nil || len(raw) == 0 {
-		return nil, "", &AppError{400, "Код подтверждения не найден или истек"}
+		return nil, "", &AppError{400, "РљРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ РЅРµ РЅР°Р№РґРµРЅ РёР»Рё РёСЃС‚РµРє"}
 	}
 	if err != nil {
 		return nil, "", err
@@ -164,12 +164,12 @@ func (s *AuthService) VerifyMobileCode(ctx context.Context, code string) (*signI
 		return nil, "", err
 	}
 	if cached.Code != code {
-		return nil, "", &AppError{400, "Неверный код подтверждения"}
+		return nil, "", &AppError{400, "РќРµРІРµСЂРЅС‹Р№ РєРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ"}
 	}
 	roleID, err := s.defaultUserRoleID(ctx)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, "", &AppError{404, "Роль USER/default не найдена"}
+			return nil, "", &AppError{404, "Р РѕР»СЊ USER/default РЅРµ РЅР°Р№РґРµРЅР°"}
 		}
 		return nil, "", err
 	}
@@ -202,7 +202,7 @@ func (s *AuthService) VerifyMobileCode(ctx context.Context, code string) (*signI
 		p := s.cfg.BaseURL + *u.Photo
 		photo = &p
 	}
-	out := &signInResponse{Message: "Вы успешно зарегистрировались!"}
+	out := &signInResponse{Message: "Р’С‹ СѓСЃРїРµС€РЅРѕ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°Р»РёСЃСЊ!"}
 	out.User.ID = u.ID
 	out.User.Email = u.Email
 	out.User.FullName = u.FullName
@@ -216,12 +216,12 @@ func (s *AuthService) SignIn(ctx context.Context, login, password string) (*sign
 	u, err := s.users.FindUserByLogin(ctx, login)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, "", &AppError{401, "Пользователь не существует"}
+			return nil, "", &AppError{401, "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚"}
 		}
 		return nil, "", err
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)); err != nil {
-		return nil, "", &AppError{401, "Неверный пароль"}
+		return nil, "", &AppError{401, "РќРµРІРµСЂРЅС‹Р№ РїР°СЂРѕР»СЊ"}
 	}
 	sid := generateSessionID()
 	sp := sessionPayload{UserID: u.ID, Email: u.Email, ProfileType: u.ProfileType}
@@ -234,7 +234,7 @@ func (s *AuthService) SignIn(ctx context.Context, login, password string) (*sign
 		p := s.cfg.BaseURL + *u.Photo
 		photo = &p
 	}
-	out := &signInResponse{Message: "Вы успешно авторизовались!"}
+	out := &signInResponse{Message: "Р’С‹ СѓСЃРїРµС€РЅРѕ Р°РІС‚РѕСЂРёР·РѕРІР°Р»РёСЃСЊ!"}
 	out.User.ID = u.ID
 	out.User.Email = u.Email
 	out.User.FullName = u.FullName
@@ -246,10 +246,10 @@ func (s *AuthService) SignIn(ctx context.Context, login, password string) (*sign
 
 func (s *AuthService) VKAuthURL(state string) (string, error) {
 	if strings.TrimSpace(s.cfg.VkOAuthClientID) == "" {
-		return "", &AppError{500, "VK OAuth не настроен: VK_OAUTH_CLIENT_ID"}
+		return "", &AppError{500, "VK OAuth РЅРµ РЅР°СЃС‚СЂРѕРµРЅ: VK_OAUTH_CLIENT_ID"}
 	}
 	if strings.TrimSpace(s.cfg.VkOAuthRedirectURI) == "" {
-		return "", &AppError{500, "VK OAuth не настроен: VK_OAUTH_REDIRECT_URI"}
+		return "", &AppError{500, "VK OAuth РЅРµ РЅР°СЃС‚СЂРѕРµРЅ: VK_OAUTH_REDIRECT_URI"}
 	}
 	q := url.Values{}
 	q.Set("client_id", s.cfg.VkOAuthClientID)
@@ -276,14 +276,14 @@ func (s *AuthService) VKAuthURL(state string) (string, error) {
 func (s *AuthService) SignInWithVK(ctx context.Context, code, state, deviceID string) (*signInResponse, string, error) {
 	code = strings.TrimSpace(code)
 	if code == "" {
-		return nil, "", &AppError{400, "Нужен code"}
+		return nil, "", &AppError{400, "РќСѓР¶РµРЅ code"}
 	}
 	if strings.TrimSpace(s.cfg.VkOAuthClientID) == "" ||
 		strings.TrimSpace(s.cfg.VkOAuthClientSecret) == "" ||
 		strings.TrimSpace(s.cfg.VkOAuthRedirectURI) == "" ||
 		strings.TrimSpace(s.cfg.VkOAuthTokenURL) == "" ||
 		strings.TrimSpace(s.cfg.VkOAuthUserInfoURL) == "" {
-		return nil, "", &AppError{500, "VK OAuth не настроен в .env"}
+		return nil, "", &AppError{500, "VK OAuth РЅРµ РЅР°СЃС‚СЂРѕРµРЅ РІ .env"}
 	}
 
 	tokenQ := url.Values{}
@@ -294,11 +294,11 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code, state, deviceID st
 	if s.cfg.VkIDEnabled {
 		state = strings.TrimSpace(state)
 		if state == "" {
-			return nil, "", &AppError{400, "Нужен state для VK ID"}
+			return nil, "", &AppError{400, "РќСѓР¶РµРЅ state РґР»СЏ VK ID"}
 		}
 		verifier, err := s.rdb.Get(ctx, vkidPKCEPrefix+state).Result()
 		if err == redis.Nil || strings.TrimSpace(verifier) == "" {
-			return nil, "", &AppError{401, "VK ID: истекла сессия авторизации"}
+			return nil, "", &AppError{401, "VK ID: РёСЃС‚РµРєР»Р° СЃРµСЃСЃРёСЏ Р°РІС‚РѕСЂРёР·Р°С†РёРё"}
 		}
 		if err != nil {
 			return nil, "", err
@@ -339,7 +339,7 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code, state, deviceID st
 		return nil, "", err
 	}
 	if accessToken == "" {
-		return nil, "", &AppError{401, "VK OAuth: пустой access_token"}
+		return nil, "", &AppError{401, "VK OAuth: РїСѓСЃС‚РѕР№ access_token"}
 	}
 
 	userBody, err := s.fetchVKUserProfile(ctx, accessToken)
@@ -374,7 +374,7 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code, state, deviceID st
 		p := s.cfg.BaseURL + *user.Photo
 		photo = &p
 	}
-	out := &signInResponse{Message: "Вы успешно авторизовались через VK!"}
+	out := &signInResponse{Message: "Р’С‹ СѓСЃРїРµС€РЅРѕ Р°РІС‚РѕСЂРёР·РѕРІР°Р»РёСЃСЊ С‡РµСЂРµР· VK!"}
 	out.User.ID = user.ID
 	out.User.Email = user.Email
 	out.User.FullName = user.FullName
@@ -426,7 +426,7 @@ func parseSessionIDCookie(cookieHeader string) string {
 	return ""
 }
 
-// SocketUserFromCookie — handshake Socket.IO: cookie session_id → пользователь с ролью (чат + support WS).
+// SocketUserFromCookie вЂ” handshake Socket.IO: cookie session_id в†’ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ СЂРѕР»СЊСЋ (С‡Р°С‚ + support WS).
 func (s *AuthService) SocketUserFromCookie(ctx context.Context, cookieHeader string) (*domain.UserEntity, error) {
 	sid := parseSessionIDCookie(cookieHeader)
 	if sid == "" {
@@ -446,7 +446,7 @@ func (s *AuthService) Me(ctx context.Context, userID int32) (*domain.MeResponse,
 	u, err := s.users.FindUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, &AppError{404, "Пользователь не найден"}
+			return nil, &AppError{404, "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ"}
 		}
 		return nil, err
 	}
@@ -480,29 +480,29 @@ func (s *AuthService) ForgotPasswordBy(ctx context.Context, where, email, phone 
 	case "email":
 		email = strings.TrimSpace(email)
 		if email == "" {
-			return &AppError{400, "Нужно указать email"}
+			return &AppError{400, "РќСѓР¶РЅРѕ СѓРєР°Р·Р°С‚СЊ email"}
 		}
 		u, err = s.users.FindUserByEmail(ctx, email)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
-				return &AppError{400, "Пользователя с такой почтой не существует"}
+				return &AppError{400, "РџРѕР»СЊР·РѕРІР°С‚РµР»СЏ СЃ С‚Р°РєРѕР№ РїРѕС‡С‚РѕР№ РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚"}
 			}
 			return err
 		}
 	case "sms":
 		phone = strings.TrimSpace(phone)
 		if phone == "" {
-			return &AppError{400, "Нужно указать номер телефона"}
+			return &AppError{400, "РќСѓР¶РЅРѕ СѓРєР°Р·Р°С‚СЊ РЅРѕРјРµСЂ С‚РµР»РµС„РѕРЅР°"}
 		}
 		u, err = s.users.FindUserByLogin(ctx, phone)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
-				return &AppError{400, "Пользователя с таким номером не существует"}
+				return &AppError{400, "РџРѕР»СЊР·РѕРІР°С‚РµР»СЏ СЃ С‚Р°РєРёРј РЅРѕРјРµСЂРѕРј РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚"}
 			}
 			return err
 		}
 	default:
-		return &AppError{400, "where должен быть email или sms"}
+		return &AppError{400, "where РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ email РёР»Рё sms"}
 	}
 
 	code, err := s.reserveUniqueForgotCode(ctx, u.ID)
@@ -512,11 +512,11 @@ func (s *AuthService) ForgotPasswordBy(ctx context.Context, where, email, phone 
 
 	if where == "sms" {
 		if s.cfg.MTSBearer == "" {
-			return &AppError{500, "MTS_TOKEN не задан"}
+			return &AppError{500, "MTS_TOKEN РЅРµ Р·Р°РґР°РЅ"}
 		}
 		body := map[string]any{
 			"submits": []any{
-				map[string]any{"msid": u.PhoneNumber, "message": "Код восстановления пароля: " + code},
+				map[string]any{"msid": u.PhoneNumber, "message": "РљРѕРґ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ РїР°СЂРѕР»СЏ: " + code},
 			},
 			"naming": "Torguisamru",
 		}
@@ -526,28 +526,28 @@ func (s *AuthService) ForgotPasswordBy(ctx context.Context, where, email, phone 
 			s.cfg.MTSBearer,
 			nil,
 		); err != nil {
-			return &AppError{400, "Ошибка отправки SMS: " + err.Error()}
+			return &AppError{400, "РћС€РёР±РєР° РѕС‚РїСЂР°РІРєРё SMS: " + err.Error()}
 		}
 		return nil
 	}
 
 	if strings.TrimSpace(s.cfg.SMTPHost) == "" {
-		return &AppError{500, "SMTP не настроен (SMTP_HOST)"}
+		return &AppError{500, "SMTP РЅРµ РЅР°СЃС‚СЂРѕРµРЅ (SMTP_HOST)"}
 	}
 	htmlBody, err := mailpkg.ForgotPasswordHTML(code)
 	if err != nil {
-		return &AppError{500, "Не удалось сформировать письмо"}
+		return &AppError{500, "РќРµ СѓРґР°Р»РѕСЃСЊ СЃС„РѕСЂРјРёСЂРѕРІР°С‚СЊ РїРёСЃСЊРјРѕ"}
 	}
 	fromAddr := strings.TrimSpace(s.cfg.SMTPFrom)
 	if fromAddr == "" {
 		fromAddr = strings.TrimSpace(s.cfg.SMTPUser)
 	}
 	if fromAddr == "" {
-		return &AppError{500, "SMTP_FROM/SMTP_USER не задан"}
+		return &AppError{500, "SMTP_FROM/SMTP_USER РЅРµ Р·Р°РґР°РЅ"}
 	}
 	if err := mailpkg.SendHTMLSmart(s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword,
-		fromAddr, u.Email, "Код восстановления пароля - Торгуй Сам", htmlBody, s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure); err != nil {
-		return &AppError{400, "Ошибка отправки письма: " + err.Error()}
+		fromAddr, u.Email, "РљРѕРґ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ РїР°СЂРѕР»СЏ - РўРѕСЂРіСѓР№ РЎР°Рј", htmlBody, s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure); err != nil {
+		return &AppError{400, "РћС€РёР±РєР° РѕС‚РїСЂР°РІРєРё РїРёСЃСЊРјР°: " + err.Error()}
 	}
 	return nil
 }
@@ -565,13 +565,13 @@ func (s *AuthService) reserveUniqueForgotCode(ctx context.Context, userID int32)
 			return code, nil
 		}
 	}
-	return "", &AppError{500, "Не удалось создать уникальный код восстановления"}
+	return "", &AppError{500, "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ СѓРЅРёРєР°Р»СЊРЅС‹Р№ РєРѕРґ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ"}
 }
 
 func (s *AuthService) VerifyForgotCode(ctx context.Context, code string) (int32, error) {
 	raw, err := s.rdb.Get(ctx, forgotKeyPrefix+code).Bytes()
 	if err == redis.Nil || len(raw) == 0 {
-		return 0, &AppError{400, "Неверный код подтверждения"}
+		return 0, &AppError{400, "РќРµРІРµСЂРЅС‹Р№ РєРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ"}
 	}
 	if err != nil {
 		return 0, err
@@ -584,17 +584,17 @@ func (s *AuthService) VerifyForgotCode(ctx context.Context, code string) (int32,
 		return 0, err
 	}
 	if cached.Code != code {
-		return 0, &AppError{400, "Неверный код подтверждения"}
+		return 0, &AppError{400, "РќРµРІРµСЂРЅС‹Р№ РєРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ"}
 	}
 	id64, err := strconv.ParseInt(cached.ID, 10, 32)
 	if err != nil {
-		return 0, &AppError{400, "Неверный код подтверждения"}
+		return 0, &AppError{400, "РќРµРІРµСЂРЅС‹Р№ РєРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ"}
 	}
 	uid := int32(id64)
 	_, err = s.users.FindUserByID(ctx, uid)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return 0, &AppError{404, "Такого пользователя не существует"}
+			return 0, &AppError{404, "РўР°РєРѕРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚"}
 		}
 		return 0, err
 	}
@@ -609,12 +609,12 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID int32, password
 	u, err := s.users.FindUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return &AppError{404, "Пользователь не найден"}
+			return &AppError{404, "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ"}
 		}
 		return err
 	}
 	if !u.IsResetVerified {
-		return &AppError{403, "Требуется подтверждение сброса пароля"}
+		return &AppError{403, "РўСЂРµР±СѓРµС‚СЃСЏ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ СЃР±СЂРѕСЃР° РїР°СЂРѕР»СЏ"}
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
 	if err != nil {
@@ -695,13 +695,13 @@ func (s *AuthService) httpPostJSON(ctx context.Context, urlStr string, body any,
 	return nil
 }
 
-// truncateForErr — не раздуваем лог/ответ целым HTML от провайдера.
+// truncateForErr вЂ” РЅРµ СЂР°Р·РґСѓРІР°РµРј Р»РѕРі/РѕС‚РІРµС‚ С†РµР»С‹Рј HTML РѕС‚ РїСЂРѕРІР°Р№РґРµСЂР°.
 func truncateForErr(s string) string {
 	const max = 512
 	if len(s) <= max {
 		return s
 	}
-	return s[:max] + "…"
+	return s[:max] + "вЂ¦"
 }
 
 func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, provider, externalID, email, phone, fullName string) (*domain.UserEntity, error) {
@@ -714,7 +714,7 @@ func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, provider, exter
 		externalID = generateSessionID()[:12]
 	}
 
-	// 1) Сначала ищем уже созданный OAuth-аккаунт по provider+externalID.
+	// 1) РЎРЅР°С‡Р°Р»Р° РёС‰РµРј СѓР¶Рµ СЃРѕР·РґР°РЅРЅС‹Р№ OAuth-Р°РєРєР°СѓРЅС‚ РїРѕ provider+externalID.
 	if existingID, err := s.users.FindOAuthUserIDByProviderExternalID(ctx, providerSlug, externalID); err == nil && existingID != nil {
 		u, err := s.users.FindUserByID(ctx, *existingID)
 		if err == nil {
@@ -731,10 +731,10 @@ func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, provider, exter
 	phone = strings.TrimSpace(phone)
 	fullName = strings.TrimSpace(fullName)
 
-	// 2) Если VK вернул email и он уже занят другим аккаунтом — не создаём дубль.
+	// 2) Р•СЃР»Рё VK РІРµСЂРЅСѓР» email Рё РѕРЅ СѓР¶Рµ Р·Р°РЅСЏС‚ РґСЂСѓРіРёРј Р°РєРєР°СѓРЅС‚РѕРј вЂ” РЅРµ СЃРѕР·РґР°С‘Рј РґСѓР±Р»СЊ.
 	if email != "" {
-		if u, err := s.users.FindUserByEmail(ctx, email); err == nil {
-			return nil, &AppError{400, "Почта уже занята"}
+		if _, err := s.users.FindUserByEmail(ctx, email); err == nil {
+			return nil, &AppError{400, "РџРѕС‡С‚Р° СѓР¶Рµ Р·Р°РЅСЏС‚Р°"}
 		} else if !errors.Is(err, repository.ErrNotFound) {
 			return nil, err
 		}
@@ -779,15 +779,15 @@ func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, provider, exter
 		}
 		if err := s.users.InsertUser(ctx, uid, fullName, candidateEmail, candidatePhone, string(hash), roleID); err != nil {
 			if strings.Contains(strings.ToLower(err.Error()), "duplicate key") {
-				// Для VK иногда параллельные запросы могут создать гонку.
-				// Пробуем найти уже созданный аккаунт по externalID и вернуть его.
+				// Р”Р»СЏ VK РёРЅРѕРіРґР° РїР°СЂР°Р»Р»РµР»СЊРЅС‹Рµ Р·Р°РїСЂРѕСЃС‹ РјРѕРіСѓС‚ СЃРѕР·РґР°С‚СЊ РіРѕРЅРєСѓ.
+				// РџСЂРѕР±СѓРµРј РЅР°Р№С‚Рё СѓР¶Рµ СЃРѕР·РґР°РЅРЅС‹Р№ Р°РєРєР°СѓРЅС‚ РїРѕ externalID Рё РІРµСЂРЅСѓС‚СЊ РµРіРѕ.
 				if existingID, findErr := s.users.FindOAuthUserIDByProviderExternalID(ctx, providerSlug, externalID); findErr == nil && existingID != nil {
 					if u, getErr := s.users.FindUserByID(ctx, *existingID); getErr == nil {
 						return u, nil
 					}
 				}
 				if strings.ToLower(providerSlug) == "vk" && email != "" && !strings.HasSuffix(email, "@oauth.local") {
-					return nil, &AppError{400, "Почта уже занята"}
+					return nil, &AppError{400, "РџРѕС‡С‚Р° СѓР¶Рµ Р·Р°РЅСЏС‚Р°"}
 				}
 				continue
 			}
@@ -795,7 +795,7 @@ func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, provider, exter
 		}
 		return s.users.FindUserByID(ctx, uid)
 	}
-	return nil, &AppError{500, "Не удалось создать пользователя MAX"}
+	return nil, &AppError{500, "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ MAX"}
 }
 
 const vkLegacyUsersGetURL = "https://api.vk.com/method/users.get"
@@ -880,7 +880,7 @@ func (s *AuthService) doVKHTTP(req *http.Request) ([]byte, error) {
 func isVKPlaceholderFullName(name string) bool {
 	name = strings.TrimSpace(name)
 	return name == "" ||
-		strings.HasPrefix(name, "Пользователь VK") ||
+		strings.HasPrefix(name, "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ VK") ||
 		strings.EqualFold(name, "VK USER")
 }
 
@@ -968,12 +968,12 @@ func vkAnyToInt64(v any) int64 {
 func parseVKUserInfo(body []byte, fallbackID int64) (id, fullName, email string, err error) {
 	vkFallbackName := func(externalID string, numericID int64) string {
 		if strings.TrimSpace(externalID) != "" {
-			return "Пользователь VK #" + strings.TrimSpace(externalID)
+			return "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ VK #" + strings.TrimSpace(externalID)
 		}
 		if numericID > 0 {
-			return "Пользователь VK #" + strconv.FormatInt(numericID, 10)
+			return "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ VK #" + strconv.FormatInt(numericID, 10)
 		}
-		return "Пользователь VK"
+		return "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ VK"
 	}
 
 	var legacy struct {
@@ -1123,3 +1123,4 @@ func pickVKPath(payload map[string]any, path string) (any, bool) {
 	}
 	return cur, true
 }
+

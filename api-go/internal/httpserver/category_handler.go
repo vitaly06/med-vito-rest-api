@@ -4,8 +4,10 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gofiber/fiber/v2"
+	"golang.org/x/text/encoding/charmap"
 
 	authmw "med-vito/api-go/internal/httpserver/middleware"
 	"med-vito/api-go/internal/service"
@@ -63,17 +65,37 @@ func parseCategoryPayload(c *fiber.Ctx) (string, *string, error) {
 }
 
 func writeAppError(c *fiber.Ctx, err error) error {
+	c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSONCharsetUTF8)
 	var ae *service.AppError
 	if errors.As(err, &ae) {
 		return c.Status(ae.Status).JSON(fiber.Map{
 			"statusCode": ae.Status,
-			"message":    ae.Message,
+			"message":    normalizeResponseMessage(ae.Message),
 		})
 	}
 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 		"statusCode": fiber.StatusInternalServerError,
-		"message":    err.Error(),
+		"message":    normalizeResponseMessage(err.Error()),
 	})
+}
+
+func normalizeResponseMessage(msg string) string {
+	msg = strings.TrimSpace(msg)
+	if msg == "" {
+		return msg
+	}
+	if !strings.ContainsAny(msg, "РСЃ") {
+		return msg
+	}
+	decoded, err := charmap.Windows1251.NewEncoder().Bytes([]byte(msg))
+	if err != nil {
+		return msg
+	}
+	fixed := strings.TrimSpace(string(decoded))
+	if fixed == "" || !utf8.ValidString(fixed) {
+		return msg
+	}
+	return fixed
 }
 
 // RegisterCategoryRoutes — те же пути что у Nest CategoryController (админ — сессия + роль admin).
