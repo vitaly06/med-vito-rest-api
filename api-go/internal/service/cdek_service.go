@@ -231,7 +231,7 @@ type CDEKCreateOrderResult struct {
 }
 
 // CreateOrder — регистрация отправки в CDEK; number = ClientNumber для идемпотентности.
-// Если тариф «дверь-дверь», а в сделке остались коды ПВЗ — первый запрос может упасть; тогда повтор без ПВЗ.
+// Для сценария ПВЗ→ПВЗ отправляем только shipment_point/delivery_point без адресов.
 func (s *CDEKService) CreateOrder(ctx context.Context, in CDEKCreateOrderInput) (*CDEKCreateOrderResult, error) {
 	if !s.configured() {
 		return nil, &AppError{400, "CDEK не настроен (CDEK_CLIENT_ID / CDEK_CLIENT_SECRET)"}
@@ -256,19 +256,6 @@ func (s *CDEKService) CreateOrder(ctx context.Context, in CDEKCreateOrderInput) 
 		in.ToAddress != nil && strings.TrimSpace(*in.ToAddress) != "",
 	)
 	res, err := s.postCdekOrder(ctx, in, includePvz)
-	if err != nil && includePvz {
-		log.Printf("cdek create-order retry without-pvz clientNumber=%s reason=%v", strings.TrimSpace(in.ClientNumber), err)
-		var ae *AppError
-		if errors.As(err, &ae) && ae.Status >= 400 && ae.Status < 500 {
-			if res2, err2 := s.postCdekOrder(ctx, in, false); err2 == nil {
-				log.Printf("cdek create-order success on retry without-pvz clientNumber=%s", strings.TrimSpace(in.ClientNumber))
-				return res2, nil
-			} else if err2 != nil {
-				log.Printf("cdek create-order retry failed clientNumber=%s err=%v", strings.TrimSpace(in.ClientNumber), err2)
-				return nil, err2
-			}
-		}
-	}
 	if err == nil && res != nil && res.OrderUUID != nil {
 		log.Printf("cdek create-order success clientNumber=%s orderUUID=%s", strings.TrimSpace(in.ClientNumber), strings.TrimSpace(*res.OrderUUID))
 	}
@@ -348,19 +335,23 @@ func buildCdekOrderPayload(in CDEKCreateOrderInput, includePvz bool) map[string]
 			}},
 		}},
 	}
-	if in.ToAddress != nil {
-		if addr := strings.TrimSpace(*in.ToAddress); addr != "" {
-			payload["to_location"] = map[string]any{
-				"code":    in.ToCityCode,
-				"address": addr,
+	// В режиме ПВЗ CDEK не принимает одновременно address и *_point.
+	// Поэтому адреса добавляем только если ПВЗ не используется.
+	if !includePvz {
+		if in.ToAddress != nil {
+			if addr := strings.TrimSpace(*in.ToAddress); addr != "" {
+				payload["to_location"] = map[string]any{
+					"code":    in.ToCityCode,
+					"address": addr,
+				}
 			}
 		}
-	}
-	if in.FromAddress != nil {
-		if addr := strings.TrimSpace(*in.FromAddress); addr != "" {
-			payload["from_location"] = map[string]any{
-				"code":    in.FromCityCode,
-				"address": addr,
+		if in.FromAddress != nil {
+			if addr := strings.TrimSpace(*in.FromAddress); addr != "" {
+				payload["from_location"] = map[string]any{
+					"code":    in.FromCityCode,
+					"address": addr,
+				}
 			}
 		}
 	}
