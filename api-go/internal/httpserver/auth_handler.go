@@ -127,6 +127,70 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 		return c.JSON(out)
 	})
 
+	g.Get("/vk/onboarding/status", middleware.RequireSession(auth), func(c *fiber.Ctx) error {
+		u := middleware.UserFromLocals(c)
+		out, err := auth.VKOnboardingStatus(c.UserContext(), u.ID)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
+	g.Post("/vk/onboarding/start-email", middleware.RequireSession(auth), func(c *fiber.Ctx) error {
+		u := middleware.UserFromLocals(c)
+		var body struct {
+			Email string `json:"email"`
+		}
+		if err := c.BodyParser(&body); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректное тело"})
+		}
+		targetUserID, err := auth.VKOnboardingStartEmail(c.UserContext(), u.ID, body.Email)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		if targetUserID != u.ID {
+			sid, err := auth.CreateSessionForUserID(c.UserContext(), targetUserID)
+			if err != nil {
+				return writeAppError(c, err)
+			}
+			c.Cookie(sessionCookie(cfg, sid, 30*24*60*60))
+			c.Cookie(wsSessionCookie(cfg, sid, 30*24*60*60))
+		}
+		return c.JSON(fiber.Map{"message": "Код подтверждения отправлен на почту"})
+	})
+
+	g.Post("/vk/onboarding/verify-email", middleware.RequireSession(auth), func(c *fiber.Ctx) error {
+		u := middleware.UserFromLocals(c)
+		code := c.Query("code")
+		if err := auth.VKOnboardingVerifyEmailCode(c.UserContext(), u.ID, code); err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(fiber.Map{"message": "Почта подтверждена"})
+	})
+
+	g.Post("/vk/onboarding/start-phone", middleware.RequireSession(auth), func(c *fiber.Ctx) error {
+		u := middleware.UserFromLocals(c)
+		var body struct {
+			PhoneNumber string `json:"phoneNumber"`
+		}
+		if err := c.BodyParser(&body); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректное тело"})
+		}
+		if err := auth.VKOnboardingStartPhone(c.UserContext(), u.ID, body.PhoneNumber); err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(fiber.Map{"message": "Код подтверждения отправлен на телефон"})
+	})
+
+	g.Post("/vk/onboarding/verify-phone", middleware.RequireSession(auth), func(c *fiber.Ctx) error {
+		u := middleware.UserFromLocals(c)
+		code := c.Query("code")
+		if err := auth.VKOnboardingVerifyPhoneCode(c.UserContext(), u.ID, code); err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(fiber.Map{"message": "Телефон подтвержден"})
+	})
+
 	g.Get("/me", middleware.RequireSession(auth), func(c *fiber.Ctx) error {
 		u := middleware.UserFromLocals(c)
 		if sid := c.Cookies("session_id"); sid != "" {

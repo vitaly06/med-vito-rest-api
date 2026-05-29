@@ -28,16 +28,18 @@ import (
 )
 
 const (
-	sessionTTL        = 30 * 24 * time.Hour
-	verifyPhoneTTL    = time.Hour
-	forgotPassTTL     = time.Hour
-	bcryptCost        = 10
-	sessionKeyPrefix  = "session:"
-	verifyKeyPrefix   = "verify-phone:"
-	forgotKeyPrefix   = "forgot-password:"
-	vkidPKCEPrefix    = "vkid-pkce:"
-	vkidPKCETTL       = 10 * time.Minute
-	vkIDPublicInfoURL = "https://id.vk.ru/oauth2/public_info"
+	sessionTTL          = 30 * 24 * time.Hour
+	verifyPhoneTTL      = time.Hour
+	forgotPassTTL       = time.Hour
+	bcryptCost          = 10
+	sessionKeyPrefix    = "session:"
+	verifyKeyPrefix     = "verify-phone:"
+	forgotKeyPrefix     = "forgot-password:"
+	vkidPKCEPrefix      = "vkid-pkce:"
+	vkidPKCETTL         = 10 * time.Minute
+	vkIDPublicInfoURL   = "https://id.vk.ru/oauth2/public_info"
+	vkVerifyEmailPrefix = "vk-verify-email:"
+	vkVerifyPhonePrefix = "vk-verify-phone:"
 )
 
 type vkPublicInfo struct {
@@ -106,18 +108,18 @@ func (s *AuthService) SignUp(ctx context.Context, where string, fullName, email,
 		return err
 	}
 	if ok {
-		return &AppError{400, "Р”Р°РЅРЅС‹Р№ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚"}
+		return &AppError{400, "Р вЂќР В°Р Р…Р Р…РЎвЂ№Р в„– Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЉ РЎС“Р В¶Р Вµ РЎРѓРЎС“РЎвЂ°Р ВµРЎРѓРЎвЂљР Р†РЎС“Р ВµРЎвЂљ"}
 	}
 	code := s.generateVerifyCode()
 	switch strings.ToLower(strings.TrimSpace(where)) {
 	case "telegram":
 		if s.cfg.NotisendAPIKey == "" {
-			return &AppError{500, "NOTISEND_API_KEY РЅРµ Р·Р°РґР°РЅ"}
+			return &AppError{500, "NOTISEND_API_KEY Р Р…Р Вµ Р В·Р В°Р Т‘Р В°Р Р…"}
 		}
 		u := fmt.Sprintf(
 			"https://sms.notisend.ru/api/message/send?project=%s&message=%s&recipients=%s&apikey=%s",
 			url.QueryEscape(s.cfg.NotisendProject),
-			url.QueryEscape("РљРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ: "+code),
+			url.QueryEscape("Р С™Р С•Р Т‘ Р С—Р С•Р Т‘РЎвЂљР Р†Р ВµРЎР‚Р В¶Р Т‘Р ВµР Р…Р С‘РЎРЏ: "+code),
 			url.QueryEscape(phone),
 			url.QueryEscape(s.cfg.NotisendAPIKey),
 		)
@@ -126,15 +128,15 @@ func (s *AuthService) SignUp(ctx context.Context, where string, fullName, email,
 			return err
 		}
 		if st, _ := resp["status"].(string); st == "error" {
-			return &AppError{500, "РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ СЃРѕРѕР±С‰РµРЅРёРµ"}
+			return &AppError{500, "Р СњР Вµ РЎС“Р Т‘Р В°Р В»Р С•РЎРѓРЎРЉ Р С•РЎвЂљР С—РЎР‚Р В°Р Р†Р С‘РЎвЂљРЎРЉ РЎРѓР С•Р С•Р В±РЎвЂ°Р ВµР Р…Р С‘Р Вµ"}
 		}
 	case "sms":
 		if s.cfg.MTSBearer == "" {
-			return &AppError{500, "MTS_TOKEN РЅРµ Р·Р°РґР°РЅ"}
+			return &AppError{500, "MTS_TOKEN Р Р…Р Вµ Р В·Р В°Р Т‘Р В°Р Р…"}
 		}
 		body := map[string]any{
 			"submits": []any{
-				map[string]any{"msid": phone, "message": "РљРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ: " + code},
+				map[string]any{"msid": phone, "message": "Р С™Р С•Р Т‘ Р С—Р С•Р Т‘РЎвЂљР Р†Р ВµРЎР‚Р В¶Р Т‘Р ВµР Р…Р С‘РЎРЏ: " + code},
 			},
 			"naming": "Torguisamru",
 		}
@@ -147,7 +149,7 @@ func (s *AuthService) SignUp(ctx context.Context, where string, fullName, email,
 			return err
 		}
 	default:
-		return &AppError{400, "Where РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ telegram РёР»Рё sms"}
+		return &AppError{400, "Where Р Т‘Р С•Р В»Р В¶Р ВµР Р… Р В±РЎвЂ№РЎвЂљРЎРЉ telegram Р С‘Р В»Р С‘ sms"}
 	}
 	payload := signUpCache{Code: code}
 	payload.Data.FullName = fullName
@@ -164,7 +166,7 @@ func (s *AuthService) SignUp(ctx context.Context, where string, fullName, email,
 func (s *AuthService) VerifyMobileCode(ctx context.Context, code string) (*signInResponse, string, error) {
 	raw, err := s.rdb.Get(ctx, verifyKeyPrefix+code).Bytes()
 	if err == redis.Nil || len(raw) == 0 {
-		return nil, "", &AppError{400, "РљРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ РЅРµ РЅР°Р№РґРµРЅ РёР»Рё РёСЃС‚РµРє"}
+		return nil, "", &AppError{400, "Р С™Р С•Р Т‘ Р С—Р С•Р Т‘РЎвЂљР Р†Р ВµРЎР‚Р В¶Р Т‘Р ВµР Р…Р С‘РЎРЏ Р Р…Р Вµ Р Р…Р В°Р в„–Р Т‘Р ВµР Р… Р С‘Р В»Р С‘ Р С‘РЎРѓРЎвЂљР ВµР С”"}
 	}
 	if err != nil {
 		return nil, "", err
@@ -174,12 +176,12 @@ func (s *AuthService) VerifyMobileCode(ctx context.Context, code string) (*signI
 		return nil, "", err
 	}
 	if cached.Code != code {
-		return nil, "", &AppError{400, "РќРµРІРµСЂРЅС‹Р№ РєРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ"}
+		return nil, "", &AppError{400, "Р СњР ВµР Р†Р ВµРЎР‚Р Р…РЎвЂ№Р в„– Р С”Р С•Р Т‘ Р С—Р С•Р Т‘РЎвЂљР Р†Р ВµРЎР‚Р В¶Р Т‘Р ВµР Р…Р С‘РЎРЏ"}
 	}
 	roleID, err := s.defaultUserRoleID(ctx)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, "", &AppError{404, "Р РѕР»СЊ USER/default РЅРµ РЅР°Р№РґРµРЅР°"}
+			return nil, "", &AppError{404, "Р В Р С•Р В»РЎРЉ USER/default Р Р…Р Вµ Р Р…Р В°Р в„–Р Т‘Р ВµР Р…Р В°"}
 		}
 		return nil, "", err
 	}
@@ -212,7 +214,7 @@ func (s *AuthService) VerifyMobileCode(ctx context.Context, code string) (*signI
 		p := s.cfg.BaseURL + *u.Photo
 		photo = &p
 	}
-	out := &signInResponse{Message: "Р’С‹ СѓСЃРїРµС€РЅРѕ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°Р»РёСЃСЊ!"}
+	out := &signInResponse{Message: "Р вЂ™РЎвЂ№ РЎС“РЎРѓР С—Р ВµРЎв‚¬Р Р…Р С• Р В·Р В°РЎР‚Р ВµР С–Р С‘РЎРѓРЎвЂљРЎР‚Р С‘РЎР‚Р С•Р Р†Р В°Р В»Р С‘РЎРѓРЎРЉ!"}
 	out.User.ID = u.ID
 	out.User.Email = u.Email
 	out.User.FullName = u.FullName
@@ -226,12 +228,12 @@ func (s *AuthService) SignIn(ctx context.Context, login, password string) (*sign
 	u, err := s.users.FindUserByLogin(ctx, login)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, "", &AppError{401, "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚"}
+			return nil, "", &AppError{401, "Р СџР С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЉ Р Р…Р Вµ РЎРѓРЎС“РЎвЂ°Р ВµРЎРѓРЎвЂљР Р†РЎС“Р ВµРЎвЂљ"}
 		}
 		return nil, "", err
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)); err != nil {
-		return nil, "", &AppError{401, "РќРµРІРµСЂРЅС‹Р№ РїР°СЂРѕР»СЊ"}
+		return nil, "", &AppError{401, "Р СњР ВµР Р†Р ВµРЎР‚Р Р…РЎвЂ№Р в„– Р С—Р В°РЎР‚Р С•Р В»РЎРЉ"}
 	}
 	sid := generateSessionID()
 	sp := sessionPayload{UserID: u.ID, Email: u.Email, ProfileType: u.ProfileType}
@@ -244,7 +246,7 @@ func (s *AuthService) SignIn(ctx context.Context, login, password string) (*sign
 		p := s.cfg.BaseURL + *u.Photo
 		photo = &p
 	}
-	out := &signInResponse{Message: "Р’С‹ СѓСЃРїРµС€РЅРѕ Р°РІС‚РѕСЂРёР·РѕРІР°Р»РёСЃСЊ!"}
+	out := &signInResponse{Message: "Р вЂ™РЎвЂ№ РЎС“РЎРѓР С—Р ВµРЎв‚¬Р Р…Р С• Р В°Р Р†РЎвЂљР С•РЎР‚Р С‘Р В·Р С•Р Р†Р В°Р В»Р С‘РЎРѓРЎРЉ!"}
 	out.User.ID = u.ID
 	out.User.Email = u.Email
 	out.User.FullName = u.FullName
@@ -256,10 +258,10 @@ func (s *AuthService) SignIn(ctx context.Context, login, password string) (*sign
 
 func (s *AuthService) VKAuthURL(state string) (string, error) {
 	if strings.TrimSpace(s.cfg.VkOAuthClientID) == "" {
-		return "", &AppError{500, "VK OAuth РЅРµ РЅР°СЃС‚СЂРѕРµРЅ: VK_OAUTH_CLIENT_ID"}
+		return "", &AppError{500, "VK OAuth Р Р…Р Вµ Р Р…Р В°РЎРѓРЎвЂљРЎР‚Р С•Р ВµР Р…: VK_OAUTH_CLIENT_ID"}
 	}
 	if strings.TrimSpace(s.cfg.VkOAuthRedirectURI) == "" {
-		return "", &AppError{500, "VK OAuth РЅРµ РЅР°СЃС‚СЂРѕРµРЅ: VK_OAUTH_REDIRECT_URI"}
+		return "", &AppError{500, "VK OAuth Р Р…Р Вµ Р Р…Р В°РЎРѓРЎвЂљРЎР‚Р С•Р ВµР Р…: VK_OAUTH_REDIRECT_URI"}
 	}
 	q := url.Values{}
 	q.Set("client_id", s.cfg.VkOAuthClientID)
@@ -286,14 +288,14 @@ func (s *AuthService) VKAuthURL(state string) (string, error) {
 func (s *AuthService) SignInWithVK(ctx context.Context, code, state, deviceID string) (*signInResponse, string, error) {
 	code = strings.TrimSpace(code)
 	if code == "" {
-		return nil, "", &AppError{400, "РќСѓР¶РµРЅ code"}
+		return nil, "", &AppError{400, "Р СњРЎС“Р В¶Р ВµР Р… code"}
 	}
 	if strings.TrimSpace(s.cfg.VkOAuthClientID) == "" ||
 		strings.TrimSpace(s.cfg.VkOAuthClientSecret) == "" ||
 		strings.TrimSpace(s.cfg.VkOAuthRedirectURI) == "" ||
 		strings.TrimSpace(s.cfg.VkOAuthTokenURL) == "" ||
 		strings.TrimSpace(s.cfg.VkOAuthUserInfoURL) == "" {
-		return nil, "", &AppError{500, "VK OAuth РЅРµ РЅР°СЃС‚СЂРѕРµРЅ РІ .env"}
+		return nil, "", &AppError{500, "VK OAuth Р Р…Р Вµ Р Р…Р В°РЎРѓРЎвЂљРЎР‚Р С•Р ВµР Р… Р Р† .env"}
 	}
 
 	tokenQ := url.Values{}
@@ -304,11 +306,11 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code, state, deviceID st
 	if s.cfg.VkIDEnabled {
 		state = strings.TrimSpace(state)
 		if state == "" {
-			return nil, "", &AppError{400, "РќСѓР¶РµРЅ state РґР»СЏ VK ID"}
+			return nil, "", &AppError{400, "Р СњРЎС“Р В¶Р ВµР Р… state Р Т‘Р В»РЎРЏ VK ID"}
 		}
 		verifier, err := s.rdb.Get(ctx, vkidPKCEPrefix+state).Result()
 		if err == redis.Nil || strings.TrimSpace(verifier) == "" {
-			return nil, "", &AppError{401, "VK ID: РёСЃС‚РµРєР»Р° СЃРµСЃСЃРёСЏ Р°РІС‚РѕСЂРёР·Р°С†РёРё"}
+			return nil, "", &AppError{401, "VK ID: Р С‘РЎРѓРЎвЂљР ВµР С”Р В»Р В° РЎРѓР ВµРЎРѓРЎРѓР С‘РЎРЏ Р В°Р Р†РЎвЂљР С•РЎР‚Р С‘Р В·Р В°РЎвЂ Р С‘Р С‘"}
 		}
 		if err != nil {
 			return nil, "", err
@@ -349,7 +351,7 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code, state, deviceID st
 		return nil, "", err
 	}
 	if accessToken == "" {
-		return nil, "", &AppError{401, "VK OAuth: РїСѓСЃС‚РѕР№ access_token"}
+		return nil, "", &AppError{401, "VK OAuth: Р С—РЎС“РЎРѓРЎвЂљР С•Р в„– access_token"}
 	}
 
 	public := parseVKIDTokenPublicClaims(idToken)
@@ -380,8 +382,11 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code, state, deviceID st
 	if err != nil {
 		return nil, "", err
 	}
+	_ = s.users.UpsertOAuthIdentity(ctx, "vk", strings.TrimSpace(vkID), user.ID)
 	user = s.applyVKProfileEmail(ctx, user, email)
 	user = s.applyVKProfileName(ctx, user, fullName)
+	_ = s.users.SetEmailVerified(ctx, user.ID, false)
+	_ = s.users.SetPhoneVerified(ctx, user.ID, false)
 
 	sid := generateSessionID()
 	sp := sessionPayload{UserID: user.ID, Email: user.Email, ProfileType: user.ProfileType}
@@ -398,7 +403,7 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code, state, deviceID st
 		a := strings.TrimSpace(public.Avatar)
 		photo = &a
 	}
-	out := &signInResponse{Message: "Р’С‹ СѓСЃРїРµС€РЅРѕ Р°РІС‚РѕСЂРёР·РѕРІР°Р»РёСЃСЊ С‡РµСЂРµР· VK!"}
+	out := &signInResponse{Message: "Р вЂ™РЎвЂ№ РЎС“РЎРѓР С—Р ВµРЎв‚¬Р Р…Р С• Р В°Р Р†РЎвЂљР С•РЎР‚Р С‘Р В·Р С•Р Р†Р В°Р В»Р С‘РЎРѓРЎРЉ РЎвЂЎР ВµРЎР‚Р ВµР В· VK!"}
 	out.User.ID = user.ID
 	out.User.Email = user.Email
 	out.User.FullName = user.FullName
@@ -406,6 +411,257 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code, state, deviceID st
 	out.User.ProfileType = user.ProfileType
 	out.User.Photo = photo
 	return out, sid, nil
+}
+
+func (s *AuthService) CreateSessionForUserID(ctx context.Context, userID int32) (string, error) {
+	u, err := s.users.FindUserByID(ctx, userID)
+	if err != nil {
+		return "", err
+	}
+	sid := generateSessionID()
+	sp := sessionPayload{UserID: u.ID, Email: u.Email, ProfileType: u.ProfileType}
+	b, _ := json.Marshal(sp)
+	if err := s.rdb.Set(ctx, sessionKeyPrefix+sid, b, sessionTTL).Err(); err != nil {
+		return "", err
+	}
+	return sid, nil
+}
+
+func IsVKOnboardingRequired(u *domain.UserEntity) bool {
+	if u == nil {
+		return false
+	}
+	email := strings.ToLower(strings.TrimSpace(u.Email))
+	phone := strings.TrimSpace(u.PhoneNumber)
+	if email == "" || phone == "" {
+		return true
+	}
+	if strings.HasSuffix(email, "@oauth.local") {
+		return true
+	}
+	if strings.HasPrefix(strings.ToUpper(phone), "VK_") {
+		return true
+	}
+	return !u.IsEmailVerified || !u.IsPhoneVerified
+}
+
+func (s *AuthService) VKOnboardingStatus(ctx context.Context, userID int32) (map[string]any, error) {
+	u, err := s.users.FindUserByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"required":        IsVKOnboardingRequired(u),
+		"isEmailVerified": u.IsEmailVerified,
+		"isPhoneVerified": u.IsPhoneVerified,
+		"email":           u.Email,
+		"phoneNumber":     u.PhoneNumber,
+	}, nil
+}
+
+func (s *AuthService) VKOnboardingStartEmail(ctx context.Context, userID int32, email string) (int32, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	if email == "" {
+		return 0, &AppError{400, "РќСѓР¶РЅРѕ СѓРєР°Р·Р°С‚СЊ email"}
+	}
+	current, err := s.users.FindUserByID(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+
+	targetUserID := current.ID
+	if otherID, err := s.users.FindUserIDByEmail(ctx, email); err != nil {
+		return 0, err
+	} else if otherID != nil && *otherID != current.ID {
+		targetUserID = *otherID
+		target, err := s.users.FindUserByID(ctx, targetUserID)
+		if err != nil {
+			return 0, err
+		}
+		// Merge VK profile data (except email/phone) into existing account.
+		patch := repository.UserSettingsPatch{}
+		if strings.TrimSpace(current.FullName) != "" {
+			name := strings.TrimSpace(current.FullName)
+			patch.FullName = &name
+		}
+		if current.Photo != nil && strings.TrimSpace(*current.Photo) != "" {
+			ph := strings.TrimSpace(*current.Photo)
+			patch.Photo = &ph
+		}
+		if patch.FullName != nil || patch.Photo != nil {
+			_ = s.users.UpdateUserSettings(ctx, target.ID, patch)
+		}
+		if provider, externalID, ok := inferOAuthIdentityFromUser(current); ok {
+			_ = s.users.UpsertOAuthIdentity(ctx, provider, externalID, target.ID)
+		}
+	}
+
+	if err := s.users.SetEmail(ctx, targetUserID, email); err != nil {
+		return 0, err
+	}
+	if err := s.users.SetEmailVerified(ctx, targetUserID, false); err != nil {
+		return 0, err
+	}
+	if err := s.sendVKEmailCode(ctx, targetUserID, email); err != nil {
+		return 0, err
+	}
+	return targetUserID, nil
+}
+
+func (s *AuthService) VKOnboardingVerifyEmailCode(ctx context.Context, userID int32, code string) error {
+	code = strings.TrimSpace(code)
+	raw, err := s.rdb.Get(ctx, vkVerifyEmailPrefix+code).Result()
+	if err == redis.Nil || raw == "" {
+		return &AppError{400, "РќРµРІРµСЂРЅС‹Р№ РєРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ"}
+	}
+	if err != nil {
+		return err
+	}
+	var cached struct {
+		UserID int32  `json:"userId"`
+		Email  string `json:"email"`
+		Code   string `json:"code"`
+	}
+	if err := json.Unmarshal([]byte(raw), &cached); err != nil {
+		return err
+	}
+	if cached.Code != code || cached.UserID != userID {
+		return &AppError{400, "РќРµРІРµСЂРЅС‹Р№ РєРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ"}
+	}
+	if err := s.users.SetEmail(ctx, cached.UserID, cached.Email); err != nil {
+		return err
+	}
+	if err := s.users.SetEmailVerified(ctx, cached.UserID, true); err != nil {
+		return err
+	}
+	_ = s.rdb.Del(ctx, vkVerifyEmailPrefix+code).Err()
+	return nil
+}
+
+func (s *AuthService) VKOnboardingStartPhone(ctx context.Context, userID int32, phone string) error {
+	phone = strings.TrimSpace(phone)
+	if phone == "" {
+		return &AppError{400, "РќСѓР¶РЅРѕ СѓРєР°Р·Р°С‚СЊ РЅРѕРјРµСЂ С‚РµР»РµС„РѕРЅР°"}
+	}
+	if otherID, err := s.users.FindUserIDByPhone(ctx, phone); err != nil {
+		return err
+	} else if otherID != nil && *otherID != userID {
+		return &AppError{400, "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј РЅРѕРјРµСЂРѕРј С‚РµР»РµС„РѕРЅР° СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚"}
+	}
+	code := s.generateVerifyCode()
+	payload, _ := json.Marshal(map[string]any{"userId": userID, "phone": phone, "code": code})
+	if err := s.rdb.Set(ctx, vkVerifyPhonePrefix+code, payload, verifyPhoneTTL).Err(); err != nil {
+		return err
+	}
+	return s.sendVKPhoneCode(ctx, phone, code)
+}
+
+func (s *AuthService) VKOnboardingVerifyPhoneCode(ctx context.Context, userID int32, code string) error {
+	code = strings.TrimSpace(code)
+	raw, err := s.rdb.Get(ctx, vkVerifyPhonePrefix+code).Bytes()
+	if err == redis.Nil || len(raw) == 0 {
+		return &AppError{400, "РќРµРІРµСЂРЅС‹Р№ РєРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ"}
+	}
+	if err != nil {
+		return err
+	}
+	var cached struct {
+		UserID int32  `json:"userId"`
+		Phone  string `json:"phone"`
+		Code   string `json:"code"`
+	}
+	if err := json.Unmarshal(raw, &cached); err != nil {
+		return err
+	}
+	if cached.Code != code || cached.UserID != userID {
+		return &AppError{400, "РќРµРІРµСЂРЅС‹Р№ РєРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ"}
+	}
+	if err := s.users.SetPhone(ctx, cached.UserID, cached.Phone); err != nil {
+		return err
+	}
+	if err := s.users.SetPhoneVerified(ctx, cached.UserID, true); err != nil {
+		return err
+	}
+	_ = s.rdb.Del(ctx, vkVerifyPhonePrefix+code).Err()
+	return nil
+}
+
+func (s *AuthService) sendVKEmailCode(ctx context.Context, userID int32, email string) error {
+	if strings.TrimSpace(s.cfg.SMTPHost) == "" {
+		return &AppError{500, "SMTP РЅРµ РЅР°СЃС‚СЂРѕРµРЅ (SMTP_HOST)"}
+	}
+	code := s.generateVerifyCode()
+	payload, _ := json.Marshal(map[string]any{"userId": userID, "email": email, "code": code})
+	if err := s.rdb.Set(ctx, vkVerifyEmailPrefix+code, payload, time.Hour).Err(); err != nil {
+		return err
+	}
+	htmlBody, err := mailpkg.VerifyEmailHTML(code)
+	if err != nil {
+		return &AppError{500, "РќРµ СѓРґР°Р»РѕСЃСЊ СЃС„РѕСЂРјРёСЂРѕРІР°С‚СЊ РїРёСЃСЊРјРѕ"}
+	}
+	fromAddr := strings.TrimSpace(s.cfg.SMTPFrom)
+	if fromAddr == "" {
+		fromAddr = strings.TrimSpace(s.cfg.SMTPUser)
+	}
+	if fromAddr == "" {
+		return &AppError{500, "SMTP_FROM/SMTP_USER РЅРµ Р·Р°РґР°РЅ"}
+	}
+	return mailpkg.SendHTMLSmart(s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword,
+		fromAddr, email, "РљРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ РїРѕС‡С‚С‹ - РўРѕСЂРіСѓР№ РЎР°Рј", htmlBody, s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure)
+}
+
+func (s *AuthService) sendVKPhoneCode(ctx context.Context, phone, code string) error {
+	if s.cfg.MTSBearer != "" {
+		body := map[string]any{
+			"submits": []any{map[string]any{"msid": phone, "message": "РљРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ: " + code}},
+			"naming":  "Torguisamru",
+		}
+		return s.httpPostJSON(ctx,
+			"https://api.mts.ru/client-omni-adapter_production/1.0.2/mcom/messageManagement/messages",
+			body,
+			s.cfg.MTSBearer,
+			nil,
+		)
+	}
+	if s.cfg.NotisendAPIKey != "" {
+		u := fmt.Sprintf(
+			"https://sms.notisend.ru/api/message/send?project=%s&message=%s&recipients=%s&apikey=%s",
+			url.QueryEscape(s.cfg.NotisendProject),
+			url.QueryEscape("РљРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ: "+code),
+			url.QueryEscape(phone),
+			url.QueryEscape(s.cfg.NotisendAPIKey),
+		)
+		var resp map[string]any
+		if err := s.httpGETJSON(ctx, u, &resp); err != nil {
+			return err
+		}
+		return nil
+	}
+	return &AppError{500, "РќРµ РЅР°СЃС‚СЂРѕРµРЅ SMS РїСЂРѕРІР°Р№РґРµСЂ"}
+}
+
+func inferOAuthIdentityFromUser(u *domain.UserEntity) (provider, externalID string, ok bool) {
+	if u == nil {
+		return "", "", false
+	}
+	email := strings.ToLower(strings.TrimSpace(u.Email))
+	phone := strings.ToUpper(strings.TrimSpace(u.PhoneNumber))
+	if strings.HasPrefix(email, "vk_") && strings.HasSuffix(email, "@oauth.local") {
+		ext := strings.TrimSuffix(strings.TrimPrefix(email, "vk_"), "@oauth.local")
+		if ext != "" {
+			return "vk", ext, true
+		}
+	}
+	if strings.HasPrefix(phone, "VK_") {
+		ext := strings.TrimPrefix(phone, "VK_")
+		if i := strings.Index(ext, "_"); i > 0 {
+			ext = ext[:i]
+		}
+		if ext != "" {
+			return "vk", strings.ToLower(ext), true
+		}
+	}
+	return "", "", false
 }
 
 func (s *AuthService) Logout(ctx context.Context, sessionID string) error {
@@ -450,7 +706,7 @@ func parseSessionIDCookie(cookieHeader string) string {
 	return ""
 }
 
-// SocketUserFromCookie вЂ” handshake Socket.IO: cookie session_id в†’ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ СЂРѕР»СЊСЋ (С‡Р°С‚ + support WS).
+// SocketUserFromCookie РІР‚вЂќ handshake Socket.IO: cookie session_id РІвЂ вЂ™ Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЉ РЎРѓ РЎР‚Р С•Р В»РЎРЉРЎР‹ (РЎвЂЎР В°РЎвЂљ + support WS).
 func (s *AuthService) SocketUserFromCookie(ctx context.Context, cookieHeader string) (*domain.UserEntity, error) {
 	sid := parseSessionIDCookie(cookieHeader)
 	if sid == "" {
@@ -470,7 +726,7 @@ func (s *AuthService) Me(ctx context.Context, userID int32) (*domain.MeResponse,
 	u, err := s.users.FindUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, &AppError{404, "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ"}
+			return nil, &AppError{404, "Р СџР С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЉ Р Р…Р Вµ Р Р…Р В°Р в„–Р Т‘Р ВµР Р…"}
 		}
 		return nil, err
 	}
@@ -504,29 +760,29 @@ func (s *AuthService) ForgotPasswordBy(ctx context.Context, where, email, phone 
 	case "email":
 		email = strings.TrimSpace(email)
 		if email == "" {
-			return &AppError{400, "РќСѓР¶РЅРѕ СѓРєР°Р·Р°С‚СЊ email"}
+			return &AppError{400, "Р СњРЎС“Р В¶Р Р…Р С• РЎС“Р С”Р В°Р В·Р В°РЎвЂљРЎРЉ email"}
 		}
 		u, err = s.users.FindUserByEmail(ctx, email)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
-				return &AppError{400, "РџРѕР»СЊР·РѕРІР°С‚РµР»СЏ СЃ С‚Р°РєРѕР№ РїРѕС‡С‚РѕР№ РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚"}
+				return &AppError{400, "Р СџР С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЏ РЎРѓ РЎвЂљР В°Р С”Р С•Р в„– Р С—Р С•РЎвЂЎРЎвЂљР С•Р в„– Р Р…Р Вµ РЎРѓРЎС“РЎвЂ°Р ВµРЎРѓРЎвЂљР Р†РЎС“Р ВµРЎвЂљ"}
 			}
 			return err
 		}
 	case "sms":
 		phone = strings.TrimSpace(phone)
 		if phone == "" {
-			return &AppError{400, "РќСѓР¶РЅРѕ СѓРєР°Р·Р°С‚СЊ РЅРѕРјРµСЂ С‚РµР»РµС„РѕРЅР°"}
+			return &AppError{400, "Р СњРЎС“Р В¶Р Р…Р С• РЎС“Р С”Р В°Р В·Р В°РЎвЂљРЎРЉ Р Р…Р С•Р СР ВµРЎР‚ РЎвЂљР ВµР В»Р ВµРЎвЂћР С•Р Р…Р В°"}
 		}
 		u, err = s.users.FindUserByLogin(ctx, phone)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
-				return &AppError{400, "РџРѕР»СЊР·РѕРІР°С‚РµР»СЏ СЃ С‚Р°РєРёРј РЅРѕРјРµСЂРѕРј РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚"}
+				return &AppError{400, "Р СџР С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЏ РЎРѓ РЎвЂљР В°Р С”Р С‘Р С Р Р…Р С•Р СР ВµРЎР‚Р С•Р С Р Р…Р Вµ РЎРѓРЎС“РЎвЂ°Р ВµРЎРѓРЎвЂљР Р†РЎС“Р ВµРЎвЂљ"}
 			}
 			return err
 		}
 	default:
-		return &AppError{400, "where РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ email РёР»Рё sms"}
+		return &AppError{400, "where Р Т‘Р С•Р В»Р В¶Р ВµР Р… Р В±РЎвЂ№РЎвЂљРЎРЉ email Р С‘Р В»Р С‘ sms"}
 	}
 
 	code, err := s.reserveUniqueForgotCode(ctx, u.ID)
@@ -536,11 +792,11 @@ func (s *AuthService) ForgotPasswordBy(ctx context.Context, where, email, phone 
 
 	if where == "sms" {
 		if s.cfg.MTSBearer == "" {
-			return &AppError{500, "MTS_TOKEN РЅРµ Р·Р°РґР°РЅ"}
+			return &AppError{500, "MTS_TOKEN Р Р…Р Вµ Р В·Р В°Р Т‘Р В°Р Р…"}
 		}
 		body := map[string]any{
 			"submits": []any{
-				map[string]any{"msid": u.PhoneNumber, "message": "РљРѕРґ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ РїР°СЂРѕР»СЏ: " + code},
+				map[string]any{"msid": u.PhoneNumber, "message": "Р С™Р С•Р Т‘ Р Р†Р С•РЎРѓРЎРѓРЎвЂљР В°Р Р…Р С•Р Р†Р В»Р ВµР Р…Р С‘РЎРЏ Р С—Р В°РЎР‚Р С•Р В»РЎРЏ: " + code},
 			},
 			"naming": "Torguisamru",
 		}
@@ -550,28 +806,28 @@ func (s *AuthService) ForgotPasswordBy(ctx context.Context, where, email, phone 
 			s.cfg.MTSBearer,
 			nil,
 		); err != nil {
-			return &AppError{400, "РћС€РёР±РєР° РѕС‚РїСЂР°РІРєРё SMS: " + err.Error()}
+			return &AppError{400, "Р С›РЎв‚¬Р С‘Р В±Р С”Р В° Р С•РЎвЂљР С—РЎР‚Р В°Р Р†Р С”Р С‘ SMS: " + err.Error()}
 		}
 		return nil
 	}
 
 	if strings.TrimSpace(s.cfg.SMTPHost) == "" {
-		return &AppError{500, "SMTP РЅРµ РЅР°СЃС‚СЂРѕРµРЅ (SMTP_HOST)"}
+		return &AppError{500, "SMTP Р Р…Р Вµ Р Р…Р В°РЎРѓРЎвЂљРЎР‚Р С•Р ВµР Р… (SMTP_HOST)"}
 	}
 	htmlBody, err := mailpkg.ForgotPasswordHTML(code)
 	if err != nil {
-		return &AppError{500, "РќРµ СѓРґР°Р»РѕСЃСЊ СЃС„РѕСЂРјРёСЂРѕРІР°С‚СЊ РїРёСЃСЊРјРѕ"}
+		return &AppError{500, "Р СњР Вµ РЎС“Р Т‘Р В°Р В»Р С•РЎРѓРЎРЉ РЎРѓРЎвЂћР С•РЎР‚Р СР С‘РЎР‚Р С•Р Р†Р В°РЎвЂљРЎРЉ Р С—Р С‘РЎРѓРЎРЉР СР С•"}
 	}
 	fromAddr := strings.TrimSpace(s.cfg.SMTPFrom)
 	if fromAddr == "" {
 		fromAddr = strings.TrimSpace(s.cfg.SMTPUser)
 	}
 	if fromAddr == "" {
-		return &AppError{500, "SMTP_FROM/SMTP_USER РЅРµ Р·Р°РґР°РЅ"}
+		return &AppError{500, "SMTP_FROM/SMTP_USER Р Р…Р Вµ Р В·Р В°Р Т‘Р В°Р Р…"}
 	}
 	if err := mailpkg.SendHTMLSmart(s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword,
-		fromAddr, u.Email, "РљРѕРґ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ РїР°СЂРѕР»СЏ - РўРѕСЂРіСѓР№ РЎР°Рј", htmlBody, s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure); err != nil {
-		return &AppError{400, "РћС€РёР±РєР° РѕС‚РїСЂР°РІРєРё РїРёСЃСЊРјР°: " + err.Error()}
+		fromAddr, u.Email, "Р С™Р С•Р Т‘ Р Р†Р С•РЎРѓРЎРѓРЎвЂљР В°Р Р…Р С•Р Р†Р В»Р ВµР Р…Р С‘РЎРЏ Р С—Р В°РЎР‚Р С•Р В»РЎРЏ - Р СћР С•РЎР‚Р С–РЎС“Р в„– Р РЋР В°Р С", htmlBody, s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure); err != nil {
+		return &AppError{400, "Р С›РЎв‚¬Р С‘Р В±Р С”Р В° Р С•РЎвЂљР С—РЎР‚Р В°Р Р†Р С”Р С‘ Р С—Р С‘РЎРѓРЎРЉР СР В°: " + err.Error()}
 	}
 	return nil
 }
@@ -589,13 +845,13 @@ func (s *AuthService) reserveUniqueForgotCode(ctx context.Context, userID int32)
 			return code, nil
 		}
 	}
-	return "", &AppError{500, "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ СѓРЅРёРєР°Р»СЊРЅС‹Р№ РєРѕРґ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ"}
+	return "", &AppError{500, "Р СњР Вµ РЎС“Р Т‘Р В°Р В»Р С•РЎРѓРЎРЉ РЎРѓР С•Р В·Р Т‘Р В°РЎвЂљРЎРЉ РЎС“Р Р…Р С‘Р С”Р В°Р В»РЎРЉР Р…РЎвЂ№Р в„– Р С”Р С•Р Т‘ Р Р†Р С•РЎРѓРЎРѓРЎвЂљР В°Р Р…Р С•Р Р†Р В»Р ВµР Р…Р С‘РЎРЏ"}
 }
 
 func (s *AuthService) VerifyForgotCode(ctx context.Context, code string) (int32, error) {
 	raw, err := s.rdb.Get(ctx, forgotKeyPrefix+code).Bytes()
 	if err == redis.Nil || len(raw) == 0 {
-		return 0, &AppError{400, "РќРµРІРµСЂРЅС‹Р№ РєРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ"}
+		return 0, &AppError{400, "Р СњР ВµР Р†Р ВµРЎР‚Р Р…РЎвЂ№Р в„– Р С”Р С•Р Т‘ Р С—Р С•Р Т‘РЎвЂљР Р†Р ВµРЎР‚Р В¶Р Т‘Р ВµР Р…Р С‘РЎРЏ"}
 	}
 	if err != nil {
 		return 0, err
@@ -608,17 +864,17 @@ func (s *AuthService) VerifyForgotCode(ctx context.Context, code string) (int32,
 		return 0, err
 	}
 	if cached.Code != code {
-		return 0, &AppError{400, "РќРµРІРµСЂРЅС‹Р№ РєРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ"}
+		return 0, &AppError{400, "Р СњР ВµР Р†Р ВµРЎР‚Р Р…РЎвЂ№Р в„– Р С”Р С•Р Т‘ Р С—Р С•Р Т‘РЎвЂљР Р†Р ВµРЎР‚Р В¶Р Т‘Р ВµР Р…Р С‘РЎРЏ"}
 	}
 	id64, err := strconv.ParseInt(cached.ID, 10, 32)
 	if err != nil {
-		return 0, &AppError{400, "РќРµРІРµСЂРЅС‹Р№ РєРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ"}
+		return 0, &AppError{400, "Р СњР ВµР Р†Р ВµРЎР‚Р Р…РЎвЂ№Р в„– Р С”Р С•Р Т‘ Р С—Р С•Р Т‘РЎвЂљР Р†Р ВµРЎР‚Р В¶Р Т‘Р ВµР Р…Р С‘РЎРЏ"}
 	}
 	uid := int32(id64)
 	_, err = s.users.FindUserByID(ctx, uid)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return 0, &AppError{404, "РўР°РєРѕРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚"}
+			return 0, &AppError{404, "Р СћР В°Р С”Р С•Р С–Р С• Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЏ Р Р…Р Вµ РЎРѓРЎС“РЎвЂ°Р ВµРЎРѓРЎвЂљР Р†РЎС“Р ВµРЎвЂљ"}
 		}
 		return 0, err
 	}
@@ -633,12 +889,12 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID int32, password
 	u, err := s.users.FindUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return &AppError{404, "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ"}
+			return &AppError{404, "Р СџР С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЉ Р Р…Р Вµ Р Р…Р В°Р в„–Р Т‘Р ВµР Р…"}
 		}
 		return err
 	}
 	if !u.IsResetVerified {
-		return &AppError{403, "РўСЂРµР±СѓРµС‚СЃСЏ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ СЃР±СЂРѕСЃР° РїР°СЂРѕР»СЏ"}
+		return &AppError{403, "Р СћРЎР‚Р ВµР В±РЎС“Р ВµРЎвЂљРЎРѓРЎРЏ Р С—Р С•Р Т‘РЎвЂљР Р†Р ВµРЎР‚Р В¶Р Т‘Р ВµР Р…Р С‘Р Вµ РЎРѓР В±РЎР‚Р С•РЎРѓР В° Р С—Р В°РЎР‚Р С•Р В»РЎРЏ"}
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
 	if err != nil {
@@ -719,13 +975,13 @@ func (s *AuthService) httpPostJSON(ctx context.Context, urlStr string, body any,
 	return nil
 }
 
-// truncateForErr вЂ” РЅРµ СЂР°Р·РґСѓРІР°РµРј Р»РѕРі/РѕС‚РІРµС‚ С†РµР»С‹Рј HTML РѕС‚ РїСЂРѕРІР°Р№РґРµСЂР°.
+// truncateForErr РІР‚вЂќ Р Р…Р Вµ РЎР‚Р В°Р В·Р Т‘РЎС“Р Р†Р В°Р ВµР С Р В»Р С•Р С–/Р С•РЎвЂљР Р†Р ВµРЎвЂљ РЎвЂ Р ВµР В»РЎвЂ№Р С HTML Р С•РЎвЂљ Р С—РЎР‚Р С•Р Р†Р В°Р в„–Р Т‘Р ВµРЎР‚Р В°.
 func truncateForErr(s string) string {
 	const max = 512
 	if len(s) <= max {
 		return s
 	}
-	return s[:max] + "вЂ¦"
+	return s[:max] + "РІР‚В¦"
 }
 
 func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, provider, externalID, email, phone, fullName string) (*domain.UserEntity, error) {
@@ -738,10 +994,11 @@ func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, provider, exter
 		externalID = generateSessionID()[:12]
 	}
 
-	// 1) РЎРЅР°С‡Р°Р»Р° РёС‰РµРј СѓР¶Рµ СЃРѕР·РґР°РЅРЅС‹Р№ OAuth-Р°РєРєР°СѓРЅС‚ РїРѕ provider+externalID.
+	// 1) Р РЋР Р…Р В°РЎвЂЎР В°Р В»Р В° Р С‘РЎвЂ°Р ВµР С РЎС“Р В¶Р Вµ РЎРѓР С•Р В·Р Т‘Р В°Р Р…Р Р…РЎвЂ№Р в„– OAuth-Р В°Р С”Р С”Р В°РЎС“Р Р…РЎвЂљ Р С—Р С• provider+externalID.
 	if existingID, err := s.users.FindOAuthUserIDByProviderExternalID(ctx, providerSlug, externalID); err == nil && existingID != nil {
 		u, err := s.users.FindUserByID(ctx, *existingID)
 		if err == nil {
+			_ = s.users.UpsertOAuthIdentity(ctx, providerSlug, externalID, u.ID)
 			return u, nil
 		}
 		if !errors.Is(err, repository.ErrNotFound) {
@@ -755,16 +1012,17 @@ func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, provider, exter
 	phone = strings.TrimSpace(phone)
 	fullName = strings.TrimSpace(fullName)
 
-	// 2) Р•СЃР»Рё VK РІРµСЂРЅСѓР» email Рё РѕРЅ СѓР¶Рµ Р·Р°РЅСЏС‚ РґСЂСѓРіРёРј Р°РєРєР°СѓРЅС‚РѕРј вЂ” РЅРµ СЃРѕР·РґР°С‘Рј РґСѓР±Р»СЊ.
+	// 2) Р вЂўРЎРѓР В»Р С‘ VK Р Р†Р ВµРЎР‚Р Р…РЎС“Р В» email Р С‘ Р С•Р Р… РЎС“Р В¶Р Вµ Р В·Р В°Р Р…РЎРЏРЎвЂљ Р Т‘РЎР‚РЎС“Р С–Р С‘Р С Р В°Р С”Р С”Р В°РЎС“Р Р…РЎвЂљР С•Р С РІР‚вЂќ Р Р…Р Вµ РЎРѓР С•Р В·Р Т‘Р В°РЎвЂР С Р Т‘РЎС“Р В±Р В»РЎРЉ.
 	if email != "" {
 		if _, err := s.users.FindUserByEmail(ctx, email); err == nil {
-			return nil, &AppError{400, "РџРѕС‡С‚Р° СѓР¶Рµ Р·Р°РЅСЏС‚Р°"}
+			return nil, &AppError{400, "Р СџР С•РЎвЂЎРЎвЂљР В° РЎС“Р В¶Р Вµ Р В·Р В°Р Р…РЎРЏРЎвЂљР В°"}
 		} else if !errors.Is(err, repository.ErrNotFound) {
 			return nil, err
 		}
 	}
 	if phone != "" {
 		if u, err := s.users.FindUserByLogin(ctx, phone); err == nil {
+			_ = s.users.UpsertOAuthIdentity(ctx, providerSlug, externalID, u.ID)
 			return u, nil
 		} else if !errors.Is(err, repository.ErrNotFound) {
 			return nil, err
@@ -803,23 +1061,29 @@ func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, provider, exter
 		}
 		if err := s.users.InsertUser(ctx, uid, fullName, candidateEmail, candidatePhone, string(hash), roleID); err != nil {
 			if strings.Contains(strings.ToLower(err.Error()), "duplicate key") {
-				// Р”Р»СЏ VK РёРЅРѕРіРґР° РїР°СЂР°Р»Р»РµР»СЊРЅС‹Рµ Р·Р°РїСЂРѕСЃС‹ РјРѕРіСѓС‚ СЃРѕР·РґР°С‚СЊ РіРѕРЅРєСѓ.
-				// РџСЂРѕР±СѓРµРј РЅР°Р№С‚Рё СѓР¶Рµ СЃРѕР·РґР°РЅРЅС‹Р№ Р°РєРєР°СѓРЅС‚ РїРѕ externalID Рё РІРµСЂРЅСѓС‚СЊ РµРіРѕ.
+				// Р вЂќР В»РЎРЏ VK Р С‘Р Р…Р С•Р С–Р Т‘Р В° Р С—Р В°РЎР‚Р В°Р В»Р В»Р ВµР В»РЎРЉР Р…РЎвЂ№Р Вµ Р В·Р В°Р С—РЎР‚Р С•РЎРѓРЎвЂ№ Р СР С•Р С–РЎС“РЎвЂљ РЎРѓР С•Р В·Р Т‘Р В°РЎвЂљРЎРЉ Р С–Р С•Р Р…Р С”РЎС“.
+				// Р СџРЎР‚Р С•Р В±РЎС“Р ВµР С Р Р…Р В°Р в„–РЎвЂљР С‘ РЎС“Р В¶Р Вµ РЎРѓР С•Р В·Р Т‘Р В°Р Р…Р Р…РЎвЂ№Р в„– Р В°Р С”Р С”Р В°РЎС“Р Р…РЎвЂљ Р С—Р С• externalID Р С‘ Р Р†Р ВµРЎР‚Р Р…РЎС“РЎвЂљРЎРЉ Р ВµР С–Р С•.
 				if existingID, findErr := s.users.FindOAuthUserIDByProviderExternalID(ctx, providerSlug, externalID); findErr == nil && existingID != nil {
 					if u, getErr := s.users.FindUserByID(ctx, *existingID); getErr == nil {
+						_ = s.users.UpsertOAuthIdentity(ctx, providerSlug, externalID, u.ID)
 						return u, nil
 					}
 				}
 				if strings.ToLower(providerSlug) == "vk" && email != "" && !strings.HasSuffix(email, "@oauth.local") {
-					return nil, &AppError{400, "РџРѕС‡С‚Р° СѓР¶Рµ Р·Р°РЅСЏС‚Р°"}
+					return nil, &AppError{400, "Р СџР С•РЎвЂЎРЎвЂљР В° РЎС“Р В¶Р Вµ Р В·Р В°Р Р…РЎРЏРЎвЂљР В°"}
 				}
 				continue
 			}
 			return nil, err
 		}
-		return s.users.FindUserByID(ctx, uid)
+		u, err := s.users.FindUserByID(ctx, uid)
+		if err != nil {
+			return nil, err
+		}
+		_ = s.users.UpsertOAuthIdentity(ctx, providerSlug, externalID, u.ID)
+		return u, nil
 	}
-	return nil, &AppError{500, "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ MAX"}
+	return nil, &AppError{500, "Р СњР Вµ РЎС“Р Т‘Р В°Р В»Р С•РЎРѓРЎРЉ РЎРѓР С•Р В·Р Т‘Р В°РЎвЂљРЎРЉ Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЏ MAX"}
 }
 
 const vkLegacyUsersGetURL = "https://api.vk.com/method/users.get"
@@ -996,7 +1260,7 @@ func (s *AuthService) doVKHTTP(req *http.Request) ([]byte, error) {
 func isVKPlaceholderFullName(name string) bool {
 	name = strings.TrimSpace(name)
 	return name == "" ||
-		strings.HasPrefix(name, "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ VK") ||
+		strings.HasPrefix(name, "Р СџР С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЉ VK") ||
 		strings.EqualFold(name, "VK USER")
 }
 
@@ -1084,12 +1348,12 @@ func vkAnyToInt64(v any) int64 {
 func parseVKUserInfo(body []byte, fallbackID int64) (id, fullName, email string, err error) {
 	vkFallbackName := func(externalID string, numericID int64) string {
 		if strings.TrimSpace(externalID) != "" {
-			return "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ VK #" + strings.TrimSpace(externalID)
+			return "Р СџР С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЉ VK #" + strings.TrimSpace(externalID)
 		}
 		if numericID > 0 {
-			return "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ VK #" + strconv.FormatInt(numericID, 10)
+			return "Р СџР С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЉ VK #" + strconv.FormatInt(numericID, 10)
 		}
-		return "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ VK"
+		return "Р СџР С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЉ VK"
 	}
 
 	var legacy struct {
