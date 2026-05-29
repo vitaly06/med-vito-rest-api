@@ -48,6 +48,7 @@ func (s *UserService) FindAllAdmin(ctx context.Context) ([]fiberMap, error) {
 	for _, r := range rows {
 		out = append(out, fiberMap{
 			"id":           r.ID,
+			"createdAt":    r.CreatedAt,
 			"isBanned":     r.IsBanned,
 			"fullName":     r.FullName,
 			"email":        r.Email,

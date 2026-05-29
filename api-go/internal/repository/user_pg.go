@@ -160,6 +160,7 @@ func (r *UserPG) UpdatePassword(ctx context.Context, userID int32, passwordHash 
 // UserAdminRow — список пользователей для админки (как findAll в Nest).
 type UserAdminRow struct {
 	ID            int32
+	CreatedAt     time.Time
 	IsBanned      bool
 	FullName      string
 	Email         string
@@ -174,12 +175,12 @@ type UserAdminRow struct {
 
 func (r *UserPG) ListUsersAdmin(ctx context.Context) ([]UserAdminRow, error) {
 	const q = `
-		SELECT u."id", u."isBanned", u."fullName", u."email", u."phoneNumber", u."rating",
+		SELECT u."id", u."createdAt", u."isBanned", u."fullName", u."email", u."phoneNumber", u."rating",
 		       u."profileType"::text, u."photo", u."balance", u."bonusBalance",
 		       COUNT(p."id")::int
 		FROM "User" u
 		LEFT JOIN "Product" p ON p."userId" = u."id"
-		GROUP BY u."id"`
+		GROUP BY u."id", u."createdAt"`
 	rows, err := r.pool.Query(ctx, q)
 	if err != nil {
 		return nil, err
@@ -188,7 +189,7 @@ func (r *UserPG) ListUsersAdmin(ctx context.Context) ([]UserAdminRow, error) {
 	var out []UserAdminRow
 	for rows.Next() {
 		var row UserAdminRow
-		if err := rows.Scan(&row.ID, &row.IsBanned, &row.FullName, &row.Email, &row.PhoneNumber,
+		if err := rows.Scan(&row.ID, &row.CreatedAt, &row.IsBanned, &row.FullName, &row.Email, &row.PhoneNumber,
 			&row.Rating, &row.ProfileType, &row.Photo, &row.Balance, &row.BonusBalance, &row.ProductsCount); err != nil {
 			return nil, err
 		}
