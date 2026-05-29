@@ -1,4 +1,4 @@
-﻿package service
+package service
 
 import (
 	"bytes"
@@ -28,16 +28,26 @@ import (
 )
 
 const (
-	sessionTTL       = 30 * 24 * time.Hour
-	verifyPhoneTTL   = time.Hour
-	forgotPassTTL    = time.Hour
-	bcryptCost       = 10
-	sessionKeyPrefix = "session:"
-	verifyKeyPrefix  = "verify-phone:"
-	forgotKeyPrefix  = "forgot-password:"
-	vkidPKCEPrefix   = "vkid-pkce:"
-	vkidPKCETTL      = 10 * time.Minute
+	sessionTTL        = 30 * 24 * time.Hour
+	verifyPhoneTTL    = time.Hour
+	forgotPassTTL     = time.Hour
+	bcryptCost        = 10
+	sessionKeyPrefix  = "session:"
+	verifyKeyPrefix   = "verify-phone:"
+	forgotKeyPrefix   = "forgot-password:"
+	vkidPKCEPrefix    = "vkid-pkce:"
+	vkidPKCETTL       = 10 * time.Minute
+	vkIDPublicInfoURL = "https://id.vk.ru/oauth2/public_info"
 )
+
+type vkPublicInfo struct {
+	UserID      string
+	FirstName   string
+	LastInitial string
+	Avatar      string
+	EmailMasked string
+	PhoneMasked string
+}
 
 type AuthService struct {
 	cfg    config.Config
@@ -334,12 +344,17 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code, state, deviceID st
 	if tokenRes.StatusCode < 200 || tokenRes.StatusCode >= 300 {
 		return nil, "", &AppError{401, "VK OAuth token error: " + truncateForErr(string(tokenBody))}
 	}
-	accessToken, tokenEmail, tokenUserID, err := parseVKTokenResponse(tokenBody)
+	accessToken, tokenEmail, tokenUserID, idToken, err := parseVKTokenResponse(tokenBody)
 	if err != nil {
 		return nil, "", err
 	}
 	if accessToken == "" {
 		return nil, "", &AppError{401, "VK OAuth: РїСѓСЃС‚РѕР№ access_token"}
+	}
+
+	public := parseVKIDTokenPublicClaims(idToken)
+	if fetched, err := s.fetchVKPublicInfo(ctx, idToken); err == nil {
+		public = mergeVKPublicInfo(public, fetched)
 	}
 
 	userBody, err := s.fetchVKUserProfile(ctx, accessToken)
@@ -349,6 +364,12 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code, state, deviceID st
 	vkID, fullName, emailFromProfile, err := parseVKUserInfo(userBody, tokenUserID)
 	if err != nil {
 		return nil, "", err
+	}
+	if strings.TrimSpace(vkID) == "" {
+		vkID = strings.TrimSpace(public.UserID)
+	}
+	if strings.TrimSpace(fullName) == "" {
+		fullName = strings.TrimSpace(strings.TrimSpace(public.FirstName + " " + public.LastInitial))
 	}
 	email := strings.ToLower(strings.TrimSpace(tokenEmail))
 	if email == "" {
@@ -373,6 +394,9 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code, state, deviceID st
 	if user.Photo != nil && *user.Photo != "" {
 		p := s.cfg.BaseURL + *user.Photo
 		photo = &p
+	} else if strings.TrimSpace(public.Avatar) != "" {
+		a := strings.TrimSpace(public.Avatar)
+		photo = &a
 	}
 	out := &signInResponse{Message: "Р’С‹ СѓСЃРїРµС€РЅРѕ Р°РІС‚РѕСЂРёР·РѕРІР°Р»РёСЃСЊ С‡РµСЂРµР· VK!"}
 	out.User.ID = user.ID
@@ -800,18 +824,110 @@ func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, provider, exter
 
 const vkLegacyUsersGetURL = "https://api.vk.com/method/users.get"
 
-func parseVKTokenResponse(body []byte) (accessToken, email string, userID int64, err error) {
+func parseVKTokenResponse(body []byte) (accessToken, email string, userID int64, idToken string, err error) {
 	var raw map[string]any
 	if err := json.Unmarshal(body, &raw); err != nil {
-		return "", "", 0, err
+		return "", "", 0, "", err
 	}
 	if e, _ := raw["error"].(string); strings.TrimSpace(e) != "" {
-		return "", "", 0, &AppError{401, "VK OAuth token error: " + e}
+		return "", "", 0, "", &AppError{401, "VK OAuth token error: " + e}
 	}
 	accessToken, _ = raw["access_token"].(string)
 	email, _ = raw["email"].(string)
+	idToken, _ = raw["id_token"].(string)
 	userID = vkAnyToInt64(raw["user_id"])
-	return strings.TrimSpace(accessToken), strings.TrimSpace(email), userID, nil
+	return strings.TrimSpace(accessToken), strings.TrimSpace(email), userID, strings.TrimSpace(idToken), nil
+}
+
+func parseVKIDTokenPublicClaims(idToken string) vkPublicInfo {
+	idToken = strings.TrimSpace(idToken)
+	if idToken == "" {
+		return vkPublicInfo{}
+	}
+	parts := strings.Split(idToken, ".")
+	if len(parts) < 2 {
+		return vkPublicInfo{}
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return vkPublicInfo{}
+	}
+	var m map[string]any
+	if err := json.Unmarshal(payload, &m); err != nil {
+		return vkPublicInfo{}
+	}
+	out := vkPublicInfo{
+		UserID:      pickVKString(m, "sub", "user_id", "id"),
+		FirstName:   pickVKString(m, "first_name", "given_name"),
+		LastInitial: pickVKString(m, "last_name_initial", "last_initial"),
+		Avatar:      pickVKString(m, "picture", "avatar", "photo"),
+		EmailMasked: pickVKString(m, "email", "email_masked"),
+		PhoneMasked: pickVKString(m, "phone", "phone_masked"),
+	}
+	return out
+}
+
+func (s *AuthService) fetchVKPublicInfo(ctx context.Context, idToken string) (vkPublicInfo, error) {
+	idToken = strings.TrimSpace(idToken)
+	if idToken == "" {
+		return vkPublicInfo{}, fmt.Errorf("empty id_token")
+	}
+	form := url.Values{}
+	form.Set("id_token", idToken)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, vkIDPublicInfoURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return vkPublicInfo{}, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	res, err := s.client.Do(req)
+	if err != nil {
+		return vkPublicInfo{}, err
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return vkPublicInfo{}, err
+	}
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return vkPublicInfo{}, fmt.Errorf("public_info status=%d: %s", res.StatusCode, truncateForErr(string(body)))
+	}
+
+	var raw map[string]any
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return vkPublicInfo{}, err
+	}
+	return vkPublicInfo{
+		UserID:      pickVKString(raw, "user_id", "sub", "id", "response.user_id", "response.sub", "response.id"),
+		FirstName:   pickVKString(raw, "first_name", "response.first_name"),
+		LastInitial: pickVKString(raw, "last_name_initial", "last_initial", "response.last_name_initial", "response.last_initial"),
+		Avatar:      pickVKString(raw, "avatar", "picture", "photo", "response.avatar", "response.picture", "response.photo"),
+		EmailMasked: pickVKString(raw, "email", "email_masked", "response.email", "response.email_masked"),
+		PhoneMasked: pickVKString(raw, "phone", "phone_masked", "response.phone", "response.phone_masked"),
+	}, nil
+}
+
+func mergeVKPublicInfo(a, b vkPublicInfo) vkPublicInfo {
+	out := a
+	if strings.TrimSpace(out.UserID) == "" {
+		out.UserID = b.UserID
+	}
+	if strings.TrimSpace(out.FirstName) == "" {
+		out.FirstName = b.FirstName
+	}
+	if strings.TrimSpace(out.LastInitial) == "" {
+		out.LastInitial = b.LastInitial
+	}
+	if strings.TrimSpace(out.Avatar) == "" {
+		out.Avatar = b.Avatar
+	}
+	if strings.TrimSpace(out.EmailMasked) == "" {
+		out.EmailMasked = b.EmailMasked
+	}
+	if strings.TrimSpace(out.PhoneMasked) == "" {
+		out.PhoneMasked = b.PhoneMasked
+	}
+	return out
 }
 
 func (s *AuthService) fetchVKUserProfile(ctx context.Context, accessToken string) ([]byte, error) {
@@ -1123,4 +1239,3 @@ func pickVKPath(payload map[string]any, path string) (any, bool) {
 	}
 	return cur, true
 }
-
