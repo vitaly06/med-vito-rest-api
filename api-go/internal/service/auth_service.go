@@ -427,8 +427,17 @@ func (s *AuthService) CreateSessionForUserID(ctx context.Context, userID int32) 
 	return sid, nil
 }
 
-func IsVKOnboardingRequired(u *domain.UserEntity) bool {
+func isLegacyVKIdentity(u *domain.UserEntity) bool {
 	if u == nil {
+		return false
+	}
+	email := strings.ToLower(strings.TrimSpace(u.Email))
+	phone := strings.ToUpper(strings.TrimSpace(u.PhoneNumber))
+	return strings.HasSuffix(email, "@oauth.local") || strings.HasPrefix(phone, "VK_")
+}
+
+func IsVKOnboardingRequired(u *domain.UserEntity, isVKUser bool) bool {
+	if u == nil || !isVKUser {
 		return false
 	}
 	email := strings.ToLower(strings.TrimSpace(u.Email))
@@ -450,13 +459,30 @@ func (s *AuthService) VKOnboardingStatus(ctx context.Context, userID int32) (map
 	if err != nil {
 		return nil, err
 	}
+	hasVKIdentity, err := s.users.HasOAuthProviderForUser(ctx, userID, "vk")
+	if err != nil {
+		return nil, err
+	}
+	isVKUser := hasVKIdentity || isLegacyVKIdentity(u)
 	return map[string]any{
-		"required":        IsVKOnboardingRequired(u),
+		"required":        IsVKOnboardingRequired(u, isVKUser),
 		"isEmailVerified": u.IsEmailVerified,
 		"isPhoneVerified": u.IsPhoneVerified,
 		"email":           u.Email,
 		"phoneNumber":     u.PhoneNumber,
 	}, nil
+}
+
+func (s *AuthService) IsVKOnboardingRequiredForUser(ctx context.Context, u *domain.UserEntity) bool {
+	if u == nil {
+		return false
+	}
+	hasVKIdentity, err := s.users.HasOAuthProviderForUser(ctx, u.ID, "vk")
+	if err != nil {
+		return false
+	}
+	isVKUser := hasVKIdentity || isLegacyVKIdentity(u)
+	return IsVKOnboardingRequired(u, isVKUser)
 }
 
 func (s *AuthService) VKOnboardingStartEmail(ctx context.Context, userID int32, email string) (int32, error) {

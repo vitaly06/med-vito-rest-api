@@ -540,6 +540,23 @@ func (r *UserPG) UpsertOAuthIdentity(ctx context.Context, provider, externalID s
 	return err
 }
 
+func (r *UserPG) HasOAuthProviderForUser(ctx context.Context, userID int32, provider string) (bool, error) {
+	var one int
+	err := r.pool.QueryRow(ctx, `
+		SELECT 1
+		FROM "OAuthIdentity"
+		WHERE "userId" = $1 AND "provider" = $2
+		LIMIT 1
+	`, userID, strings.ToLower(strings.TrimSpace(provider))).Scan(&one)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func (r *UserPG) GetUserEmailPhone(ctx context.Context, userID int32) (email, phone string, err error) {
 	err = r.pool.QueryRow(ctx, `SELECT "email", "phoneNumber" FROM "User" WHERE "id" = $1`, userID).Scan(&email, &phone)
 	if errors.Is(err, pgx.ErrNoRows) {
