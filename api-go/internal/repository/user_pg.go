@@ -400,6 +400,17 @@ func (r *UserPG) SetEmailVerified(ctx context.Context, userID int32, v bool) err
 	return nil
 }
 
+func (r *UserPG) SetEmail(ctx context.Context, userID int32, email string) error {
+	tag, err := r.pool.Exec(ctx, `UPDATE "User" SET "email" = $2, "updatedAt" = NOW() WHERE "id" = $1`, userID, email)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 func (r *UserPG) SetBonusBalance(ctx context.Context, userID int32, v float64) error {
 	tag, err := r.pool.Exec(ctx, `UPDATE "User" SET "bonusBalance" = $2, "updatedAt" = NOW() WHERE "id" = $1`, userID, v)
 	if err != nil {
@@ -435,6 +446,41 @@ func (r *UserPG) FindUserIDByEmail(ctx context.Context, email string) (*int32, e
 func (r *UserPG) FindUserIDByPhone(ctx context.Context, phone string) (*int32, error) {
 	var id int32
 	err := r.pool.QueryRow(ctx, `SELECT "id" FROM "User" WHERE "phoneNumber" = $1`, phone).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &id, nil
+}
+
+// FindOAuthUserIDByProviderExternalID находит пользователя, созданного через OAuth-провайдера,
+// по стабильному externalID (в наших плейсхолдерах email/phone).
+func (r *UserPG) FindOAuthUserIDByProviderExternalID(ctx context.Context, provider, externalID string) (*int32, error) {
+	provider = strings.ToLower(strings.TrimSpace(provider))
+	externalID = strings.TrimSpace(externalID)
+	if provider == "" || externalID == "" {
+		return nil, nil
+	}
+
+	baseEmail := provider + "_" + externalID + "@oauth.local"
+	basePhone := strings.ToUpper(provider) + "_" + externalID
+	emailLike := provider + "_" + externalID + "\\_%@oauth.local"
+	phoneLike := strings.ToUpper(provider) + "_" + externalID + "\\_%"
+
+	const q = `
+		SELECT "id"
+		FROM "User"
+		WHERE "email" = $1
+		   OR "phoneNumber" = $2
+		   OR "email" LIKE $3 ESCAPE '\'
+		   OR "phoneNumber" LIKE $4 ESCAPE '\'
+		ORDER BY "createdAt" DESC
+		LIMIT 1`
+
+	var id int32
+	err := r.pool.QueryRow(ctx, q, baseEmail, basePhone, emailLike, phoneLike).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}

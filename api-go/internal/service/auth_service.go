@@ -359,6 +359,7 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code, state, deviceID st
 	if err != nil {
 		return nil, "", err
 	}
+	user = s.applyVKProfileEmail(ctx, user, email)
 	user = s.applyVKProfileName(ctx, user, fullName)
 
 	sid := generateSessionID()
@@ -704,9 +705,36 @@ func truncateForErr(s string) string {
 }
 
 func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, provider, externalID, email, phone, fullName string) (*domain.UserEntity, error) {
+	providerSlug := strings.ToLower(strings.TrimSpace(provider))
+	if providerSlug == "" {
+		providerSlug = "oauth"
+	}
+	externalID = strings.TrimSpace(externalID)
+	if externalID == "" {
+		externalID = generateSessionID()[:12]
+	}
+
+	// 1) Сначала ищем уже созданный OAuth-аккаунт по provider+externalID.
+	if existingID, err := s.users.FindOAuthUserIDByProviderExternalID(ctx, providerSlug, externalID); err == nil && existingID != nil {
+		u, err := s.users.FindUserByID(ctx, *existingID)
+		if err == nil {
+			return u, nil
+		}
+		if !errors.Is(err, repository.ErrNotFound) {
+			return nil, err
+		}
+	} else if err != nil {
+		return nil, err
+	}
+
+	email = strings.ToLower(strings.TrimSpace(email))
+	phone = strings.TrimSpace(phone)
+	fullName = strings.TrimSpace(fullName)
+
+	// 2) Если VK вернул email и он уже занят другим аккаунтом — не создаём дубль.
 	if email != "" {
 		if u, err := s.users.FindUserByEmail(ctx, email); err == nil {
-			return u, nil
+			return nil, &AppError{400, "Почта уже занята"}
 		} else if !errors.Is(err, repository.ErrNotFound) {
 			return nil, err
 		}
@@ -719,13 +747,6 @@ func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, provider, exter
 		}
 	}
 
-	providerSlug := strings.ToLower(strings.TrimSpace(provider))
-	if providerSlug == "" {
-		providerSlug = "oauth"
-	}
-	if externalID == "" {
-		externalID = generateSessionID()[:12]
-	}
 	if email == "" {
 		email = providerSlug + "_" + externalID + "@oauth.local"
 	}
@@ -758,6 +779,16 @@ func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, provider, exter
 		}
 		if err := s.users.InsertUser(ctx, uid, fullName, candidateEmail, candidatePhone, string(hash), roleID); err != nil {
 			if strings.Contains(strings.ToLower(err.Error()), "duplicate key") {
+				// Для VK иногда параллельные запросы могут создать гонку.
+				// Пробуем найти уже созданный аккаунт по externalID и вернуть его.
+				if existingID, findErr := s.users.FindOAuthUserIDByProviderExternalID(ctx, providerSlug, externalID); findErr == nil && existingID != nil {
+					if u, getErr := s.users.FindUserByID(ctx, *existingID); getErr == nil {
+						return u, nil
+					}
+				}
+				if strings.ToLower(providerSlug) == "vk" && email != "" && !strings.HasSuffix(email, "@oauth.local") {
+					return nil, &AppError{400, "Почта уже занята"}
+				}
 				continue
 			}
 			return nil, err
@@ -863,6 +894,35 @@ func (s *AuthService) applyVKProfileName(ctx context.Context, user *domain.UserE
 		return user
 	}
 	user.FullName = fullName
+	return user
+}
+
+func (s *AuthService) applyVKProfileEmail(ctx context.Context, user *domain.UserEntity, email string) *domain.UserEntity {
+	email = strings.ToLower(strings.TrimSpace(email))
+	if user == nil || email == "" {
+		return user
+	}
+	currentEmail := strings.ToLower(strings.TrimSpace(user.Email))
+	if currentEmail == email {
+		return user
+	}
+
+	otherID, err := s.users.FindUserIDByEmail(ctx, email)
+	if err != nil {
+		return user
+	}
+	if otherID != nil && *otherID != user.ID {
+		// Email already belongs to another account. Keep current user as is.
+		return user
+	}
+
+	// Auto-bind VK email when account still has placeholder oauth.local email.
+	if strings.HasSuffix(currentEmail, "@oauth.local") || currentEmail == "" {
+		if err := s.users.SetEmail(ctx, user.ID, email); err != nil {
+			return user
+		}
+		user.Email = email
+	}
 	return user
 }
 
