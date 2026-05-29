@@ -23,6 +23,26 @@ type DealService struct {
 	users   *repository.UserPG
 }
 
+func dealTrace(dealID, userID int32, stage string, format string, args ...any) {
+	msg := strings.TrimSpace(fmt.Sprintf(format, args...))
+	if msg == "" {
+		log.Printf("deal_trace deal=%d user=%d stage=%s", dealID, userID, stage)
+		return
+	}
+	log.Printf("deal_trace deal=%d user=%d stage=%s %s", dealID, userID, stage, msg)
+}
+
+func trimOrDash(v *string) string {
+	if v == nil {
+		return "-"
+	}
+	s := strings.TrimSpace(*v)
+	if s == "" {
+		return "-"
+	}
+	return s
+}
+
 func NewDealService(cfg config.Config, repo *repository.DealPG, logs *repository.LogPG, chat *repository.ChatPG, payment *PaymentService, reserve *repository.ReservationPG, cdek *CDEKService, users *repository.UserPG) *DealService {
 	return &DealService{cfg: cfg, repo: repo, logs: logs, chat: chat, payment: payment, reserve: reserve, cdek: cdek, users: users}
 }
@@ -107,13 +127,24 @@ func (s *DealService) ensureCdekOrderRegistered(ctx context.Context, deal *repos
 	if deal == nil {
 		return nil, nil, nil
 	}
+	dealTrace(deal.ID, deal.SellerID, "cdek_register_enter", "status=%s hasOrder=%t hasRoute=%t handoffReady=%t cdekOn=%t",
+		deal.Status,
+		deal.CDEKOrderUUID != nil && strings.TrimSpace(*deal.CDEKOrderUUID) != "",
+		dealHasCdekAutoRoute(deal),
+		sellerHandoffReady(deal),
+		s.cdek != nil && s.cdek.configured(),
+	)
 	if deal.CDEKOrderUUID != nil && strings.TrimSpace(*deal.CDEKOrderUUID) != "" {
+		dealTrace(deal.ID, deal.SellerID, "cdek_register_skip", "reason=order_exists orderUuid=%s", trimOrDash(deal.CDEKOrderUUID))
 		return nil, nil, nil
 	}
 	if !dealHasCdekAutoRoute(deal) {
+		dealTrace(deal.ID, deal.SellerID, "cdek_register_skip", "reason=no_route")
 		return nil, nil, nil
 	}
 	if !sellerHandoffReady(deal) {
+		dealTrace(deal.ID, deal.SellerID, "cdek_register_skip", "reason=handoff_not_ready mode=%s fromPvz=%s fromAddr=%s",
+			trimOrDash(deal.CDEKSellerHandoff), trimOrDash(deal.CDEKFromPVZ), trimOrDash(deal.CDEKFromAddress))
 		return nil, nil, nil
 	}
 	if s.cdek == nil || !s.cdek.configured() {
@@ -188,6 +219,7 @@ func (s *DealService) ensureCdekOrderRegistered(ctx context.Context, deal *repos
 
 	res, err := s.cdek.CreateOrder(ctx, in)
 	if err != nil {
+		dealTrace(deal.ID, deal.SellerID, "cdek_create_order_error", "clientNumber=%s err=%v", clientNumber, err)
 		log.Printf("cdek auto-register create failed deal=%d clientNumber=%s err=%v", deal.ID, clientNumber, err)
 		res2, lookErr := s.cdek.LookupOrderByClientNumber(ctx, clientNumber)
 		if lookErr == nil && res2 != nil && res2.OrderUUID != nil && strings.TrimSpace(*res2.OrderUUID) != "" {
@@ -200,9 +232,11 @@ func (s *DealService) ensureCdekOrderRegistered(ctx context.Context, deal *repos
 		// We don't have recipient address in auto-registration payload yet,
 		// so skip auto-create silently to avoid noisy retries in lists/logs.
 		if cdekNeedsRecipientAddress(err) {
+			dealTrace(deal.ID, deal.SellerID, "cdek_register_skip", "reason=recipient_address_required")
 			log.Printf("cdek auto-register skipped deal=%d reason=needs_recipient_address", deal.ID)
 			return nil, nil, nil
 		}
+		dealTrace(deal.ID, deal.SellerID, "cdek_register_fail", "err=%v", err)
 		return nil, nil, err
 	}
 	if res == nil || res.OrderUUID == nil {
@@ -232,8 +266,10 @@ func (s *DealService) ensureCdekOrderRegistered(ctx context.Context, deal *repos
 		}
 	}
 	if err := s.repo.SetCDEKShipment(ctx, deal.ID, &uu, tt); err != nil {
+		dealTrace(deal.ID, deal.SellerID, "cdek_register_fail", "save_shipment_failed err=%v", err)
 		return nil, nil, err
 	}
+	dealTrace(deal.ID, deal.SellerID, "cdek_register_success", "orderUuid=%s track=%s", uu, trimOrDash(tt))
 	log.Printf("cdek auto-register success deal=%d orderUUID=%s hasTrack=%t", deal.ID, uu, tt != nil && strings.TrimSpace(*tt) != "")
 	return &uu, tt, nil
 }
@@ -397,11 +433,14 @@ func (s *DealService) CreateDeal(ctx context.Context, buyerID int32, req CreateD
 }
 
 func (s *DealService) PayDeal(ctx context.Context, buyerID, dealID int32) (map[string]any, error) {
+	dealTrace(dealID, buyerID, "pay_enter", "init")
 	deal, err := s.getUserDeal(ctx, dealID, buyerID, "buyer")
 	if err != nil {
+		dealTrace(dealID, buyerID, "pay_fail", "get_user_deal_err=%v", err)
 		return nil, err
 	}
 	if deal.Status != "CREATED" {
+		dealTrace(dealID, buyerID, "pay_skip", "reason=bad_status status=%s", deal.Status)
 		return nil, &AppError{400, "Оплатить можно только созданную сделку"}
 	}
 	// Демо: без Tinkoff сразу PAID — иначе CDEK и «отправить» никогда не откроются.
@@ -428,14 +467,17 @@ func (s *DealService) PayDeal(ctx context.Context, buyerID, dealID int32) (map[s
 		}, nil
 	}
 	if deal.PaymentID != nil && deal.PaymentURL != nil {
+		dealTrace(dealID, buyerID, "pay_skip", "reason=payment_already_initialized paymentId=%s", trimOrDash(deal.PaymentID))
 		return map[string]any{"deal": s.formatDeal(*deal), "paymentId": *deal.PaymentID, "paymentUrl": *deal.PaymentURL, "orderId": deal.OrderID}, nil
 	}
 	// Temporary test mode: always initialize deal payment for 1 RUB.
 	paymentID, paymentURL, orderID, err := s.payment.CreateDealPayment(ctx, buyerID, deal.ID, 1, "Безопасная сделка: "+deal.ProductName)
 	if err != nil {
+		dealTrace(dealID, buyerID, "pay_fail", "create_deal_payment_err=%v", err)
 		return nil, err
 	}
 	if err := s.repo.SetPayment(ctx, deal.ID, paymentID, orderID, paymentURL); err != nil {
+		dealTrace(dealID, buyerID, "pay_fail", "set_payment_err=%v", err)
 		return nil, err
 	}
 	updated, err := s.repo.FindByID(ctx, deal.ID)
@@ -443,22 +485,27 @@ func (s *DealService) PayDeal(ctx context.Context, buyerID, dealID int32) (map[s
 		return nil, err
 	}
 	s.writeDealLog(ctx, buyerID, deal.ID, "payment_init", fmt.Sprintf("payment initialized paymentId=%s orderId=%s", paymentID, orderID))
+	dealTrace(dealID, buyerID, "pay_success", "mode=tinkoff paymentId=%s orderId=%s", paymentID, orderID)
 	return map[string]any{"deal": s.formatDeal(*updated), "paymentId": paymentID, "paymentUrl": paymentURL, "orderId": orderID}, nil
 }
 
 // SyncDealPayment — если webhook Тинькофф не дошёл (например localhost), покупатель дергает после оплаты.
 func (s *DealService) SyncDealPayment(ctx context.Context, buyerID, dealID int32) (map[string]any, error) {
+	dealTrace(dealID, buyerID, "sync_payment_enter", "init")
 	deal, err := s.getUserDeal(ctx, dealID, buyerID, "buyer")
 	if err != nil {
+		dealTrace(dealID, buyerID, "sync_payment_fail", "get_user_deal_err=%v", err)
 		return nil, err
 	}
 	if deal.Status != "CREATED" {
 		return nil, &AppError{400, "Сделка уже не в статусе «создана» — синхронизация не нужна"}
 	}
 	if deal.PaymentID == nil || strings.TrimSpace(*deal.PaymentID) == "" {
+		dealTrace(dealID, buyerID, "sync_payment_fail", "reason=no_payment_id")
 		return nil, &AppError{400, "Сначала нажми оплату и получи paymentId"}
 	}
 	pid := strings.TrimSpace(*deal.PaymentID)
+	dealTrace(dealID, buyerID, "sync_payment_check", "paymentId=%s", pid)
 	if strings.HasPrefix(strings.ToLower(pid), "mock-") {
 		ok, err := s.repo.TryMarkPaidByDealID(ctx, deal.ID)
 		if err != nil {
@@ -476,17 +523,21 @@ func (s *DealService) SyncDealPayment(ctx context.Context, buyerID, dealID int32
 	}
 	st, err := s.payment.CheckPaymentStatus(ctx, pid)
 	if err != nil {
+		dealTrace(dealID, buyerID, "sync_payment_fail", "check_status_err=%v", err)
 		return nil, err
 	}
 	status := strings.TrimSpace(fmt.Sprint(st["status"]))
+	dealTrace(dealID, buyerID, "sync_payment_status", "paymentId=%s status=%s", pid, status)
 	if status != "AUTHORIZED" && status != "CONFIRMED" {
 		return nil, &AppError{400, fmt.Sprintf("Платёж ещё не подтверждён (статус: %s)", status)}
 	}
 	ok, err := s.repo.TryMarkPaidByPaymentID(ctx, pid)
 	if err != nil {
+		dealTrace(dealID, buyerID, "sync_payment_fail", "mark_paid_by_payment_err=%v", err)
 		return nil, err
 	}
 	if !ok {
+		dealTrace(dealID, buyerID, "sync_payment_fail", "mark_paid_by_payment_ok=false")
 		return nil, &AppError{400, "Не удалось перевести сделку в оплаченную"}
 	}
 	updated, err := s.repo.FindByID(ctx, deal.ID)
@@ -494,12 +545,15 @@ func (s *DealService) SyncDealPayment(ctx context.Context, buyerID, dealID int32
 		return nil, err
 	}
 	s.writeDealLog(ctx, buyerID, deal.ID, "pay_sync", "deal paid via sync")
+	dealTrace(dealID, buyerID, "sync_payment_success", "mode=tinkoff status=%s", updated.Status)
 	return map[string]any{"deal": s.formatDeal(*updated)}, nil
 }
 
 func (s *DealService) SetCdekHandoff(ctx context.Context, sellerID, dealID int32, req SetCdekHandoffRequest) (map[string]any, error) {
+	dealTrace(dealID, sellerID, "set_handoff_enter", "mode=%s fromPvz=%s hasFromAddress=%t", strings.TrimSpace(req.Mode), trimOrDash(req.CDEKFromPVZ), normalizeStringPtr(req.CDEKFromAddress) != nil)
 	deal, err := s.getUserDeal(ctx, dealID, sellerID, "seller")
 	if err != nil {
+		dealTrace(dealID, sellerID, "set_handoff_fail", "get_user_deal_err=%v", err)
 		return nil, err
 	}
 	if deal.Status != "PAID" {
@@ -522,6 +576,7 @@ func (s *DealService) SetCdekHandoff(ctx context.Context, sellerID, dealID int32
 		if s.cdek != nil {
 			points, pErr := s.cdek.DeliveryPoints(ctx, int(*deal.CDEKFromCity))
 			if pErr != nil {
+				dealTrace(dealID, sellerID, "set_handoff_fail", "delivery_points_err=%v", pErr)
 				return nil, &AppError{400, "Не удалось проверить ПВЗ отправителя"}
 			}
 			valid := false
@@ -543,6 +598,7 @@ func (s *DealService) SetCdekHandoff(ctx context.Context, sellerID, dealID int32
 		}
 	}
 	if err := s.repo.SetCDEKSellerHandoff(ctx, dealID, mode, fromPvz, fromAddr); err != nil {
+		dealTrace(dealID, sellerID, "set_handoff_fail", "save_handoff_err=%v", err)
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, &AppError{400, "Не удалось сохранить способ передачи"}
 		}
@@ -553,18 +609,22 @@ func (s *DealService) SetCdekHandoff(ctx context.Context, sellerID, dealID int32
 		return nil, err
 	}
 	if _, _, regErr := s.ensureCdekOrderRegistered(ctx, fresh); regErr != nil {
+		dealTrace(dealID, sellerID, "set_handoff_fail", "register_after_handoff_err=%v", regErr)
 		return nil, regErr
 	}
 	if updated, e := s.repo.FindByID(ctx, dealID); e == nil {
 		fresh = updated
 	}
 	s.writeDealLog(ctx, sellerID, dealID, "cdek_handoff", "seller handoff: "+mode)
+	dealTrace(dealID, sellerID, "set_handoff_success", "mode=%s orderUuid=%s track=%s", mode, trimOrDash(fresh.CDEKOrderUUID), trimOrDash(fresh.CDEKTrackNumber))
 	return s.formatDeal(*s.refreshDealFromCDEK(ctx, fresh)), nil
 }
 
 func (s *DealService) MarkShipped(ctx context.Context, sellerID, dealID int32, req MarkShippedRequest) (map[string]any, error) {
+	dealTrace(dealID, sellerID, "mark_shipped_enter", "reqOrderUuid=%s reqTrack=%s", trimOrDash(req.CDEKOrderUUID), trimOrDash(req.CDEKTrackNumber))
 	deal, err := s.getUserDeal(ctx, dealID, sellerID, "seller")
 	if err != nil {
+		dealTrace(dealID, sellerID, "mark_shipped_fail", "get_user_deal_err=%v", err)
 		return nil, err
 	}
 	if deal.Status != "PAID" {
@@ -588,8 +648,10 @@ func (s *DealService) MarkShipped(ctx context.Context, sellerID, dealID int32, r
 	hasRoute := dealHasCdekAutoRoute(deal)
 	cdekOn := s.cdek != nil && s.cdek.configured()
 	if hasRoute && cdekOn && orderUUID == nil && trackNumber == nil {
+		dealTrace(dealID, sellerID, "mark_shipped_register", "reason=no_order_and_no_track")
 		uu, tt, regErr := s.ensureCdekOrderRegistered(ctx, deal)
 		if regErr != nil {
+			dealTrace(dealID, sellerID, "mark_shipped_fail", "register_err=%v", regErr)
 			return nil, regErr
 		}
 		if uu != nil {
@@ -600,6 +662,7 @@ func (s *DealService) MarkShipped(ctx context.Context, sellerID, dealID int32, r
 		}
 	}
 	if hasRoute && cdekOn && orderUUID == nil {
+		dealTrace(dealID, sellerID, "mark_shipped_fail", "reason=no_order_uuid_after_register")
 		return nil, &AppError{400, "Сначала оформи передачу в СДЭК — должен появиться UUID заказа"}
 	}
 	if trackNumber == nil && orderUUID != nil && s.cdek != nil {
@@ -608,14 +671,18 @@ func (s *DealService) MarkShipped(ctx context.Context, sellerID, dealID int32, r
 		}
 	}
 	if orderUUID != nil || trackNumber != nil {
+		dealTrace(dealID, sellerID, "mark_shipped_save_shipment", "orderUuid=%s track=%s", trimOrDash(orderUUID), trimOrDash(trackNumber))
 		if err := s.repo.SetCDEKShipment(ctx, dealID, orderUUID, trackNumber); err != nil {
+			dealTrace(dealID, sellerID, "mark_shipped_fail", "set_shipment_err=%v", err)
 			return nil, err
 		}
 	}
 	if err := s.repo.SetStatus(ctx, dealID, []string{"PAID"}, "SHIPPED", "shippedAt"); err != nil {
+		dealTrace(dealID, sellerID, "mark_shipped_fail", "set_status_err=%v", err)
 		return nil, &AppError{400, "Не удалось подтвердить отправку"}
 	}
 	s.writeDealLog(ctx, sellerID, dealID, "ship", "deal marked as shipped")
+	dealTrace(dealID, sellerID, "mark_shipped_success", "status=SHIPPED")
 	return s.GetDeal(ctx, sellerID, dealID)
 }
 
@@ -968,6 +1035,7 @@ func (s *DealService) refreshDealFromCDEK(ctx context.Context, deal *repository.
 	if orderUUID == "" {
 		return deal
 	}
+	dealTrace(deal.ID, deal.SellerID, "cdek_refresh_enter", "orderUuid=%s currentTrack=%s currentStatus=%s", orderUUID, trimOrDash(deal.CDEKTrackNumber), trimOrDash(deal.CDEKStatus))
 
 	details := s.cdek.OrderDetailsByOrderUUID(ctx, orderUUID)
 	if details == nil {
@@ -1004,16 +1072,20 @@ func (s *DealService) refreshDealFromCDEK(ctx context.Context, deal *repository.
 	trackChanged := newTrack != "" && newTrack != currentTrack
 
 	if !trackChanged && !statusChanged {
+		dealTrace(deal.ID, deal.SellerID, "cdek_refresh_no_change", "orderUuid=%s", orderUUID)
 		return deal
 	}
 
 	if trackChanged {
+		dealTrace(deal.ID, deal.SellerID, "cdek_refresh_track_update", "old=%s new=%s", currentTrack, newTrack)
 		if err := s.repo.SetCDEKShipment(ctx, deal.ID, nil, &newTrack); err != nil {
+			dealTrace(deal.ID, deal.SellerID, "cdek_refresh_fail", "set_track_err=%v", err)
 			return deal
 		}
 		s.notifyCdekTrackToBuyer(ctx, *deal, newTrack)
 	}
 	if statusChanged {
+		dealTrace(deal.ID, deal.SellerID, "cdek_refresh_status_update", "old=%s new=%s", currentStatus, details.StatusCode)
 		_ = s.repo.SetCDEKStatus(ctx, deal.ID, details.StatusCode)
 	}
 	updated, err := s.repo.FindByID(ctx, deal.ID)
