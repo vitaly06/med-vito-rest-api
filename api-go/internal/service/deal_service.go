@@ -197,6 +197,26 @@ func (s *DealService) ensureCdekOrderRegistered(ctx context.Context, deal *repos
 	if deal.CDEKSellerHandoff != nil && strings.TrimSpace(*deal.CDEKSellerHandoff) == "courier" {
 		in.FromAddress = deal.CDEKFromAddress
 	}
+	// For PVZ handoff, resolve both endpoints to explicit addresses and send address->address.
+	// Some CDEK setups reject payload with *_point and require to_location.address.
+	if deal.CDEKSellerHandoff != nil && strings.TrimSpace(*deal.CDEKSellerHandoff) == "pvz" {
+		if (in.FromAddress == nil || strings.TrimSpace(*in.FromAddress) == "") &&
+			in.FromPVZ != nil && strings.TrimSpace(*in.FromPVZ) != "" &&
+			deal.CDEKFromCity != nil && *deal.CDEKFromCity > 0 {
+			if pvzAddr := s.resolvePvzAddress(ctx, int(*deal.CDEKFromCity), *in.FromPVZ); pvzAddr != nil {
+				in.FromAddress = pvzAddr
+			}
+		}
+		if (in.ToAddress == nil || strings.TrimSpace(*in.ToAddress) == "") &&
+			in.ToPVZ != nil && strings.TrimSpace(*in.ToPVZ) != "" {
+			if pvzAddr := s.resolvePvzAddress(ctx, in.ToCityCode, *in.ToPVZ); pvzAddr != nil {
+				in.ToAddress = pvzAddr
+			}
+		}
+		// Keep PVZ selection in DB/UI, but do not send *_point into CDEK create order payload.
+		in.FromPVZ = nil
+		in.ToPVZ = nil
+	}
 	// CDEK can require to_location.address even for some "warehouse-warehouse" tariffs.
 	// If buyer selected PVZ but address is not saved, resolve address by PVZ code.
 	if (in.ToAddress == nil || strings.TrimSpace(*in.ToAddress) == "") &&
