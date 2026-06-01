@@ -197,33 +197,15 @@ func (s *DealService) ensureCdekOrderRegistered(ctx context.Context, deal *repos
 	if deal.CDEKSellerHandoff != nil && strings.TrimSpace(*deal.CDEKSellerHandoff) == "courier" {
 		in.FromAddress = deal.CDEKFromAddress
 	}
-	// For PVZ handoff, resolve both endpoints to explicit addresses and send address->address.
-	// Some CDEK setups reject payload with *_point and require to_location.address.
-	if deal.CDEKSellerHandoff != nil && strings.TrimSpace(*deal.CDEKSellerHandoff) == "pvz" {
-		if (in.FromAddress == nil || strings.TrimSpace(*in.FromAddress) == "") &&
-			in.FromPVZ != nil && strings.TrimSpace(*in.FromPVZ) != "" &&
-			deal.CDEKFromCity != nil && *deal.CDEKFromCity > 0 {
-			if pvzAddr := s.resolvePvzAddress(ctx, int(*deal.CDEKFromCity), *in.FromPVZ); pvzAddr != nil {
-				in.FromAddress = pvzAddr
-			}
+	if in.TariffCode == cdekAllowedTariffCode {
+		if in.FromPVZ == nil || strings.TrimSpace(*in.FromPVZ) == "" {
+			return nil, nil, &AppError{400, "Для тарифа 136 укажи ПВЗ отправителя (shipment_point)"}
 		}
-		if (in.ToAddress == nil || strings.TrimSpace(*in.ToAddress) == "") &&
-			in.ToPVZ != nil && strings.TrimSpace(*in.ToPVZ) != "" {
-			if pvzAddr := s.resolvePvzAddress(ctx, in.ToCityCode, *in.ToPVZ); pvzAddr != nil {
-				in.ToAddress = pvzAddr
-			}
+		if in.ToPVZ == nil || strings.TrimSpace(*in.ToPVZ) == "" {
+			return nil, nil, &AppError{400, "Для тарифа 136 укажи ПВЗ получателя (delivery_point)"}
 		}
-		// Keep PVZ selection in DB/UI, but do not send *_point into CDEK create order payload.
-		in.FromPVZ = nil
-		in.ToPVZ = nil
-	}
-	// CDEK can require to_location.address even for some "warehouse-warehouse" tariffs.
-	// If buyer selected PVZ but address is not saved, resolve address by PVZ code.
-	if (in.ToAddress == nil || strings.TrimSpace(*in.ToAddress) == "") &&
-		in.ToPVZ != nil && strings.TrimSpace(*in.ToPVZ) != "" {
-		if pvzAddr := s.resolvePvzAddress(ctx, in.ToCityCode, *in.ToPVZ); pvzAddr != nil {
-			in.ToAddress = pvzAddr
-		}
+		in.FromAddress = nil
+		in.ToAddress = nil
 	}
 	log.Printf(
 		"cdek auto-register start deal=%d status=%s tariff=%d fromCity=%d toCity=%d hasToPvz=%t hasFromPvz=%t hasToAddress=%t",
@@ -248,13 +230,9 @@ func (s *DealService) ensureCdekOrderRegistered(ctx context.Context, deal *repos
 		}
 	}
 	if err != nil {
-		// For door-delivery tariffs CDEK requires to_location.address.
-		// We don't have recipient address in auto-registration payload yet,
-		// so skip auto-create silently to avoid noisy retries in lists/logs.
 		if cdekNeedsRecipientAddress(err) {
-			dealTrace(deal.ID, deal.SellerID, "cdek_register_skip", "reason=recipient_address_required")
-			log.Printf("cdek auto-register skipped deal=%d reason=needs_recipient_address", deal.ID)
-			return nil, nil, nil
+			dealTrace(deal.ID, deal.SellerID, "cdek_register_fail", "reason=recipient_address_required")
+			return nil, nil, &AppError{400, "CDEK требует адрес получателя для выбранного режима доставки"}
 		}
 		dealTrace(deal.ID, deal.SellerID, "cdek_register_fail", "err=%v", err)
 		return nil, nil, err
@@ -582,6 +560,9 @@ func (s *DealService) SetCdekHandoff(ctx context.Context, sellerID, dealID int32
 	mode := strings.ToLower(strings.TrimSpace(req.Mode))
 	if mode != "pvz" && mode != "courier" {
 		return nil, &AppError{400, "mode: pvz или courier"}
+	}
+	if deal.CDEKTariffCode != nil && int(*deal.CDEKTariffCode) == cdekAllowedTariffCode && mode != "pvz" {
+		return nil, &AppError{400, "Для тарифа 136 доступна только передача через ПВЗ (shipment_point)"}
 	}
 	var fromPvz, fromAddr *string
 	switch mode {

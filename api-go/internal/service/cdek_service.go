@@ -243,6 +243,14 @@ func (s *CDEKService) CreateOrder(ctx context.Context, in CDEKCreateOrderInput) 
 	if clientNumber == "" {
 		return nil, &AppError{400, "РџСѓСЃС‚РѕР№ client number РґР»СЏ CDEK"}
 	}
+	if in.TariffCode == cdekAllowedTariffCode {
+		if in.FromPVZ == nil || strings.TrimSpace(*in.FromPVZ) == "" {
+			return nil, &AppError{400, "Для тарифа 136 обязателен shipment_point (ПВЗ отправителя)"}
+		}
+		if in.ToPVZ == nil || strings.TrimSpace(*in.ToPVZ) == "" {
+			return nil, &AppError{400, "Для тарифа 136 обязателен delivery_point (ПВЗ получателя)"}
+		}
+	}
 
 	includePvz := cdekInputHasPvz(in)
 	log.Printf(
