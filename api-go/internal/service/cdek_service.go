@@ -39,7 +39,7 @@ func (s *CDEKService) configured() bool {
 func (s *CDEKService) Cities(ctx context.Context, city string, limit int) ([]map[string]any, error) {
 	city = strings.TrimSpace(city)
 	if city == "" {
-		return nil, &AppError{400, "Р СњРЎС“Р В¶Р Р…Р С• РЎС“Р С”Р В°Р В·Р В°РЎвЂљРЎРЉ city"}
+		return nil, &AppError{400, "Нужно указать city"}
 	}
 	if limit <= 0 || limit > 100 {
 		limit = 20
@@ -75,7 +75,7 @@ func (s *CDEKService) fetchCities(ctx context.Context, city string, limit int) (
 
 func (s *CDEKService) DeliveryPoints(ctx context.Context, cityCode int) ([]map[string]any, error) {
 	if cityCode <= 0 {
-		return nil, &AppError{400, "Р СњРЎС“Р В¶Р ВµР Р… cityCode"}
+		return nil, &AppError{400, "Нужен cityCode"}
 	}
 	q := url.Values{}
 	q.Set("city_code", strconv.Itoa(cityCode))
@@ -110,10 +110,10 @@ const cdekAllowedTariffCode = 136
 
 func (s *CDEKService) Calculate(ctx context.Context, req CDEKCalculateRequest) (map[string]any, error) {
 	if req.TariffCode <= 0 || req.FromCityCode <= 0 || req.ToCityCode <= 0 {
-		return nil, &AppError{400, "Р СњРЎС“Р В¶Р Р…РЎвЂ№ tariffCode, fromCityCode Р С‘ toCityCode"}
+		return nil, &AppError{400, "Нужны tariffCode, fromCityCode и toCityCode"}
 	}
 	if req.TariffCode != cdekAllowedTariffCode {
-		return nil, &AppError{400, "Р”РѕСЃС‚СѓРїРµРЅ С‚РѕР»СЊРєРѕ С‚Р°СЂРёС„ 136 (СЃРєР»Р°Рґ-СЃРєР»Р°Рґ)"}
+		return nil, &AppError{400, "Доступен только тариф 136 (склад-склад)"}
 	}
 	if req.Weight <= 0 {
 		req.Weight = 1000
@@ -153,7 +153,7 @@ func (s *CDEKService) Calculate(ctx context.Context, req CDEKCalculateRequest) (
 
 func (s *CDEKService) Tariffs(ctx context.Context, req CDEKTariffsRequest) ([]map[string]any, error) {
 	if req.FromCityCode <= 0 || req.ToCityCode <= 0 {
-		return nil, &AppError{400, "РќСѓР¶РЅС‹ fromCityCode Рё toCityCode"}
+		return nil, &AppError{400, "Нужны fromCityCode и toCityCode"}
 	}
 	if req.Weight <= 0 {
 		req.Weight = 1000
@@ -193,7 +193,7 @@ func (s *CDEKService) Tariffs(ctx context.Context, req CDEKTariffsRequest) ([]ma
 	return filtered, nil
 }
 
-// CDEKCreateOrderInput вЂ” РјРёРЅРёРјР°Р»СЊРЅС‹Р№ РЅР°Р±РѕСЂ РґР»СЏ POST /v2/orders (Р±РµР·РѕРїР°СЃРЅР°СЏ СЃРґРµР»РєР°).
+// CDEKCreateOrderInput — минимальный набор для POST /v2/orders (безопасная сделка).
 type CDEKCreateOrderInput struct {
 	TariffCode      int
 	FromCityCode    int
@@ -217,31 +217,31 @@ type CDEKCreateOrderInput struct {
 	FromAddress     *string
 }
 
-// CDEKOrderDetails вЂ” С‚СЂРµРє Рё РїРѕСЃР»РµРґРЅРёР№ СЃС‚Р°С‚СѓСЃ РёР· GET /orders/{uuid}.
+// CDEKOrderDetails — трек и последний статус из GET /orders/{uuid}.
 type CDEKOrderDetails struct {
 	Track      *string
 	StatusCode string
 	StatusName string
 }
 
-// CDEKCreateOrderResult вЂ” uuid Р·Р°РєР°Р·Р° РІ CDEK Рё С‚СЂРµРє, РµСЃР»Рё API СѓР¶Рµ РІРµСЂРЅСѓР».
+// CDEKCreateOrderResult — uuid заказа в CDEK и трек, если API уже вернул.
 type CDEKCreateOrderResult struct {
 	OrderUUID *string
 	Track     *string
 }
 
-// CreateOrder вЂ” СЂРµРіРёСЃС‚СЂР°С†РёСЏ РѕС‚РїСЂР°РІРєРё РІ CDEK; number = ClientNumber РґР»СЏ РёРґРµРјРїРѕС‚РµРЅС‚РЅРѕСЃС‚Рё.
-// Р”Р»СЏ СЃС†РµРЅР°СЂРёСЏ РџР’Р—в†’РџР’Р— РѕС‚РїСЂР°РІР»СЏРµРј С‚РѕР»СЊРєРѕ shipment_point/delivery_point Р±РµР· Р°РґСЂРµСЃРѕРІ.
+// CreateOrder — регистрация отправки в CDEK; number = ClientNumber для идемпотентности.
+// Для сценария ПВЗ→ПВЗ отправляем только shipment_point/delivery_point без адресов.
 func (s *CDEKService) CreateOrder(ctx context.Context, in CDEKCreateOrderInput) (*CDEKCreateOrderResult, error) {
 	if !s.configured() {
-		return nil, &AppError{400, "CDEK РЅРµ РЅР°СЃС‚СЂРѕРµРЅ (CDEK_CLIENT_ID / CDEK_CLIENT_SECRET)"}
+		return nil, &AppError{400, "CDEK не настроен (CDEK_CLIENT_ID / CDEK_CLIENT_SECRET)"}
 	}
 	if in.TariffCode <= 0 || in.FromCityCode <= 0 || in.ToCityCode <= 0 {
-		return nil, &AppError{400, "РќСѓР¶РЅС‹ tariffCode, fromCityCode Рё toCityCode РґР»СЏ Р·Р°РєР°Р·Р° CDEK"}
+		return nil, &AppError{400, "Нужны tariffCode, fromCityCode и toCityCode для заказа CDEK"}
 	}
 	clientNumber := strings.TrimSpace(in.ClientNumber)
 	if clientNumber == "" {
-		return nil, &AppError{400, "РџСѓСЃС‚РѕР№ client number РґР»СЏ CDEK"}
+		return nil, &AppError{400, "Пустой client number для CDEK"}
 	}
 	if in.TariffCode == cdekAllowedTariffCode {
 		if in.FromPVZ == nil || strings.TrimSpace(*in.FromPVZ) == "" {
@@ -413,10 +413,10 @@ func (s *CDEKService) postCdekOrder(ctx context.Context, in CDEKCreateOrderInput
 	if soft != "" {
 		return nil, &AppError{400, "CDEK: " + soft}
 	}
-	return nil, &AppError{502, "CDEK РІРµСЂРЅСѓР» РїСѓСЃС‚РѕР№ uuid РїСЂРё СЃРѕР·РґР°РЅРёРё Р·Р°РєР°Р·Р°"}
+	return nil, &AppError{502, "CDEK вернул пустой uuid при создании заказа"}
 }
 
-// LookupOrderByClientNumber вЂ” РµСЃР»Рё Р·Р°РєР°Р· СЃ С‚Р°РєРёРј number СѓР¶Рµ СЃРѕР·РґР°РЅ, РїРѕРґС‚СЏРіРёРІР°РµРј uuid/С‚СЂРµРє.
+// LookupOrderByClientNumber — если заказ с таким number уже создан, подтягиваем uuid/трек.
 func (s *CDEKService) LookupOrderByClientNumber(ctx context.Context, clientNumber string) (*CDEKCreateOrderResult, error) {
 	clientNumber = strings.TrimSpace(clientNumber)
 	if clientNumber == "" {
@@ -693,7 +693,7 @@ func (s *CDEKService) postJSON(ctx context.Context, path string, payload any, ta
 
 func (s *CDEKService) token(ctx context.Context) (string, error) {
 	if !s.configured() {
-		return "", &AppError{400, "CDEK Р Р…Р Вµ Р Р…Р В°РЎРѓРЎвЂљРЎР‚Р С•Р ВµР Р… (CDEK_CLIENT_ID / CDEK_CLIENT_SECRET)"}
+		return "", &AppError{400, "CDEK не настроен (CDEK_CLIENT_ID / CDEK_CLIENT_SECRET)"}
 	}
 	s.mu.Lock()
 	if s.accessToken != "" && time.Now().Before(s.tokenExpires.Add(-time.Minute)) {
@@ -769,12 +769,12 @@ func containsCyrillic(s string) bool {
 
 func transliterateRU(s string) string {
 	replacer := strings.NewReplacer(
-		"Р°", "a", "Р±", "b", "РІ", "v", "Рі", "g", "Рґ", "d",
-		"Рµ", "e", "С‘", "e", "Р¶", "zh", "Р·", "z", "Рё", "i", "Р№", "y",
-		"Рє", "k", "Р»", "l", "Рј", "m", "РЅ", "n", "Рѕ", "o", "Рї", "p",
-		"СЂ", "r", "СЃ", "s", "С‚", "t", "Сѓ", "u", "С„", "f", "С…", "kh",
-		"С†", "ts", "С‡", "ch", "С€", "sh", "С‰", "shch", "СЉ", "", "С‹", "y",
-		"СЊ", "", "СЌ", "e", "СЋ", "yu", "СЏ", "ya",
+		"а", "a", "б", "b", "в", "v", "г", "g", "д", "d",
+		"е", "e", "ё", "e", "ж", "zh", "з", "z", "и", "i", "й", "y",
+		"к", "k", "л", "l", "м", "m", "н", "n", "о", "o", "п", "p",
+		"р", "r", "с", "s", "т", "t", "у", "u", "ф", "f", "х", "kh",
+		"ц", "ts", "ч", "ch", "ш", "sh", "щ", "shch", "ъ", "", "ы", "y",
+		"ь", "", "э", "e", "ю", "yu", "я", "ya",
 	)
 	lower := strings.ToLower(s)
 	latin := replacer.Replace(lower)

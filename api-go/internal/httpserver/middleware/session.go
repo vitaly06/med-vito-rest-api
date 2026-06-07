@@ -16,22 +16,22 @@ func RequireSession(auth *service.AuthService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		sid := c.Cookies("session_id")
 		if sid == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Р РЋР ВµРЎРѓРЎРѓР С‘РЎРЏ Р Р…Р Вµ Р Р…Р В°Р в„–Р Т‘Р ВµР Р…Р В°"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия не найдена"})
 		}
 		u, err := auth.UserFromSession(c.UserContext(), sid)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"statusCode": fiber.StatusInternalServerError, "message": err.Error()})
 		}
 		if u == nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Р РЋР ВµРЎРѓРЎРѓР С‘РЎРЏ Р Р…Р ВµР Т‘Р ВµР в„–РЎРѓРЎвЂљР Р†Р С‘РЎвЂљР ВµР В»РЎРЉР Р…Р В° Р С‘Р В»Р С‘ Р С‘РЎРѓРЎвЂљР ВµР С”Р В»Р В°"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия недействительна или истекла"})
 		}
 		if u.IsBanned {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"statusCode": fiber.StatusForbidden, "message": "Р вЂ™Р В°РЎв‚¬ Р В°Р С”Р С”Р В°РЎС“Р Р…РЎвЂљ Р В·Р В°Р В±Р В»Р С•Р С”Р С‘РЎР‚Р С•Р Р†Р В°Р Р…"})
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"statusCode": fiber.StatusForbidden, "message": "Ваш аккаунт заблокирован"})
 		}
 		if auth.IsVKOnboardingRequiredForUser(c.UserContext(), u) && !allowDuringVKOnboarding(c.Path()) {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 				"statusCode": fiber.StatusForbidden,
-				"message":    "РўСЂРµР±СѓРµС‚СЃСЏ Р·Р°РІРµСЂС€РёС‚СЊ РїСЂРёРІСЏР·РєСѓ Рё РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ email Рё С‚РµР»РµС„РѕРЅР°",
+				"message":    "Требуется завершить привязку и подтверждение email и телефона",
 				"code":       "VK_ONBOARDING_REQUIRED",
 			})
 		}
@@ -55,21 +55,21 @@ func RequireRoleLevel(auth *service.AuthService, minLevel int, denyMessage strin
 	return func(c *fiber.Ctx) error {
 		sid := c.Cookies("session_id")
 		if sid == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Р РЋР ВµРЎРѓРЎРѓР С‘РЎРЏ Р Р…Р Вµ Р Р…Р В°Р в„–Р Т‘Р ВµР Р…Р В°"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия не найдена"})
 		}
 		u, err := auth.UserFromSession(c.UserContext(), sid)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"statusCode": fiber.StatusInternalServerError, "message": err.Error()})
 		}
 		if u == nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Р РЋР ВµРЎРѓРЎРѓР С‘РЎРЏ Р Р…Р ВµР Т‘Р ВµР в„–РЎРѓРЎвЂљР Р†Р С‘РЎвЂљР ВµР В»РЎРЉР Р…Р В° Р С‘Р В»Р С‘ Р С‘РЎРѓРЎвЂљР ВµР С”Р В»Р В°"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия недействительна или истекла"})
 		}
 		if u.IsBanned {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"statusCode": fiber.StatusForbidden, "message": "Р вЂ™Р В°РЎв‚¬ Р В°Р С”Р С”Р В°РЎС“Р Р…РЎвЂљ Р В·Р В°Р В±Р В»Р С•Р С”Р С‘РЎР‚Р С•Р Р†Р В°Р Р…"})
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"statusCode": fiber.StatusForbidden, "message": "Ваш аккаунт заблокирован"})
 		}
 		if !rbac.HasMinRole(u.RoleName, minLevel) {
 			if denyMessage == "" {
-				denyMessage = "Р вЂќР С•РЎРѓРЎвЂљРЎС“Р С— Р В·Р В°Р С—РЎР‚Р ВµРЎвЂ°Р ВµР Р…"
+				denyMessage = "Доступ запрещен"
 			}
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"statusCode": fiber.StatusForbidden, "message": denyMessage})
 		}
@@ -79,32 +79,32 @@ func RequireRoleLevel(auth *service.AuthService, minLevel int, denyMessage strin
 }
 
 func RequireAdmin(auth *service.AuthService) fiber.Handler {
-	return RequireRoleLevel(auth, 90, "Р вЂќР С•РЎРѓРЎвЂљРЎС“Р С— РЎР‚Р В°Р В·РЎР‚Р ВµРЎв‚¬Р ВµР Р… РЎвЂљР С•Р В»РЎРЉР С”Р С• Р Т‘Р В»РЎРЏ Р В°Р Т‘Р СР С‘Р Р…Р С‘РЎРѓРЎвЂљРЎР‚Р В°РЎвЂљР С•РЎР‚Р С•Р Р†")
+	return RequireRoleLevel(auth, 90, "Доступ разрешен только для администраторов")
 }
 
 func RequireModerator(auth *service.AuthService) fiber.Handler {
-	return RequireRoleLevel(auth, 70, "Р вЂќР С•РЎРѓРЎвЂљРЎС“Р С— РЎР‚Р В°Р В·РЎР‚Р ВµРЎв‚¬Р ВµР Р… РЎвЂљР С•Р В»РЎРЉР С”Р С• Р Т‘Р В»РЎРЏ Р СР С•Р Т‘Р ВµРЎР‚Р В°РЎвЂљР С•РЎР‚Р С•Р Р† Р С‘ Р Р†РЎвЂ№РЎв‚¬Р Вµ")
+	return RequireRoleLevel(auth, 70, "Доступ разрешен только для модераторов и выше")
 }
 
 func RequirePermission(auth *service.AuthService, permission, denyMessage string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		sid := c.Cookies("session_id")
 		if sid == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Р РЋР ВµРЎРѓРЎРѓР С‘РЎРЏ Р Р…Р Вµ Р Р…Р В°Р в„–Р Т‘Р ВµР Р…Р В°"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия не найдена"})
 		}
 		u, err := auth.UserFromSession(c.UserContext(), sid)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"statusCode": fiber.StatusInternalServerError, "message": err.Error()})
 		}
 		if u == nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Р РЋР ВµРЎРѓРЎРѓР С‘РЎРЏ Р Р…Р ВµР Т‘Р ВµР в„–РЎРѓРЎвЂљР Р†Р С‘РЎвЂљР ВµР В»РЎРЉР Р…Р В° Р С‘Р В»Р С‘ Р С‘РЎРѓРЎвЂљР ВµР С”Р В»Р В°"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия недействительна или истекла"})
 		}
 		if u.IsBanned {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"statusCode": fiber.StatusForbidden, "message": "Р вЂ™Р В°РЎв‚¬ Р В°Р С”Р С”Р В°РЎС“Р Р…РЎвЂљ Р В·Р В°Р В±Р В»Р С•Р С”Р С‘РЎР‚Р С•Р Р†Р В°Р Р…"})
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"statusCode": fiber.StatusForbidden, "message": "Ваш аккаунт заблокирован"})
 		}
 		if !rbac.HasPermission(u.RoleName, permission) {
 			if denyMessage == "" {
-				denyMessage = "Р СњР ВµР Т‘Р С•РЎРѓРЎвЂљР В°РЎвЂљР С•РЎвЂЎР Р…Р С• Р С—РЎР‚Р В°Р Р†"
+				denyMessage = "Недостаточно прав"
 			}
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"statusCode": fiber.StatusForbidden, "message": denyMessage})
 		}

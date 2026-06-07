@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"errors"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -12,6 +13,8 @@ import (
 	authmw "med-vito/api-go/internal/httpserver/middleware"
 	"med-vito/api-go/internal/service"
 )
+
+var mojibakeResponsePattern = regexp.MustCompile(`[РС][^А-Яа-яЁё]|\uFFFD`)
 
 func parseCategoryPayload(c *fiber.Ctx) (string, *string, error) {
 	var body struct {
@@ -84,7 +87,7 @@ func normalizeResponseMessage(msg string) string {
 	if msg == "" {
 		return msg
 	}
-	if !strings.ContainsAny(msg, "РСЃ") {
+	if !mojibakeResponsePattern.MatchString(msg) {
 		return msg
 	}
 	decoded, err := charmap.Windows1251.NewEncoder().Bytes([]byte(msg))

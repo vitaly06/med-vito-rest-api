@@ -16,7 +16,7 @@ import (
 
 var ErrNotFound = errors.New("not found")
 
-// CategoryPG вЂ” SQL Рє С‚Р°Р±Р»РёС†Р°Рј Prisma (РєР°РІС‹С‡РєРё РІ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂР°С… РєР°Рє РІ РјРёРіСЂР°С†РёРё).
+// CategoryPG — SQL к таблицам Prisma (кавычки в идентификаторах как в миграции).
 type CategoryPG struct {
 	pool *pgxpool.Pool
 }
@@ -246,7 +246,7 @@ func (r *CategoryPG) FindSubCategoryByID(ctx context.Context, id int32) (*domain
 	return &sc, nil
 }
 
-// --- SubcategotyType (РѕРїРµС‡Р°С‚РєР° РІ Prisma) ---
+// --- SubcategotyType (опечатка в Prisma) ---
 
 type typeRow struct {
 	ID            int32
@@ -405,7 +405,7 @@ func (r *CategoryPG) listFieldsByTypeIDsFull(ctx context.Context, typeIDs []int3
 	return out, rows.Err()
 }
 
-// BuildCategoryTree вЂ” СЃРѕР±РёСЂР°РµС‚ РґРµСЂРµРІРѕ РґР»СЏ findAll (РєР°Рє Prisma select).
+// BuildCategoryTree — собирает дерево для findAll (как Prisma select).
 func (r *CategoryPG) BuildCategoryTree(ctx context.Context, roots []domain.CategoryTree) ([]domain.CategoryTree, error) {
 	if len(roots) == 0 {
 		return roots, nil
@@ -450,7 +450,7 @@ func (r *CategoryPG) BuildCategoryTree(ctx context.Context, roots []domain.Categ
 	if err != nil {
 		return nil, err
 	}
-	// РїСЂРёРєСЂРµРїРёС‚СЊ fields Рє types РІРЅСѓС‚СЂРё map sub -> types
+	// прикрепить fields к types внутри map sub -> types
 	for catIdx := range roots {
 		cid := roots[catIdx].ID
 		subNodes := subByCat[cid]
@@ -472,7 +472,7 @@ func (r *CategoryPG) BuildCategoryTree(ctx context.Context, roots []domain.Categ
 	return roots, nil
 }
 
-// BuildCategoryDetail вЂ” РїРѕР»РЅРѕРµ РґРµСЂРµРІРѕ РґР»СЏ РѕРґРЅРѕР№ РєР°С‚РµРіРѕСЂРёРё (findById / findBySlug).
+// BuildCategoryDetail — полное дерево для одной категории (findById / findBySlug).
 func (r *CategoryPG) BuildCategoryDetail(ctx context.Context, base domain.CategoryScalars) (*domain.CategoryDetail, error) {
 	out := &domain.CategoryDetail{
 		ID:            base.ID,

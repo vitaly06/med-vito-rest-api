@@ -116,7 +116,7 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 			DeviceID string `json:"device_id"`
 		}
 		if err := c.BodyParser(&body); err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "РќРµРєРѕСЂСЂРµРєС‚РЅРѕРµ С‚РµР»Рѕ"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректное тело"})
 		}
 		out, sid, err := auth.SignInWithVK(c.UserContext(), body.Code, body.State, body.DeviceID)
 		if err != nil {
