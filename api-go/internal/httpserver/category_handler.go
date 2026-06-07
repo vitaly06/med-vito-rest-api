@@ -14,7 +14,7 @@ import (
 	"med-vito/api-go/internal/service"
 )
 
-var mojibakeResponsePattern = regexp.MustCompile(`[РС][^А-Яа-яЁё]|\uFFFD`)
+var mojibakeResponsePattern = regexp.MustCompile(`[РС][^А-Яа-яЁё]`)
 
 func parseCategoryPayload(c *fiber.Ctx) (string, *string, error) {
 	var body struct {
@@ -87,7 +87,7 @@ func normalizeResponseMessage(msg string) string {
 	if msg == "" {
 		return msg
 	}
-	if !mojibakeResponsePattern.MatchString(msg) {
+	if !mojibakeResponsePattern.MatchString(msg) && !strings.ContainsRune(msg, '�') {
 		return msg
 	}
 	decoded, err := charmap.Windows1251.NewEncoder().Bytes([]byte(msg))
