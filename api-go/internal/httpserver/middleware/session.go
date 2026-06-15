@@ -28,7 +28,7 @@ func RequireSession(auth *service.AuthService) fiber.Handler {
 		if u.IsBanned {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"statusCode": fiber.StatusForbidden, "message": "Ваш аккаунт заблокирован"})
 		}
-		if auth.IsVKOnboardingRequiredForUser(c.UserContext(), u) && !allowDuringVKOnboarding(c.Path()) {
+		if auth.SessionRequiresVKOnboarding(c.UserContext(), sid, u) && !allowDuringVKOnboarding(c.Path()) {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 				"statusCode": fiber.StatusForbidden,
 				"message":    "Требуется завершить привязку и подтверждение email и телефона",

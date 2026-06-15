@@ -341,18 +341,18 @@ type swaggerAdminUpdateUser struct {
 
 // swaggerCreateDraftJSON тело черновика: поля опциональны; price/quantity в JSON могут быть строкой или числом.
 type swaggerCreateDraftJSON struct {
-	Name            string            `json:"name" example:""`
-	Price           string            `json:"price" example:""`
-	Quantity        string            `json:"quantity" example:""`
-	State           string            `json:"state" example:"NEW"`
-	Description     string            `json:"description" example:""`
-	Address         string            `json:"address" example:""`
-	CategoryID      string            `json:"categoryId" example:""`
-	SubcategoryID   string            `json:"subcategoryId" example:""`
-	SubCategoryID   string            `json:"subCategoryId" example:""`
-	TypeID          string            `json:"typeId" example:""`
-	FieldValues     map[string]string `json:"fieldValues"`
-	VideoURL        string            `json:"videoUrl" example:""`
+	Name          string            `json:"name" example:""`
+	Price         string            `json:"price" example:""`
+	Quantity      string            `json:"quantity" example:""`
+	State         string            `json:"state" example:"NEW"`
+	Description   string            `json:"description" example:""`
+	Address       string            `json:"address" example:""`
+	CategoryID    string            `json:"categoryId" example:""`
+	SubcategoryID string            `json:"subcategoryId" example:""`
+	SubCategoryID string            `json:"subCategoryId" example:""`
+	TypeID        string            `json:"typeId" example:""`
+	FieldValues   map[string]string `json:"fieldValues"`
+	VideoURL      string            `json:"videoUrl" example:""`
 }
 
 // ProductCreate
@@ -1177,12 +1177,12 @@ type swaggerDealMarkShippedRequest struct {
 }
 
 type swaggerDealCDEKQRResponse struct {
-	QRCodeData  *string `json:"qrCodeData,omitempty" example:"iVBORw0KGgoAAAANSUhEUgAA..."`
-	QRCodeURL   *string `json:"qrCodeUrl,omitempty" example:"https://api.cdek.ru/v2/.../barcode.pdf"`
-	TrackNumber *string `json:"trackNumber,omitempty" example:"1401262037"`
-	TrackingURL *string `json:"trackingUrl,omitempty" example:"https://www.cdek.ru/ru/tracking?order_id=1401262037"`
-	OrderUUID   *string `json:"orderUuid,omitempty" example:"6f61a0f8-9260-4e6d-8d17-43a988ab86b8"`
-	TrackPending bool   `json:"trackPending" example:"true"`
+	QRCodeData   *string `json:"qrCodeData,omitempty" example:"iVBORw0KGgoAAAANSUhEUgAA..."`
+	QRCodeURL    *string `json:"qrCodeUrl,omitempty" example:"https://api.cdek.ru/v2/.../barcode.pdf"`
+	TrackNumber  *string `json:"trackNumber,omitempty" example:"1401262037"`
+	TrackingURL  *string `json:"trackingUrl,omitempty" example:"https://www.cdek.ru/ru/tracking?order_id=1401262037"`
+	OrderUUID    *string `json:"orderUuid,omitempty" example:"6f61a0f8-9260-4e6d-8d17-43a988ab86b8"`
+	TrackPending bool    `json:"trackPending" example:"true"`
 }
 
 // --- cdek ---
@@ -1228,3 +1228,767 @@ type swaggerCDEKCalculateRequest struct {
 	Width        int `json:"width" example:"20"`
 	Height       int `json:"height" example:"20"`
 }
+
+// --- auth (VK) ---
+
+// AuthVKURL
+// @Summary Получить ссылку VK OAuth
+// @Tags auth
+// @Produce json
+// @Param state query string false "Произвольный state"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]interface{}
+// @Router /auth/vk/url [get]
+func _swaggerAuthVKURL() {}
+
+// AuthVKSignIn
+// @Summary Вход через VK
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param body body swaggerVKSignIn true "Код VK OAuth"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /auth/vk/sign-in [post]
+func _swaggerAuthVKSignIn() {}
+
+// AuthVKOnboardingStatus
+// @Summary Статус VK onboarding
+// @Security SessionId
+// @Tags auth
+// @Produce json
+// @Success 200 {object} object
+// @Failure 401 {object} map[string]interface{}
+// @Router /auth/vk/onboarding/status [get]
+func _swaggerAuthVKOnboardingStatus() {}
+
+// AuthVKOnboardingStartEmail
+// @Summary Начать подтверждение email для VK onboarding
+// @Security SessionId
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param body body swaggerVKEmail true "Email"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /auth/vk/onboarding/start-email [post]
+func _swaggerAuthVKOnboardingStartEmail() {}
+
+// AuthVKOnboardingVerifyEmail
+// @Summary Подтвердить email кодом для VK onboarding
+// @Security SessionId
+// @Tags auth
+// @Produce json
+// @Param code query string true "Код из письма"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /auth/vk/onboarding/verify-email [post]
+func _swaggerAuthVKOnboardingVerifyEmail() {}
+
+// AuthVKOnboardingStartPhone
+// @Summary Начать подтверждение телефона для VK onboarding
+// @Security SessionId
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param body body swaggerVKPhone true "Телефон"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /auth/vk/onboarding/start-phone [post]
+func _swaggerAuthVKOnboardingStartPhone() {}
+
+// AuthVKOnboardingVerifyPhone
+// @Summary Подтвердить телефон кодом для VK onboarding
+// @Security SessionId
+// @Tags auth
+// @Produce json
+// @Param code query string true "Код из SMS"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /auth/vk/onboarding/verify-phone [post]
+func _swaggerAuthVKOnboardingVerifyPhone() {}
+
+type swaggerVKSignIn struct {
+	Code     string `json:"code" example:"vk_oauth_code"`
+	State    string `json:"state" example:"state123"`
+	DeviceID string `json:"device_id" example:"device-abc-123"`
+}
+
+type swaggerVKEmail struct {
+	Email string `json:"email" example:"user@example.com"`
+}
+
+type swaggerVKPhone struct {
+	PhoneNumber string `json:"phoneNumber" example:"+79991234567"`
+}
+
+// --- user extra ---
+
+// UserChangeRole
+// @Summary Сменить роль пользователя (admin)
+// @Tags user-admin
+// @Accept json
+// @Produce json
+// @Param id path int true "User id"
+// @Param body body swaggerUserRoleChange true "Новая роль"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Router /user/{id}/role [put]
+func _swaggerUserChangeRole() {}
+
+type swaggerUserRoleChange struct {
+	Role string `json:"role" example:"admin"`
+}
+
+// --- product extra ---
+
+// ProductAvailableFilters
+// @Summary Доступные фильтры каталога
+// @Tags product
+// @Produce json
+// @Param categoryId query int false "Категория"
+// @Param subCategoryId query int false "Подкатегория"
+// @Param typeId query int false "Тип"
+// @Success 200 {object} object
+// @Router /product/available-filters [get]
+func _swaggerProductAvailableFilters() {}
+
+// ProductRandom
+// @Summary Случайные товары
+// @Tags product
+// @Produce json
+// @Success 200 {array} object
+// @Router /product/random-products [get]
+func _swaggerProductRandom() {}
+
+// ProductRecommended
+// @Summary Рекомендованные товары
+// @Tags product
+// @Produce json
+// @Success 200 {array} object
+// @Router /product/recommended [get]
+func _swaggerProductRecommended() {}
+
+// ProductUserProducts
+// @Summary Товары пользователя
+// @Tags product
+// @Produce json
+// @Param id path int true "User id"
+// @Success 200 {array} object
+// @Router /product/user-products/{id} [get]
+func _swaggerProductUserProducts() {}
+
+// ProductAddToFavorites
+// @Summary Добавить товар в избранное
+// @Security SessionId
+// @Tags product
+// @Produce json
+// @Param id path int true "Product id"
+// @Success 200 {object} map[string]string
+// @Failure 401 {object} map[string]interface{}
+// @Router /product/add-to-favorites/{id} [post]
+func _swaggerProductAddToFavorites() {}
+
+// ProductRemoveFromFavorites
+// @Summary Удалить товар из избранного
+// @Security SessionId
+// @Tags product
+// @Produce json
+// @Param id path int true "Product id"
+// @Success 200 {object} map[string]string
+// @Failure 401 {object} map[string]interface{}
+// @Router /product/remove-from-favorites/{id} [delete]
+func _swaggerProductRemoveFromFavorites() {}
+
+// ProductMyFavorites
+// @Summary Мое избранное
+// @Security SessionId
+// @Tags product
+// @Produce json
+// @Success 200 {array} object
+// @Failure 401 {object} map[string]interface{}
+// @Router /product/my-favorites [get]
+func _swaggerProductMyFavorites() {}
+
+// ProductToggle
+// @Summary Скрыть или опубликовать свой товар
+// @Security SessionId
+// @Tags product
+// @Produce json
+// @Param id path int true "Product id"
+// @Success 200 {object} object
+// @Failure 401 {object} map[string]interface{}
+// @Router /product/toggle-product/{id} [put]
+func _swaggerProductToggle() {}
+
+// ProductAllToModerate
+// @Summary Товары на модерации (admin)
+// @Tags product-admin
+// @Produce json
+// @Success 200 {array} object
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Router /product/all-products-to-moderate [get]
+func _swaggerProductAllToModerate() {}
+
+// ProductPromoted
+// @Summary Продвигаемые товары (admin)
+// @Tags product-admin
+// @Produce json
+// @Success 200 {array} object
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Router /product/promoted-products [get]
+func _swaggerProductPromoted() {}
+
+// ProductTogglePromotion
+// @Summary Включить или выключить продвижение (admin)
+// @Tags product-admin
+// @Produce json
+// @Param promotionId path int true "Promotion id"
+// @Success 200 {object} object
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Router /product/toggle-promotion/{promotionId} [put]
+func _swaggerProductTogglePromotion() {}
+
+// --- review appeals ---
+
+// ReviewCreateAppeal
+// @Summary Подать апелляцию на отзыв
+// @Security SessionId
+// @Tags review
+// @Accept json
+// @Produce json
+// @Param body body swaggerReviewAppealCreate true "Тело"
+// @Success 201 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /review/appeals [post]
+func _swaggerReviewCreateAppeal() {}
+
+// ReviewMyAppeals
+// @Summary Мои апелляции на отзывы
+// @Security SessionId
+// @Tags review
+// @Produce json
+// @Success 200 {array} object
+// @Failure 401 {object} map[string]interface{}
+// @Router /review/my-appeals [get]
+func _swaggerReviewMyAppeals() {}
+
+// ReviewAllAppeals
+// @Summary Все апелляции на отзывы (moderator/admin)
+// @Tags review-admin
+// @Produce json
+// @Success 200 {array} object
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Router /review/all-appeals [get]
+func _swaggerReviewAllAppeals() {}
+
+// ReviewResolveAppeal
+// @Summary Разрешить апелляцию на отзыв (moderator/admin)
+// @Tags review-admin
+// @Accept json
+// @Produce json
+// @Param id path int true "Appeal id"
+// @Param body body swaggerResolveAppeal true "Решение"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Router /review/resolve-appeal/{id} [put]
+func _swaggerReviewResolveAppeal() {}
+
+type swaggerReviewAppealCreate struct {
+	ReviewID int    `json:"reviewId" example:"12"`
+	Reason   string `json:"reason" example:"Отзыв содержит недостоверные сведения"`
+}
+
+type swaggerResolveAppeal struct {
+	Status        string `json:"status" example:"RESOLVED"`
+	ModeratorNote string `json:"moderatorNote" example:"Апелляция рассмотрена"`
+}
+
+// --- reservation ---
+
+// ReservationCreate
+// @Summary Создать резерв товара
+// @Security SessionId
+// @Tags reservation
+// @Accept json
+// @Produce json
+// @Param body body swaggerReservationCreate true "Тело"
+// @Success 201 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /reservations/ [post]
+func _swaggerReservationCreate() {}
+
+// ReservationMy
+// @Summary Мои резервы
+// @Security SessionId
+// @Tags reservation
+// @Produce json
+// @Success 200 {array} object
+// @Failure 401 {object} map[string]interface{}
+// @Router /reservations/my [get]
+func _swaggerReservationMy() {}
+
+// ReservationProductInfo
+// @Summary Информация о резервировании товара
+// @Tags reservation
+// @Produce json
+// @Param productId path int true "Product id"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Router /reservations/product/{productId} [get]
+func _swaggerReservationProductInfo() {}
+
+// ReservationCancelByBuyer
+// @Summary Отмена резерва покупателем
+// @Security SessionId
+// @Tags reservation
+// @Produce json
+// @Param id path int true "Reservation id"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /reservations/{id}/cancel-by-buyer [post]
+func _swaggerReservationCancelByBuyer() {}
+
+// ReservationCancelBySeller
+// @Summary Отмена резерва продавцом
+// @Security SessionId
+// @Tags reservation
+// @Accept json
+// @Produce json
+// @Param id path int true "Reservation id"
+// @Param body body swaggerReservationCancelReason true "Причина"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /reservations/{id}/cancel-by-seller [post]
+func _swaggerReservationCancelBySeller() {}
+
+// ReservationCancel
+// @Summary Универсальная отмена резерва
+// @Security SessionId
+// @Tags reservation
+// @Accept json
+// @Produce json
+// @Param id path int true "Reservation id"
+// @Param body body swaggerReservationCancelReason false "Причина"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /reservations/{id}/cancel [post]
+func _swaggerReservationCancel() {}
+
+// ReservationExtend
+// @Summary Продлить резерв
+// @Security SessionId
+// @Tags reservation
+// @Produce json
+// @Param id path int true "Reservation id"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /reservations/{id}/extend [post]
+func _swaggerReservationExtend() {}
+
+// ReservationUpdateProductSettings
+// @Summary Обновить настройки резервирования товара
+// @Security SessionId
+// @Tags reservation
+// @Accept json
+// @Produce json
+// @Param body body swaggerReservationProductSettings true "Тело"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /reservations/product-settings [put]
+func _swaggerReservationUpdateProductSettings() {}
+
+type swaggerReservationCreate struct {
+	ProductID int     `json:"productId" example:"6157119"`
+	Hours     *int    `json:"hours,omitempty" example:"24"`
+	Note      *string `json:"note,omitempty" example:"Прошу придержать товар до вечера"`
+}
+
+type swaggerReservationCancelReason struct {
+	Reason *string `json:"reason,omitempty" example:"Покупатель не вышел на связь"`
+}
+
+type swaggerReservationProductSettings struct {
+	ProductID         int  `json:"productId" example:"6157119"`
+	AllowReservations bool `json:"allowReservations" example:"true"`
+}
+
+// --- statistics extra ---
+
+// StatisticsSearchQueries
+// @Summary Статистика поисковых запросов
+// @Security SessionId
+// @Tags statistics
+// @Produce json
+// @Success 200 {array} object
+// @Failure 401 {object} map[string]interface{}
+// @Router /statistics/search-queries [get]
+func _swaggerStatisticsSearchQueries() {}
+
+// StatisticsCabinetDashboard
+// @Summary Дашборд личного кабинета
+// @Security SessionId
+// @Tags statistics
+// @Produce json
+// @Success 200 {object} object
+// @Failure 401 {object} map[string]interface{}
+// @Router /statistics/cabinet-dashboard [get]
+func _swaggerStatisticsCabinetDashboard() {}
+
+// --- banner extra ---
+
+// BannerMyStats
+// @Summary Моя статистика по баннерам
+// @Security SessionId
+// @Tags banner
+// @Produce json
+// @Success 200 {object} object
+// @Failure 401 {object} map[string]interface{}
+// @Router /banner/my-stats/all [get]
+func _swaggerBannerMyStats() {}
+
+// BannerViewTrack
+// @Summary Зафиксировать просмотр баннера
+// @Tags banner
+// @Produce json
+// @Param id path int true "Banner id"
+// @Success 200 {object} map[string]string
+// @Router /banner/{id}/view [post]
+func _swaggerBannerViewTrack() {}
+
+// BannerStats
+// @Summary Статистика конкретного баннера
+// @Security SessionId
+// @Tags banner
+// @Produce json
+// @Param id path int true "Banner id"
+// @Success 200 {object} object
+// @Failure 401 {object} map[string]interface{}
+// @Router /banner/{id}/stats [get]
+func _swaggerBannerStats() {}
+
+// BannerUpdate
+// @Summary Обновить баннер (admin)
+// @Tags banner
+// @Accept json
+// @Produce json
+// @Param id path int true "Banner id"
+// @Param body body swaggerBannerUpdate true "Тело"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Router /banner/{id} [put]
+func _swaggerBannerUpdate() {}
+
+// BannerDelete
+// @Summary Удалить баннер (admin)
+// @Tags banner
+// @Produce json
+// @Param id path int true "Banner id"
+// @Success 200 {object} map[string]string
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Router /banner/{id} [delete]
+func _swaggerBannerDelete() {}
+
+// BannerGetByID
+// @Summary Получить баннер по id
+// @Tags banner
+// @Produce json
+// @Param id path int true "Banner id"
+// @Success 200 {object} object
+// @Failure 404 {object} map[string]interface{}
+// @Router /banner/{id} [get]
+func _swaggerBannerGetByID() {}
+
+type swaggerBannerUpdate struct {
+	Name          *string `json:"name,omitempty" example:"Летняя акция"`
+	PhotoURL      *string `json:"photoUrl,omitempty" example:"https://cdn.example.com/banner.jpg"`
+	Place         *string `json:"place,omitempty" example:"PRODUCT_FEED"`
+	NavigateToURL *string `json:"navigateToUrl,omitempty" example:"https://torguisam.ru/product/6157119"`
+}
+
+// --- moderation extra ---
+
+// ModerationSummary
+// @Summary Сводка по модерации
+// @Tags moderation-admin
+// @Produce json
+// @Success 200 {object} object
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Router /admin/moderation/summary [get]
+func _swaggerModerationSummary() {}
+
+// ModerationAuditLogs
+// @Summary Журнал аудита модерации
+// @Tags moderation-admin
+// @Produce json
+// @Success 200 {array} object
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Router /admin/moderation/audit-logs [get]
+func _swaggerModerationAuditLogs() {}
+
+// ModerationAppeals
+// @Summary Список апелляций модерации
+// @Tags moderation-admin
+// @Produce json
+// @Success 200 {array} object
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Router /admin/moderation/appeals [get]
+func _swaggerModerationAppeals() {}
+
+// ModerationReviewAppeal
+// @Summary Рассмотреть апелляцию модерации
+// @Tags moderation-admin
+// @Accept json
+// @Produce json
+// @Param id path int true "Appeal id"
+// @Param body body swaggerModerationAppealReview true "Решение"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Router /admin/moderation/appeals/{id}/review [put]
+func _swaggerModerationReviewAppeal() {}
+
+type swaggerModerationAppealReview struct {
+	Status        string `json:"status" example:"APPROVED"`
+	ReviewComment string `json:"reviewComment" example:"Апелляция рассмотрена модератором"`
+}
+
+// --- deals extra ---
+
+// DealCreate
+// @Summary Создать безопасную сделку
+// @Security SessionId
+// @Tags deals
+// @Accept json
+// @Produce json
+// @Param body body swaggerDealCreate true "Тело"
+// @Success 201 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /deals/ [post]
+func _swaggerDealCreate() {}
+
+// DealMyPurchases
+// @Summary Мои покупки
+// @Security SessionId
+// @Tags deals
+// @Produce json
+// @Success 200 {array} object
+// @Failure 401 {object} map[string]interface{}
+// @Router /deals/my-purchases [get]
+func _swaggerDealMyPurchases() {}
+
+// DealMySales
+// @Summary Мои продажи
+// @Security SessionId
+// @Tags deals
+// @Produce json
+// @Success 200 {array} object
+// @Failure 401 {object} map[string]interface{}
+// @Router /deals/my-sales [get]
+func _swaggerDealMySales() {}
+
+// DealMyAll
+// @Summary Все мои сделки
+// @Security SessionId
+// @Tags deals
+// @Produce json
+// @Success 200 {array} object
+// @Failure 401 {object} map[string]interface{}
+// @Router /deals/my [get]
+func _swaggerDealMyAll() {}
+
+// DealPay
+// @Summary Оплатить сделку
+// @Security SessionId
+// @Tags deals
+// @Produce json
+// @Param id path int true "Deal id"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /deals/{id}/pay [post]
+func _swaggerDealPay() {}
+
+// DealSyncPayment
+// @Summary Синхронизировать статус оплаты сделки
+// @Security SessionId
+// @Tags deals
+// @Produce json
+// @Param id path int true "Deal id"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /deals/{id}/sync-payment [post]
+func _swaggerDealSyncPayment() {}
+
+// DealSetCDEKHandoff
+// @Summary Указать способ передачи товара в CDEK
+// @Security SessionId
+// @Tags deals
+// @Accept json
+// @Produce json
+// @Param id path int true "Deal id"
+// @Param body body swaggerDealHandoff true "Тело"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /deals/{id}/cdek-handoff [post]
+func _swaggerDealSetCDEKHandoff() {}
+
+// DealConfirmDelivery
+// @Summary Подтвердить получение товара
+// @Security SessionId
+// @Tags deals
+// @Produce json
+// @Param id path int true "Deal id"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /deals/{id}/confirm-delivery [post]
+func _swaggerDealConfirmDelivery() {}
+
+// DealOpenDispute
+// @Summary Открыть спор по сделке
+// @Security SessionId
+// @Tags deals
+// @Accept json
+// @Produce json
+// @Param id path int true "Deal id"
+// @Param body body swaggerDealDispute true "Причина"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /deals/{id}/open-dispute [post]
+func _swaggerDealOpenDispute() {}
+
+// DealCancel
+// @Summary Отменить сделку
+// @Security SessionId
+// @Tags deals
+// @Produce json
+// @Param id path int true "Deal id"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /deals/{id}/cancel [post]
+func _swaggerDealCancel() {}
+
+type swaggerDealCreate struct {
+	ProductID         int     `json:"productId" example:"6157119"`
+	DeliveryCost      int     `json:"deliveryCost" example:"185"`
+	CDEKTariffCode    *int    `json:"cdekTariffCode,omitempty" example:"136"`
+	CDEKTariffName    *string `json:"cdekTariffName,omitempty" example:"Посылка склад-склад"`
+	CDEKFromCityCode  *int    `json:"cdekFromCityCode,omitempty" example:"261"`
+	CDEKToCityCode    *int    `json:"cdekToCityCode,omitempty" example:"44"`
+	CDEKFromPvzCode   *string `json:"cdekFromPvzCode,omitempty" example:"ORN24"`
+	CDEKToPvzCode     *string `json:"cdekToPvzCode,omitempty" example:"MSK12"`
+	CDEKToAddress     *string `json:"cdekToAddress,omitempty" example:"ул. Пример, д. 1"`
+	CDEKPackageWeight *int    `json:"cdekPackageWeight,omitempty" example:"500"`
+	CDEKPackageLength *int    `json:"cdekPackageLength,omitempty" example:"17"`
+	CDEKPackageWidth  *int    `json:"cdekPackageWidth,omitempty" example:"12"`
+	CDEKPackageHeight *int    `json:"cdekPackageHeight,omitempty" example:"9"`
+	CDEKRecipientMode *string `json:"cdekRecipientMode,omitempty" example:"pvz"`
+}
+
+type swaggerDealHandoff struct {
+	Mode            string  `json:"mode" example:"pvz"`
+	CDEKFromPvzCode *string `json:"cdekFromPvzCode,omitempty" example:"ORN24"`
+	CDEKFromAddress *string `json:"cdekFromAddress,omitempty" example:"г. Оренбург, ул. Чкалова, 59"`
+}
+
+type swaggerDealDispute struct {
+	Reason string `json:"reason" example:"Получен товар в ненадлежащем состоянии"`
+}
+
+// AdminDealList
+// @Summary РЎРїРёСЃРѕРє СЃРґРµР»РѕРє РґР»СЏ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°/РјРѕРґРµСЂР°С‚РѕСЂР°
+// @Security SessionId
+// @Tags admin-deals
+// @Produce json
+// @Success 200 {array} object
+// @Failure 401 {object} map[string]interface{}
+// @Router /admin/deals/list [get]
+func _swaggerAdminDealList() {}
+
+// AdminDealGet
+// @Summary РџРѕР»СѓС‡РёС‚СЊ СЃРґРµР»РєСѓ РїРѕ id РґР»СЏ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°
+// @Security SessionId
+// @Tags admin-deals
+// @Produce json
+// @Param id path int true "Deal id"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /admin/deals/{id} [get]
+func _swaggerAdminDealGet() {}
+
+// AdminDealSetStatus
+// @Summary РР·РјРµРЅРёС‚СЊ СЃС‚Р°С‚СѓСЃ СЃРґРµР»РєРё
+// @Security SessionId
+// @Tags admin-deals
+// @Accept json
+// @Produce json
+// @Param id path int true "Deal id"
+// @Param body body swaggerAdminDealStatus true "РўРµР»Рѕ"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /admin/deals/{id}/status [patch]
+func _swaggerAdminDealSetStatus() {}
+
+// AdminDealLogs
+// @Summary РџРѕР»СѓС‡РёС‚СЊ Р»РѕРіРё РїРѕ СЃРґРµР»РєРµ
+// @Security SessionId
+// @Tags admin-deals
+// @Produce json
+// @Param id path int true "Deal id"
+// @Success 200 {array} object
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /admin/deals/{id}/logs [get]
+func _swaggerAdminDealLogs() {}
+
+type swaggerAdminDealStatus struct {
+	Status string `json:"status" example:"CANCELLED"`
+}
+
+// --- cdek extra ---
+
+// CDEKTariffs
+// @Summary Получить доступные тарифы CDEK
+// @Tags cdek
+// @Accept json
+// @Produce json
+// @Param body body swaggerCDEKCalculateRequest true "Body"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]interface{}
+// @Router /cdek/tariffs [post]
+func _swaggerCDEKTariffs() {}

@@ -75,9 +75,11 @@ func (s *AuthService) defaultUserRoleID(ctx context.Context) (int32, error) {
 }
 
 type sessionPayload struct {
-	UserID      int32  `json:"userId"`
-	Email       string `json:"email"`
-	ProfileType string `json:"profileType"`
+	UserID              int32  `json:"userId"`
+	Email               string `json:"email"`
+	ProfileType         string `json:"profileType"`
+	AuthProvider        string `json:"authProvider,omitempty"`
+	RequireVKOnboarding bool   `json:"requireVkOnboarding,omitempty"`
 }
 
 type signUpCache struct {
@@ -111,6 +113,7 @@ func (s *AuthService) SignUp(ctx context.Context, where string, fullName, email,
 		return &AppError{400, "Данный пользователь уже существует"}
 	}
 	code := s.generateVerifyCode()
+	fmt.Println(code)
 	switch strings.ToLower(strings.TrimSpace(where)) {
 	case "telegram":
 		if s.cfg.NotisendAPIKey == "" {
@@ -203,7 +206,7 @@ func (s *AuthService) VerifyMobileCode(ctx context.Context, code string) (*signI
 		return nil, "", err
 	}
 	sid := generateSessionID()
-	sp := sessionPayload{UserID: u.ID, Email: u.Email, ProfileType: u.ProfileType}
+	sp := sessionPayload{UserID: u.ID, Email: u.Email, ProfileType: u.ProfileType, AuthProvider: "password"}
 	b, _ := json.Marshal(sp)
 	if err := s.rdb.Set(ctx, sessionKeyPrefix+sid, b, sessionTTL).Err(); err != nil {
 		return nil, "", err
@@ -236,7 +239,7 @@ func (s *AuthService) SignIn(ctx context.Context, login, password string) (*sign
 		return nil, "", &AppError{401, "Неверный пароль"}
 	}
 	sid := generateSessionID()
-	sp := sessionPayload{UserID: u.ID, Email: u.Email, ProfileType: u.ProfileType}
+	sp := sessionPayload{UserID: u.ID, Email: u.Email, ProfileType: u.ProfileType, AuthProvider: "password"}
 	b, _ := json.Marshal(sp)
 	if err := s.rdb.Set(ctx, sessionKeyPrefix+sid, b, sessionTTL).Err(); err != nil {
 		return nil, "", err
@@ -389,7 +392,13 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code, state, deviceID st
 	_ = s.users.SetPhoneVerified(ctx, user.ID, false)
 
 	sid := generateSessionID()
-	sp := sessionPayload{UserID: user.ID, Email: user.Email, ProfileType: user.ProfileType}
+	sp := sessionPayload{
+		UserID:              user.ID,
+		Email:               user.Email,
+		ProfileType:         user.ProfileType,
+		AuthProvider:        "vk",
+		RequireVKOnboarding: IsVKOnboardingRequired(user, true),
+	}
 	b, _ := json.Marshal(sp)
 	if err := s.rdb.Set(ctx, sessionKeyPrefix+sid, b, sessionTTL).Err(); err != nil {
 		return nil, "", err
@@ -419,7 +428,7 @@ func (s *AuthService) CreateSessionForUserID(ctx context.Context, userID int32) 
 		return "", err
 	}
 	sid := generateSessionID()
-	sp := sessionPayload{UserID: u.ID, Email: u.Email, ProfileType: u.ProfileType}
+	sp := sessionPayload{UserID: u.ID, Email: u.Email, ProfileType: u.ProfileType, AuthProvider: "password"}
 	b, _ := json.Marshal(sp)
 	if err := s.rdb.Set(ctx, sessionKeyPrefix+sid, b, sessionTTL).Err(); err != nil {
 		return "", err
@@ -720,6 +729,27 @@ func (s *AuthService) UserFromSession(ctx context.Context, sessionID string) (*d
 		return nil, err
 	}
 	return u, nil
+}
+
+func (s *AuthService) SessionRequiresVKOnboarding(ctx context.Context, sessionID string, u *domain.UserEntity) bool {
+	if sessionID == "" || u == nil {
+		return false
+	}
+	raw, err := s.rdb.Get(ctx, sessionKeyPrefix+sessionID).Bytes()
+	if err != nil || len(raw) == 0 {
+		return false
+	}
+	var sp sessionPayload
+	if err := json.Unmarshal(raw, &sp); err != nil {
+		return false
+	}
+	if strings.ToLower(strings.TrimSpace(sp.AuthProvider)) != "vk" {
+		return false
+	}
+	if !sp.RequireVKOnboarding {
+		return false
+	}
+	return IsVKOnboardingRequired(u, true)
 }
 
 func parseSessionIDCookie(cookieHeader string) string {
