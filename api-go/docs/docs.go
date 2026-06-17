@@ -106,7 +106,7 @@ const docTemplate = `{
                 "tags": [
                     "admin-deals"
                 ],
-                "summary": "РЎРїРёСЃРѕРє СЃРґРµР»РѕРє РґР»СЏ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°/РјРѕРґРµСЂР°С‚РѕСЂР°",
+                "summary": "Список сделок для администратора и модератора",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -140,7 +140,7 @@ const docTemplate = `{
                 "tags": [
                     "admin-deals"
                 ],
-                "summary": "РџРѕР»СѓС‡РёС‚СЊ СЃРґРµР»РєСѓ РїРѕ id РґР»СЏ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°",
+                "summary": "Получить сделку по id для администратора",
                 "parameters": [
                     {
                         "type": "integer",
@@ -187,7 +187,7 @@ const docTemplate = `{
                 "tags": [
                     "admin-deals"
                 ],
-                "summary": "РџРѕР»СѓС‡РёС‚СЊ Р»РѕРіРё РїРѕ СЃРґРµР»РєРµ",
+                "summary": "Получить логи по сделке",
                 "parameters": [
                     {
                         "type": "integer",
@@ -240,7 +240,7 @@ const docTemplate = `{
                 "tags": [
                     "admin-deals"
                 ],
-                "summary": "РР·РјРµРЅРёС‚СЊ СЃС‚Р°С‚СѓСЃ СЃРґРµР»РєРё",
+                "summary": "Изменить статус сделки",
                 "parameters": [
                     {
                         "type": "integer",
@@ -250,7 +250,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "РўРµР»Рѕ",
+                        "description": "Тело",
                         "name": "body",
                         "in": "body",
                         "required": true,
