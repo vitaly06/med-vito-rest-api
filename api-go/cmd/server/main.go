@@ -20,6 +20,7 @@ package main
 import (
 	"context"
 	"log"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -32,7 +33,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 
-	_ "med-vito/api-go/docs"
+	docs "med-vito/api-go/docs"
 
 	"med-vito/api-go/internal/config"
 	"med-vito/api-go/internal/dbmigrate"
@@ -45,6 +46,7 @@ import (
 func main() {
 	loadEnvFiles()
 	cfg := config.Load()
+	applySwaggerRuntimeInfo(cfg.BaseURL)
 	if cfg.DatabaseURL == "" {
 		log.Fatal("нужен DATABASE_URL в окружении (PostgreSQL, как в Prisma schema)")
 	}
@@ -217,4 +219,28 @@ func loadEnvFiles() {
 	// Overload: последний файл побеждает. Сначала родители, в конце — .env у cwd, чтобы api-go/.env перекрывал корень репы.
 	slices.Reverse(paths)
 	_ = godotenv.Overload(paths...)
+}
+
+func applySwaggerRuntimeInfo(baseURL string) {
+	baseURL = strings.TrimSpace(baseURL)
+	if baseURL == "" {
+		return
+	}
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		log.Printf("swagger base url parse: %v", err)
+		return
+	}
+	if u.Host != "" {
+		docs.SwaggerInfo.Host = u.Host
+	}
+	if u.Path != "" {
+		p := strings.TrimSpace(u.Path)
+		if p != "" && p != "/" {
+			docs.SwaggerInfo.BasePath = p
+		}
+	}
+	if u.Scheme != "" {
+		docs.SwaggerInfo.Schemes = []string{u.Scheme}
+	}
 }
