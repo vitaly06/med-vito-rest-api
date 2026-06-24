@@ -1,6 +1,8 @@
-package httpserver
+﻿package httpserver
 
 import (
+	"errors"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
@@ -10,7 +12,7 @@ import (
 	"med-vito/api-go/internal/service"
 )
 
-// AppDeps — зависимости HTTP-слоя (по мере миграции пополняется).
+// AppDeps вЂ” Р·Р°РІРёСЃРёРјРѕСЃС‚Рё HTTP-СЃР»РѕСЏ (РїРѕ РјРµСЂРµ РјРёРіСЂР°С†РёРё РїРѕРїРѕР»РЅСЏРµС‚СЃСЏ).
 type AppDeps struct {
 	Config      config.Config
 	Log         *service.LogService
@@ -33,10 +35,21 @@ type AppDeps struct {
 	Reservation *service.ReservationService
 }
 
-// NewApp собирает Fiber: middleware + маршруты (handlers = бывшие controllers).
+// NewApp СЃРѕР±РёСЂР°РµС‚ Fiber: middleware + РјР°СЂС€СЂСѓС‚С‹ (handlers = Р±С‹РІС€РёРµ controllers).
 func NewApp(corsOrigins string, deps AppDeps) *fiber.App {
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
+		BodyLimit:             80 * 1024 * 1024,
+		ErrorHandler: func(c *fiber.Ctx, err error) error {
+			var fiberErr *fiber.Error
+			if errors.As(err, &fiberErr) && fiberErr.Code == fiber.StatusRequestEntityTooLarge {
+				return c.Status(fiber.StatusRequestEntityTooLarge).JSON(fiber.Map{
+					"statusCode": fiber.StatusRequestEntityTooLarge,
+					"message":    "Файлы слишком большие. Допустимо до 10 МБ на одно фото и до 80 МБ на одно объявление.",
+				})
+			}
+			return fiber.DefaultErrorHandler(c, err)
+		},
 	})
 	app.Use(recover.New())
 	if corsOrigins != "" {
@@ -71,7 +84,7 @@ func NewApp(corsOrigins string, deps AppDeps) *fiber.App {
 	RegisterSocketIO(app, corsOrigins, deps.Auth, deps.Chat, deps.Support)
 	RegisterChatWS(app, deps.Auth, deps.Chat)
 
-	// OpenAPI 2 + Swagger UI (Try it out). doc.json из пакета docs (swag init).
+	// OpenAPI 2 + Swagger UI (Try it out). doc.json РёР· РїР°РєРµС‚Р° docs (swag init).
 	app.Get("/docs/*", swagger.New(swagger.Config{
 		Title:                  "Med Vito API (Go)",
 		WithCredentials:        true,
@@ -82,3 +95,4 @@ func NewApp(corsOrigins string, deps AppDeps) *fiber.App {
 
 	return app
 }
+

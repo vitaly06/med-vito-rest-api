@@ -21,10 +21,10 @@ import (
 )
 
 const (
-	aiApprovedReason             = "Одобрено ИИ автоматически"
-	visionTechnicalErrorReason   = "Ошибка анализа фото, требуется ручная проверка"
-	textTechnicalErrorReason     = "Ошибка ИИ-сервиса, требуется ручная проверка"
-	defaultManualReviewReason    = "Требуется ручная проверка"
+	aiApprovedReason             = "РћРґРѕР±СЂРµРЅРѕ РР Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё"
+	visionTechnicalErrorReason   = "РћС€РёР±РєР° Р°РЅР°Р»РёР·Р° С„РѕС‚Рѕ, С‚СЂРµР±СѓРµС‚СЃСЏ СЂСѓС‡РЅР°СЏ РїСЂРѕРІРµСЂРєР°"
+	textTechnicalErrorReason     = "РћС€РёР±РєР° РР-СЃРµСЂРІРёСЃР°, С‚СЂРµР±СѓРµС‚СЃСЏ СЂСѓС‡РЅР°СЏ РїСЂРѕРІРµСЂРєР°"
+	defaultManualReviewReason    = "РўСЂРµР±СѓРµС‚СЃСЏ СЂСѓС‡РЅР°СЏ РїСЂРѕРІРµСЂРєР°"
 	yandexTextEndpoint           = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
 	yandexVisionEndpoint         = "https://ai.api.cloud.yandex.net/v1/chat/completions"
 	visionImageDownloadTimeout   = 30 * time.Second
@@ -34,32 +34,32 @@ const (
 	moderationWorkerDefaultDelay = 30 * time.Second
 )
 
-const textSystemPrompt = `Ты — автоматический модератор объявлений на маркетплейсе.
+const textSystemPrompt = `РўС‹ вЂ” Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРёР№ РјРѕРґРµСЂР°С‚РѕСЂ РѕР±СЉСЏРІР»РµРЅРёР№ РЅР° РјР°СЂРєРµС‚РїР»РµР№СЃРµ.
 
 
-Запрещено:
-- Контакты в тексте: телефон, email, ник в мессенджере (даже написанные словами: "восемь девятьсот", "собака", "тг @...")
-- Внешние ссылки (http://, t.me/, wa.me/ и т.д.)
-- Нецензурная лексика и оскорбления
-- Мошеннические признаки: "предоплата", "переведи деньги", "только безнал", "аванс"
-- SEO-спам: многократные повторы одних и тех же слов или ключевых фраз, бессмысленный набор текста, перечисление несвязанных слов для выдачи в поиске
-- НЕ является спамом: вежливые фразы продавца ("советуем заглянуть", "в нашем профиле есть другие товары", "отличное качество"), стандартные описания товара, упоминание ассортимента магазина
-- Подозрительно низкая цена (менее 10% от рыночной для категории)
+Р—Р°РїСЂРµС‰РµРЅРѕ:
+- РљРѕРЅС‚Р°РєС‚С‹ РІ С‚РµРєСЃС‚Рµ: С‚РµР»РµС„РѕРЅ, email, РЅРёРє РІ РјРµСЃСЃРµРЅРґР¶РµСЂРµ (РґР°Р¶Рµ РЅР°РїРёСЃР°РЅРЅС‹Рµ СЃР»РѕРІР°РјРё: "РІРѕСЃРµРјСЊ РґРµРІСЏС‚СЊСЃРѕС‚", "СЃРѕР±Р°РєР°", "С‚Рі @...")
+- Р’РЅРµС€РЅРёРµ СЃСЃС‹Р»РєРё (http://, t.me/, wa.me/ Рё С‚.Рґ.)
+- РќРµС†РµРЅР·СѓСЂРЅР°СЏ Р»РµРєСЃРёРєР° Рё РѕСЃРєРѕСЂР±Р»РµРЅРёСЏ
+- РњРѕС€РµРЅРЅРёС‡РµСЃРєРёРµ РїСЂРёР·РЅР°РєРё: "РїСЂРµРґРѕРїР»Р°С‚Р°", "РїРµСЂРµРІРµРґРё РґРµРЅСЊРіРё", "С‚РѕР»СЊРєРѕ Р±РµР·РЅР°Р»", "Р°РІР°РЅСЃ"
+- SEO-СЃРїР°Рј: РјРЅРѕРіРѕРєСЂР°С‚РЅС‹Рµ РїРѕРІС‚РѕСЂС‹ РѕРґРЅРёС… Рё С‚РµС… Р¶Рµ СЃР»РѕРІ РёР»Рё РєР»СЋС‡РµРІС‹С… С„СЂР°Р·, Р±РµСЃСЃРјС‹СЃР»РµРЅРЅС‹Р№ РЅР°Р±РѕСЂ С‚РµРєСЃС‚Р°, РїРµСЂРµС‡РёСЃР»РµРЅРёРµ РЅРµСЃРІСЏР·Р°РЅРЅС‹С… СЃР»РѕРІ РґР»СЏ РІС‹РґР°С‡Рё РІ РїРѕРёСЃРєРµ
+- РќР• СЏРІР»СЏРµС‚СЃСЏ СЃРїР°РјРѕРј: РІРµР¶Р»РёРІС‹Рµ С„СЂР°Р·С‹ РїСЂРѕРґР°РІС†Р° ("СЃРѕРІРµС‚СѓРµРј Р·Р°РіР»СЏРЅСѓС‚СЊ", "РІ РЅР°С€РµРј РїСЂРѕС„РёР»Рµ РµСЃС‚СЊ РґСЂСѓРіРёРµ С‚РѕРІР°СЂС‹", "РѕС‚Р»РёС‡РЅРѕРµ РєР°С‡РµСЃС‚РІРѕ"), СЃС‚Р°РЅРґР°СЂС‚РЅС‹Рµ РѕРїРёСЃР°РЅРёСЏ С‚РѕРІР°СЂР°, СѓРїРѕРјРёРЅР°РЅРёРµ Р°СЃСЃРѕСЂС‚РёРјРµРЅС‚Р° РјР°РіР°Р·РёРЅР°
+- РџРѕРґРѕР·СЂРёС‚РµР»СЊРЅРѕ РЅРёР·РєР°СЏ С†РµРЅР° (РјРµРЅРµРµ 10% РѕС‚ СЂС‹РЅРѕС‡РЅРѕР№ РґР»СЏ РєР°С‚РµРіРѕСЂРёРё)
 
-Для каждого из 4 критериев укажи статус: OK / SUSPICIOUS / VIOLATION.
-- OK — нарушений нет
-- SUSPICIOUS — есть признаки, но неоднозначно (требуется модератор)
-- VIOLATION — явное нарушение (автоотказ)
+Р”Р»СЏ РєР°Р¶РґРѕРіРѕ РёР· 4 РєСЂРёС‚РµСЂРёРµРІ СѓРєР°Р¶Рё СЃС‚Р°С‚СѓСЃ: OK / SUSPICIOUS / VIOLATION.
+- OK вЂ” РЅР°СЂСѓС€РµРЅРёР№ РЅРµС‚
+- SUSPICIOUS вЂ” РµСЃС‚СЊ РїСЂРёР·РЅР°РєРё, РЅРѕ РЅРµРѕРґРЅРѕР·РЅР°С‡РЅРѕ (С‚СЂРµР±СѓРµС‚СЃСЏ РјРѕРґРµСЂР°С‚РѕСЂ)
+- VIOLATION вЂ” СЏРІРЅРѕРµ РЅР°СЂСѓС€РµРЅРёРµ (Р°РІС‚РѕРѕС‚РєР°Р·)
 
-Итоговое решение:
-- APPROVED — все критерии OK
-- MANUAL — хотя бы один SUSPICIOUS, нет VIOLATION
-- DENIED — хотя бы один VIOLATION
+РС‚РѕРіРѕРІРѕРµ СЂРµС€РµРЅРёРµ:
+- APPROVED вЂ” РІСЃРµ РєСЂРёС‚РµСЂРёРё OK
+- MANUAL вЂ” С…РѕС‚СЏ Р±С‹ РѕРґРёРЅ SUSPICIOUS, РЅРµС‚ VIOLATION
+- DENIED вЂ” С…РѕС‚СЏ Р±С‹ РѕРґРёРЅ VIOLATION
 
-Отвечай СТРОГО в JSON без markdown-обёртки:
+РћС‚РІРµС‡Р°Р№ РЎРўР РћР“Рћ РІ JSON Р±РµР· markdown-РѕР±С‘СЂС‚РєРё:
 {
   "category": "APPROVED" | "MANUAL" | "DENIED",
-  "reason": "Объяснение на русском (пустая строка если APPROVED)",
+  "reason": "РћР±СЉСЏСЃРЅРµРЅРёРµ РЅР° СЂСѓСЃСЃРєРѕРј (РїСѓСЃС‚Р°СЏ СЃС‚СЂРѕРєР° РµСЃР»Рё APPROVED)",
   "details": {
     "categorization": "OK" | "SUSPICIOUS" | "VIOLATION",
     "spam": "OK" | "SUSPICIOUS" | "VIOLATION",
@@ -68,28 +68,28 @@ const textSystemPrompt = `Ты — автоматический модерато
   }
 }`
 
-const visionPrompt = `Это фото для объявления на маркетплейсе.
+const visionPrompt = `Р­С‚Рѕ С„РѕС‚Рѕ РґР»СЏ РѕР±СЉСЏРІР»РµРЅРёСЏ РЅР° РјР°СЂРєРµС‚РїР»РµР№СЃРµ.
 
-Проверь наличие ЛЮБОГО из следующих нарушений:
-1. Оружие, боеприпасы, взрывчатка, ножи как основной товар
-2. NSFW / откровенный контент / части тела
-3. Насилие, кровь, шокирующие материалы
-4. Скриншот стороннего сайта/приложения с контактами (телефон, email, ник)
-5. Наркотики, алкоголь, табак
+РџСЂРѕРІРµСЂСЊ РЅР°Р»РёС‡РёРµ Р›Р®Р‘РћР“Рћ РёР· СЃР»РµРґСѓСЋС‰РёС… РЅР°СЂСѓС€РµРЅРёР№:
+1. РћСЂСѓР¶РёРµ, Р±РѕРµРїСЂРёРїР°СЃС‹, РІР·СЂС‹РІС‡Р°С‚РєР°, РЅРѕР¶Рё РєР°Рє РѕСЃРЅРѕРІРЅРѕР№ С‚РѕРІР°СЂ
+2. NSFW / РѕС‚РєСЂРѕРІРµРЅРЅС‹Р№ РєРѕРЅС‚РµРЅС‚ / С‡Р°СЃС‚Рё С‚РµР»Р°
+3. РќР°СЃРёР»РёРµ, РєСЂРѕРІСЊ, С€РѕРєРёСЂСѓСЋС‰РёРµ РјР°С‚РµСЂРёР°Р»С‹
+4. РЎРєСЂРёРЅС€РѕС‚ СЃС‚РѕСЂРѕРЅРЅРµРіРѕ СЃР°Р№С‚Р°/РїСЂРёР»РѕР¶РµРЅРёСЏ СЃ РєРѕРЅС‚Р°РєС‚Р°РјРё (С‚РµР»РµС„РѕРЅ, email, РЅРёРє)
+5. РќР°СЂРєРѕС‚РёРєРё, Р°Р»РєРѕРіРѕР»СЊ, С‚Р°Р±Р°Рє
 
-Если хотя бы одно нарушение есть — DENIED.
-Если фото нечёткое, подозрительное или невозможно определить товар — MANUAL.
-Если фото обычного товара (в т.ч. немедицинского бытового) без нарушений — APPROVED.
+Р•СЃР»Рё С…РѕС‚СЏ Р±С‹ РѕРґРЅРѕ РЅР°СЂСѓС€РµРЅРёРµ РµСЃС‚СЊ вЂ” DENIED.
+Р•СЃР»Рё С„РѕС‚Рѕ РЅРµС‡С‘С‚РєРѕРµ, РїРѕРґРѕР·СЂРёС‚РµР»СЊРЅРѕРµ РёР»Рё РЅРµРІРѕР·РјРѕР¶РЅРѕ РѕРїСЂРµРґРµР»РёС‚СЊ С‚РѕРІР°СЂ вЂ” MANUAL.
+Р•СЃР»Рё С„РѕС‚Рѕ РѕР±С‹С‡РЅРѕРіРѕ С‚РѕРІР°СЂР° (РІ С‚.С‡. РЅРµРјРµРґРёС†РёРЅСЃРєРѕРіРѕ Р±С‹С‚РѕРІРѕРіРѕ) Р±РµР· РЅР°СЂСѓС€РµРЅРёР№ вЂ” APPROVED.
 
-Ответь СТРОГО в JSON без markdown-обёртки:
+РћС‚РІРµС‚СЊ РЎРўР РћР“Рћ РІ JSON Р±РµР· markdown-РѕР±С‘СЂС‚РєРё:
 {
   "decision": "APPROVED" | "MANUAL" | "DENIED",
-  "reason": "Объяснение на русском что именно нарушено (пустая строка если APPROVED)"
+  "reason": "РћР±СЉСЏСЃРЅРµРЅРёРµ РЅР° СЂСѓСЃСЃРєРѕРј С‡С‚Рѕ РёРјРµРЅРЅРѕ РЅР°СЂСѓС€РµРЅРѕ (РїСѓСЃС‚Р°СЏ СЃС‚СЂРѕРєР° РµСЃР»Рё APPROVED)"
 }
 
-DENIED — явное нарушение из списка выше
-MANUAL — сомнительно, нужна ручная проверка
-APPROVED — фото подходит`
+DENIED вЂ” СЏРІРЅРѕРµ РЅР°СЂСѓС€РµРЅРёРµ РёР· СЃРїРёСЃРєР° РІС‹С€Рµ
+MANUAL вЂ” СЃРѕРјРЅРёС‚РµР»СЊРЅРѕ, РЅСѓР¶РЅР° СЂСѓС‡РЅР°СЏ РїСЂРѕРІРµСЂРєР°
+APPROVED вЂ” С„РѕС‚Рѕ РїРѕРґС…РѕРґРёС‚`
 
 type TextModerationResult struct {
 	Category string `json:"category"`
@@ -251,10 +251,10 @@ func (s *ModerationService) processProduct(ctx context.Context, product reposito
 
 	var reasons []string
 	if textResult.Category == "MANUAL" && strings.TrimSpace(textResult.Reason) != "" {
-		reasons = append(reasons, "Текст: "+strings.TrimSpace(textResult.Reason))
+		reasons = append(reasons, "РўРµРєСЃС‚: "+strings.TrimSpace(textResult.Reason))
 	}
 	if visionDecision == "MANUAL" && strings.TrimSpace(visionReason) != "" {
-		reasons = append(reasons, "Фото: "+strings.TrimSpace(visionReason))
+		reasons = append(reasons, "Р¤РѕС‚Рѕ: "+strings.TrimSpace(visionReason))
 	}
 	if visionTechnicalFailure && visionDecision != "MANUAL" {
 		reasons = append(reasons, visionTechnicalErrorReason)
@@ -297,13 +297,14 @@ func (s *ModerationService) applyDecision(ctx context.Context, productID int32, 
 }
 
 func (s *ModerationService) moderateText(ctx context.Context, name string, description *string, categoryName, subcategoryName string, price int32) (*TextModerationResult, error) {
-	userPrompt := fmt.Sprintf("Категория: %s\nПодкатегория: %s\nЦена: %d руб.\nНазвание: %s\nОписание: %s",
+	userPrompt := fmt.Sprintf("РљР°С‚РµРіРѕСЂРёСЏ: %s\nРџРѕРґРєР°С‚РµРіРѕСЂРёСЏ: %s\nР¦РµРЅР°: %d СЂСѓР±.\nРќР°Р·РІР°РЅРёРµ: %s\nРћРїРёСЃР°РЅРёРµ: %s",
 		categoryName,
 		subcategoryName,
 		price,
 		name,
-		descriptionOrDefault(description, "не указано"),
+		descriptionOrDefault(description, "РЅРµ СѓРєР°Р·Р°РЅРѕ"),
 	)
+	userPrompt += "\n\nВажно: низкая цена сама по себе не является нарушением. Нельзя отклонять объявление только из-за цены без явных дополнительных признаков мошенничества, контактов, ссылок, предоплаты или спама."
 	payload := map[string]any{
 		"modelUri": fmt.Sprintf("gpt://%s/yandexgpt/latest", s.cfg.YandexFolderID),
 		"completionOptions": map[string]any{
@@ -372,7 +373,68 @@ func (s *ModerationService) moderateText(ctx context.Context, name string, descr
 		log.Printf("AI moderation worker: text moderation invalid payload: %s", cleaned)
 		return fallbackTextResult(), nil
 	}
+	parsed = normalizePriceOnlyModerationDecision(parsed)
 	return &parsed, nil
+}
+
+func normalizePriceOnlyModerationDecision(in TextModerationResult) TextModerationResult {
+	if !isPriceOnlyModerationDecision(in) {
+		return in
+	}
+
+	in.Category = "APPROVED"
+	in.Reason = ""
+	in.Details.Categorization = "OK"
+	in.Details.Spam = "OK"
+	in.Details.Fraud = "OK"
+	in.Details.Contacts = "OK"
+	return in
+}
+
+func isPriceOnlyModerationDecision(in TextModerationResult) bool {
+	if strings.EqualFold(strings.TrimSpace(in.Category), "APPROVED") {
+		return false
+	}
+
+	reason := strings.ToLower(strings.TrimSpace(in.Reason))
+	if reason == "" {
+		return false
+	}
+
+	priceMarkers := []string{"низк", "дешев", "занижен", "цена", "стоим", "рын", "price", "cheap"}
+	hasPriceMarker := false
+	for _, marker := range priceMarkers {
+		if strings.Contains(reason, marker) {
+			hasPriceMarker = true
+			break
+		}
+	}
+	if !hasPriceMarker {
+		return false
+	}
+
+	explicitViolationMarkers := []string{
+		"предоплат", "аванс", "перевод", "безнал", "обман", "мошенн",
+		"telegram", "whatsapp", "телефон", "email", "почт", "ссылка",
+		"http", "t.me", "wa.me", "@", "контакт", "мат", "оскорб", "спам",
+	}
+	for _, marker := range explicitViolationMarkers {
+		if strings.Contains(reason, marker) {
+			return false
+		}
+	}
+
+	if strings.EqualFold(strings.TrimSpace(in.Details.Contacts), "VIOLATION") {
+		return false
+	}
+	if strings.EqualFold(strings.TrimSpace(in.Details.Spam), "VIOLATION") {
+		return false
+	}
+	if strings.EqualFold(strings.TrimSpace(in.Details.Categorization), "VIOLATION") {
+		return false
+	}
+
+	return true
 }
 
 func (s *ModerationService) moderateImage(ctx context.Context, imageURL string) (*VisionModerationResult, error) {
@@ -544,7 +606,7 @@ func (s *ModerationAdminService) GetProduct(ctx context.Context, productID int32
 	item, err := s.repo.GetModerationProductByID(ctx, productID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, &AppError{404, "Товар не найден"}
+			return nil, &AppError{404, "РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ"}
 		}
 		return nil, err
 	}
@@ -592,7 +654,7 @@ func (s *ModerationAdminService) GetProduct(ctx context.Context, productID int32
 
 func (s *ModerationAdminService) AddAppeal(ctx context.Context, userID, productID int32, reason string) error {
 	if strings.TrimSpace(reason) == "" {
-		return &AppError{400, "Причина апелляции обязательна"}
+		return &AppError{400, "РџСЂРёС‡РёРЅР° Р°РїРµР»Р»СЏС†РёРё РѕР±СЏР·Р°С‚РµР»СЊРЅР°"}
 	}
 	if err := s.repo.CreateAppeal(ctx, productID, userID, reason); err != nil {
 		return err
@@ -615,7 +677,7 @@ func (s *ModerationAdminService) Appeals(ctx context.Context, me *domain.UserEnt
 func (s *ModerationAdminService) ReviewAppeal(ctx context.Context, me *domain.UserEntity, appealID int64, status string, comment *string) error {
 	status = strings.ToUpper(strings.TrimSpace(status))
 	if status != "APPROVED" && status != "REJECTED" {
-		return &AppError{400, "status должен быть APPROVED или REJECTED"}
+		return &AppError{400, "status РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ APPROVED РёР»Рё REJECTED"}
 	}
 	if err := s.repo.ReviewAppeal(ctx, appealID, me.ID, status, comment); err != nil {
 		return err
@@ -657,10 +719,10 @@ func (s *ModerationAdminService) Summary(ctx context.Context, days int) (map[str
 		return nil, err
 	}
 	return map[string]any{
-		"days":         days,
-		"denied":       denied,
-		"approvedAI":   approvedAI,
-		"appealsOpen":  appealsOpen,
+		"days":        days,
+		"denied":      denied,
+		"approvedAI":  approvedAI,
+		"appealsOpen": appealsOpen,
 		"topComplaints": []map[string]any{
 			{"type": "appeals_open", "count": appealsOpen},
 			{"type": "denied_ads", "count": denied},

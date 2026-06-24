@@ -13,7 +13,7 @@ import (
 	"med-vito/api-go/internal/repository"
 )
 
-// ProductService — логика Nest ProductService (без WebSocket).
+// ProductService вЂ” Р»РѕРіРёРєР° Nest ProductService (Р±РµР· WebSocket).
 type ProductService struct {
 	prod *repository.ProductPG
 	s3   *s3client.Client
@@ -31,19 +31,33 @@ func formatProductDate(t time.Time) string {
 	m := int(lt.Month())
 	y := lt.Year() % 100
 	h, mi := lt.Hour(), lt.Minute()
-	return fmt.Sprintf("%02d.%02d.%02d в %02d:%02d", d, m, y, h, mi)
+	return fmt.Sprintf("%02d.%02d.%02d РІ %02d:%02d", d, m, y, h, mi)
 }
 
+func appendProductLifetime(out map[string]any, createdAt time.Time) {
+	expiresAt := createdAt.Add(30 * 24 * time.Hour)
+	remainingDuration := time.Until(expiresAt)
+	remainingDays := int(remainingDuration.Hours() / 24)
+	if remainingDuration > 0 && remainingDuration%(24*time.Hour) != 0 {
+		remainingDays++
+	}
+	if remainingDays < 0 {
+		remainingDays = 0
+	}
+	out["expiresAt"] = expiresAt.Format(time.RFC3339)
+	out["daysUntilExpiration"] = remainingDays
+	out["isExpired"] = remainingDuration <= 0
+}
 func (s *ProductService) formatListItem(pr repository.ProductListRow, isFav bool, hasPromo bool, promoLevel int32) map[string]any {
 	badges := make([]string, 0, 3)
 	if pr.PromotionLevel >= 100 {
-		badges = append(badges, "Премиум")
+		badges = append(badges, "РџСЂРµРјРёСѓРј")
 	}
 	if pr.SellerVerified {
-		badges = append(badges, "Верифицирован")
+		badges = append(badges, "Р’РµСЂРёС„РёС†РёСЂРѕРІР°РЅ")
 	}
 	if pr.ViewsCount > 100 {
-		badges = append(badges, "Срочно")
+		badges = append(badges, "РЎСЂРѕС‡РЅРѕ")
 	}
 	out := map[string]any{
 		"id":              pr.ID,
@@ -125,7 +139,7 @@ func enforcePaidSlots(rows []repository.ProductListRow, page, limit int) []repos
 		targetFree = len(free)
 	}
 
-	// Добираем до лимита оставшимися платными/бесплатными, если одна из групп закончилась.
+	// Р”РѕР±РёСЂР°РµРј РґРѕ Р»РёРјРёС‚Р° РѕСЃС‚Р°РІС€РёРјРёСЃСЏ РїР»Р°С‚РЅС‹РјРё/Р±РµСЃРїР»Р°С‚РЅС‹РјРё, РµСЃР»Рё РѕРґРЅР° РёР· РіСЂСѓРїРї Р·Р°РєРѕРЅС‡РёР»Р°СЃСЊ.
 	for targetPaid+targetFree < limit {
 		if targetFree < len(free) {
 			targetFree++
@@ -142,7 +156,7 @@ func enforcePaidSlots(rows []repository.ProductListRow, page, limit int) []repos
 	useFree := free[:targetFree]
 	out := make([]repository.ProductListRow, 0, targetPaid+targetFree)
 
-	// Равномерно распределяем платные внутри ленты.
+	// Р Р°РІРЅРѕРјРµСЂРЅРѕ СЂР°СЃРїСЂРµРґРµР»СЏРµРј РїР»Р°С‚РЅС‹Рµ РІРЅСѓС‚СЂРё Р»РµРЅС‚С‹.
 	pi := 0
 	fi := 0
 	segment := 0
@@ -211,47 +225,47 @@ func (s *ProductService) mapListWithFavorites(ctx context.Context, rows []reposi
 	return out, nil
 }
 
-// CreateProduct — multipart + S3; fieldValues JSON map.
+// CreateProduct вЂ” multipart + S3; fieldValues JSON map.
 func (s *ProductService) CreateProduct(ctx context.Context, userID int32, name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr string, files []UploadedFile) (map[string]any, error) {
 	if s.s3 == nil {
-		return nil, &AppError{500, "S3 не настроен"}
+		return nil, &AppError{500, "S3 РЅРµ РЅР°СЃС‚СЂРѕРµРЅ"}
 	}
 	if strings.TrimSpace(address) == "" {
-		return nil, &AppError{400, "Адрес обязателен для заполнения"}
+		return nil, &AppError{400, "РђРґСЂРµСЃ РѕР±СЏР·Р°С‚РµР»РµРЅ РґР»СЏ Р·Р°РїРѕР»РЅРµРЅРёСЏ"}
 	}
 	if strings.TrimSpace(name) == "" {
-		return nil, &AppError{400, "Название обязательно"}
+		return nil, &AppError{400, "РќР°Р·РІР°РЅРёРµ РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ"}
 	}
 	if strings.TrimSpace(state) == "" {
-		return nil, &AppError{400, "Состояние обязательно (NEW или USED)"}
+		return nil, &AppError{400, "РЎРѕСЃС‚РѕСЏРЅРёРµ РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ (NEW РёР»Рё USED)"}
 	}
 	if err := validateProductContentLimits(len(files), description, false); err != nil {
 		return nil, err
 	}
 	price, err := strconv.Atoi(strings.TrimSpace(priceStr))
 	if err != nil || price < 1 {
-		return nil, &AppError{400, "Цена должна быть числом больше 0"}
+		return nil, &AppError{400, "Р¦РµРЅР° РґРѕР»Р¶РЅР° Р±С‹С‚СЊ С‡РёСЃР»РѕРј Р±РѕР»СЊС€Рµ 0"}
 	}
 	catID, err := strconv.ParseInt(strings.TrimSpace(categoryStr), 10, 32)
 	if err != nil {
-		return nil, &AppError{400, "Некорректный categoryId"}
+		return nil, &AppError{400, "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ categoryId"}
 	}
 	subID, err := strconv.ParseInt(strings.TrimSpace(subStr), 10, 32)
 	if err != nil {
-		return nil, &AppError{400, "Некорректный subcategoryId"}
+		return nil, &AppError{400, "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ subcategoryId"}
 	}
 	ok, err := s.prod.SubCategoryBelongsToCategory(ctx, int32(catID), int32(subID))
 	if err != nil {
 		return nil, err
 	}
 	if !ok {
-		return nil, &AppError{400, "Подкатегория не найдена или не принадлежит указанной категории"}
+		return nil, &AppError{400, "РџРѕРґРєР°С‚РµРіРѕСЂРёСЏ РЅРµ РЅР°Р№РґРµРЅР° РёР»Рё РЅРµ РїСЂРёРЅР°РґР»РµР¶РёС‚ СѓРєР°Р·Р°РЅРЅРѕР№ РєР°С‚РµРіРѕСЂРёРё"}
 	}
 	var typePtr *int32
 	if strings.TrimSpace(typeStr) != "" {
 		tid64, err := strconv.ParseInt(strings.TrimSpace(typeStr), 10, 32)
 		if err != nil {
-			return nil, &AppError{400, "Некорректный typeId"}
+			return nil, &AppError{400, "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ typeId"}
 		}
 		t := int32(tid64)
 		typePtr = &t
@@ -276,7 +290,7 @@ func (s *ProductService) CreateProduct(ctx context.Context, userID int32, name, 
 	for _, f := range files {
 		u, err := s.s3.Upload(ctx, "products", f.Name, f.ContentType, f.Body)
 		if err != nil {
-			return nil, &AppError{400, "Ошибка загрузки в S3: " + err.Error()}
+			return nil, &AppError{400, "РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РІ S3: " + err.Error()}
 		}
 		urls = append(urls, u)
 	}
@@ -300,46 +314,46 @@ func (s *ProductService) CreateProduct(ctx context.Context, userID int32, name, 
 	if strings.TrimSpace(quantityStr) != "" {
 		q, err := strconv.Atoi(strings.TrimSpace(quantityStr))
 		if err != nil || q < 1 {
-			return nil, &AppError{400, "Количество должно быть целым числом больше 0"}
+			return nil, &AppError{400, "РљРѕР»РёС‡РµСЃС‚РІРѕ РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ С†РµР»С‹Рј С‡РёСЃР»РѕРј Р±РѕР»СЊС€Рµ 0"}
 		}
 		quantity = int32(q)
 	}
 	err = s.prod.CreateProductTx(ctx, pid, userID, name, int32(price), quantity, state, description, address, vptr, urls, int32(catID), int32(subID), typePtr, intMap)
 	if errors.Is(err, repository.ErrNotFound) {
-		return nil, &AppError{400, "Пользователь не найден"}
+		return nil, &AppError{400, "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ"}
 	}
 	if errors.Is(err, repository.ErrInsufficientFunds) {
-		return nil, &AppError{400, fmt.Sprintf("Недостаточно средств для размещения объявления. Требуется %d руб.", repository.AdListingCost)}
+		return nil, &AppError{400, fmt.Sprintf("РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ СЃСЂРµРґСЃС‚РІ РґР»СЏ СЂР°Р·РјРµС‰РµРЅРёСЏ РѕР±СЉСЏРІР»РµРЅРёСЏ. РўСЂРµР±СѓРµС‚СЃСЏ %d СЂСѓР±.", repository.AdListingCost)}
 	}
 	if err != nil {
-		return nil, &AppError{400, "Ошибка при создании продукта: " + err.Error()}
+		return nil, &AppError{400, "РћС€РёР±РєР° РїСЂРё СЃРѕР·РґР°РЅРёРё РїСЂРѕРґСѓРєС‚Р°: " + err.Error()}
 	}
 	prod, err := s.prod.LoadProductWithRelations(ctx, pid)
 	if err != nil {
 		return nil, err
 	}
 	return map[string]any{
-		"message":       "Продукт успешно создан",
+		"message":       "РџСЂРѕРґСѓРєС‚ СѓСЃРїРµС€РЅРѕ СЃРѕР·РґР°РЅ",
 		"product":       prod,
 		"isDraft":       false,
 		"moderateState": "MODERATE",
 	}, nil
 }
 
-// UploadedFile — один файл из multipart (images).
+// UploadedFile вЂ” РѕРґРёРЅ С„Р°Р№Р» РёР· multipart (images).
 func (s *ProductService) CreateDraft(ctx context.Context, userID int32, name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr string, files []UploadedFile) (map[string]any, error) {
-	// Черновик: без жёсткой валидации; в БД подставляем дефолты. S3 нужен только если реально грузим файлы.
+	// Р§РµСЂРЅРѕРІРёРє: Р±РµР· Р¶С‘СЃС‚РєРѕР№ РІР°Р»РёРґР°С†РёРё; РІ Р‘Р” РїРѕРґСЃС‚Р°РІР»СЏРµРј РґРµС„РѕР»С‚С‹. S3 РЅСѓР¶РµРЅ С‚РѕР»СЊРєРѕ РµСЃР»Рё СЂРµР°Р»СЊРЅРѕ РіСЂСѓР·РёРј С„Р°Р№Р»С‹.
 	if len(files) > 0 && s.s3 == nil {
-		return nil, &AppError{500, "S3 не настроен"}
+		return nil, &AppError{500, "S3 РЅРµ РЅР°СЃС‚СЂРѕРµРЅ"}
 	}
 
 	name = strings.TrimSpace(name)
 	if name == "" {
-		name = "Черновик"
+		name = "Р§РµСЂРЅРѕРІРёРє"
 	}
 	address = strings.TrimSpace(address)
 	if address == "" {
-		address = "—"
+		address = "вЂ”"
 	}
 	state = strings.TrimSpace(strings.ToUpper(state))
 	if state != "NEW" && state != "USED" {
@@ -390,7 +404,7 @@ func (s *ProductService) CreateDraft(ctx context.Context, userID int32, name, pr
 	for _, f := range files {
 		u, err := s.s3.Upload(ctx, "products", f.Name, f.ContentType, f.Body)
 		if err != nil {
-			return nil, &AppError{400, "Ошибка загрузки в S3: " + err.Error()}
+			return nil, &AppError{400, "РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РІ S3: " + err.Error()}
 		}
 		urls = append(urls, u)
 	}
@@ -431,10 +445,10 @@ func (s *ProductService) CreateDraft(ctx context.Context, userID int32, name, pr
 		return nil, err
 	}
 	return map[string]any{
-		"message":        "Черновик сохранен",
-		"product":        prod,
-		"isDraft":        true,
-		"moderateState":  "DRAFT",
+		"message":       "Р§РµСЂРЅРѕРІРёРє СЃРѕС…СЂР°РЅРµРЅ",
+		"product":       prod,
+		"isDraft":       true,
+		"moderateState": "DRAFT",
 	}, nil
 }
 
@@ -451,7 +465,7 @@ func parseFieldValuesMap(raw string) (map[string]string, error) {
 	}
 	var m map[string]string
 	if err := json.Unmarshal([]byte(raw), &m); err != nil {
-		return nil, fmt.Errorf("некорректный fieldValues JSON")
+		return nil, fmt.Errorf("РЅРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ fieldValues JSON")
 	}
 	return m, nil
 }

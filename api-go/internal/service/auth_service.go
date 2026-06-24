@@ -51,6 +51,15 @@ type vkPublicInfo struct {
 	PhoneMasked string
 }
 
+type oauthProfile struct {
+	Provider   string
+	ExternalID string
+	Email      string
+	Phone      string
+	FullName   string
+	Avatar     string
+}
+
 type AuthService struct {
 	cfg    config.Config
 	rdb    *redis.Client
@@ -255,6 +264,121 @@ func (s *AuthService) SignIn(ctx context.Context, login, password string) (*sign
 	out.User.FullName = u.FullName
 	out.User.PhoneNumber = u.PhoneNumber
 	out.User.ProfileType = u.ProfileType
+	out.User.Photo = photo
+	return out, sid, nil
+}
+
+func (s *AuthService) TIDAuthURL(state string) (string, error) {
+	if strings.TrimSpace(s.cfg.TIDClientID) == "" {
+		return "", &AppError{500, "T-ID не настроен: TID_CLIENT_ID"}
+	}
+	if strings.TrimSpace(s.cfg.TIDRedirectURI) == "" {
+		return "", &AppError{500, "T-ID не настроен: TID_REDIRECT_URI"}
+	}
+	q := url.Values{}
+	q.Set("client_id", s.cfg.TIDClientID)
+	q.Set("response_type", "code")
+	q.Set("redirect_uri", s.cfg.TIDRedirectURI)
+	if strings.TrimSpace(s.cfg.TIDScope) != "" {
+		q.Set("scope", s.cfg.TIDScope)
+	}
+	if strings.TrimSpace(state) == "" {
+		state = generateSessionID()
+	}
+	q.Set("state", state)
+	return strings.TrimRight(s.cfg.TIDAuthorizeURL, "?") + "?" + q.Encode(), nil
+}
+
+func (s *AuthService) SignInWithTID(ctx context.Context, code, state string) (*signInResponse, string, error) {
+	code = strings.TrimSpace(code)
+	if code == "" {
+		return nil, "", &AppError{400, "Нужен code"}
+	}
+	if strings.TrimSpace(s.cfg.TIDClientID) == "" ||
+		strings.TrimSpace(s.cfg.TIDClientSecret) == "" ||
+		strings.TrimSpace(s.cfg.TIDRedirectURI) == "" ||
+		strings.TrimSpace(s.cfg.TIDTokenURL) == "" {
+		return nil, "", &AppError{500, "T-ID не настроен в .env"}
+	}
+
+	form := url.Values{}
+	form.Set("grant_type", "authorization_code")
+	form.Set("client_id", s.cfg.TIDClientID)
+	form.Set("client_secret", s.cfg.TIDClientSecret)
+	form.Set("redirect_uri", s.cfg.TIDRedirectURI)
+	form.Set("code", code)
+	if strings.TrimSpace(state) != "" {
+		form.Set("state", strings.TrimSpace(state))
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.cfg.TIDTokenURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return nil, "", err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	res, err := s.client.Do(req)
+	if err != nil {
+		return nil, "", err
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, "", err
+	}
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return nil, "", &AppError{401, "T-ID token error: " + truncateForErr(string(body))}
+	}
+
+	accessToken, idToken, err := parseTIDTokenResponse(body)
+	if err != nil {
+		return nil, "", err
+	}
+	profile := oauthProfile{Provider: "tbank"}
+	claims := parseOAuthJWTClaims(idToken)
+	fillOAuthProfileFromClaims(&profile, claims)
+	if accessToken != "" && strings.TrimSpace(s.cfg.TIDUserInfoURL) != "" {
+		userinfo, err := s.fetchOAuthUserInfo(ctx, s.cfg.TIDUserInfoURL, accessToken)
+		if err == nil {
+			fillOAuthProfileFromClaims(&profile, userinfo)
+		}
+	}
+	profile.Provider = "tbank"
+	profile.ExternalID = strings.TrimSpace(profile.ExternalID)
+	if profile.ExternalID == "" {
+		return nil, "", &AppError{401, "T-ID не вернул идентификатор пользователя"}
+	}
+
+	user, err := s.findOrCreateTrustedOAuthUser(ctx, profile)
+	if err != nil {
+		return nil, "", err
+	}
+
+	sid := generateSessionID()
+	sp := sessionPayload{
+		UserID:       user.ID,
+		Email:        user.Email,
+		ProfileType:  user.ProfileType,
+		AuthProvider: "tbank",
+	}
+	b, _ := json.Marshal(sp)
+	if err := s.rdb.Set(ctx, sessionKeyPrefix+sid, b, sessionTTL).Err(); err != nil {
+		return nil, "", err
+	}
+
+	var photo *string
+	if user.Photo != nil && *user.Photo != "" {
+		p := s.cfg.BaseURL + *user.Photo
+		photo = &p
+	} else if strings.TrimSpace(profile.Avatar) != "" {
+		a := strings.TrimSpace(profile.Avatar)
+		photo = &a
+	}
+	out := &signInResponse{Message: "Вы успешно авторизовались через T-ID!"}
+	out.User.ID = user.ID
+	out.User.Email = user.Email
+	out.User.FullName = user.FullName
+	out.User.PhoneNumber = user.PhoneNumber
+	out.User.ProfileType = user.ProfileType
 	out.User.Photo = photo
 	return out, sid, nil
 }
@@ -1140,6 +1264,191 @@ func (s *AuthService) findOrCreateOAuthUser(ctx context.Context, provider, exter
 		return u, nil
 	}
 	return nil, &AppError{500, "Не удалось создать пользователя MAX"}
+}
+
+func (s *AuthService) findOrCreateTrustedOAuthUser(ctx context.Context, p oauthProfile) (*domain.UserEntity, error) {
+	provider := strings.ToLower(strings.TrimSpace(p.Provider))
+	if provider == "" {
+		provider = "oauth"
+	}
+	externalID := strings.TrimSpace(p.ExternalID)
+	if externalID == "" {
+		return nil, &AppError{400, "Пустой внешний идентификатор OAuth"}
+	}
+	if existingID, err := s.users.FindOAuthUserIDByProviderExternalID(ctx, provider, externalID); err == nil && existingID != nil {
+		u, err := s.users.FindUserByID(ctx, *existingID)
+		if err == nil {
+			u = s.applyTrustedOAuthProfile(ctx, u, p)
+			return u, nil
+		}
+		if !errors.Is(err, repository.ErrNotFound) {
+			return nil, err
+		}
+	} else if err != nil {
+		return nil, err
+	}
+
+	email := strings.ToLower(strings.TrimSpace(p.Email))
+	if email != "" {
+		if u, err := s.users.FindUserByEmail(ctx, email); err == nil {
+			_ = s.users.UpsertOAuthIdentity(ctx, provider, externalID, u.ID)
+			u = s.applyTrustedOAuthProfile(ctx, u, p)
+			return u, nil
+		} else if !errors.Is(err, repository.ErrNotFound) {
+			return nil, err
+		}
+	}
+
+	phone := strings.TrimSpace(p.Phone)
+	if phone != "" {
+		if u, err := s.users.FindUserByLogin(ctx, phone); err == nil {
+			_ = s.users.UpsertOAuthIdentity(ctx, provider, externalID, u.ID)
+			u = s.applyTrustedOAuthProfile(ctx, u, p)
+			return u, nil
+		} else if !errors.Is(err, repository.ErrNotFound) {
+			return nil, err
+		}
+	}
+
+	u, err := s.findOrCreateOAuthUser(ctx, provider, externalID, email, phone, p.FullName)
+	if err != nil {
+		return nil, err
+	}
+	u = s.applyTrustedOAuthProfile(ctx, u, p)
+	return u, nil
+}
+
+func (s *AuthService) applyTrustedOAuthProfile(ctx context.Context, u *domain.UserEntity, p oauthProfile) *domain.UserEntity {
+	if u == nil {
+		return nil
+	}
+	patch := repository.UserSettingsPatch{}
+	adminPatch := repository.AdminUserPatch{}
+	changed := false
+	adminChanged := false
+
+	fullName := strings.TrimSpace(p.FullName)
+	if fullName != "" && (strings.TrimSpace(u.FullName) == "" || strings.Contains(strings.ToLower(strings.TrimSpace(u.FullName)), " user")) {
+		patch.FullName = &fullName
+		changed = true
+	}
+	email := strings.ToLower(strings.TrimSpace(p.Email))
+	if email != "" && (strings.TrimSpace(u.Email) == "" || strings.HasSuffix(strings.ToLower(strings.TrimSpace(u.Email)), "@oauth.local")) {
+		adminPatch.Email = &email
+		adminChanged = true
+	}
+	phone := strings.TrimSpace(p.Phone)
+	if phone != "" && isDealPhoneSynthetic(u.PhoneNumber) {
+		patch.PhoneNumber = &phone
+		changed = true
+	}
+	if changed {
+		_ = s.users.UpdateUserSettings(ctx, u.ID, patch)
+	}
+	if adminChanged {
+		_ = s.users.UpdateUserAdmin(ctx, u.ID, adminPatch)
+	}
+	if email != "" {
+		_ = s.users.SetEmailVerified(ctx, u.ID, true)
+	}
+	if phone != "" && !isDealPhoneSynthetic(phone) {
+		_ = s.users.SetPhoneVerified(ctx, u.ID, true)
+	}
+	refreshed, err := s.users.FindUserByID(ctx, u.ID)
+	if err == nil {
+		return refreshed
+	}
+	return u
+}
+
+func parseTIDTokenResponse(body []byte) (accessToken, idToken string, err error) {
+	var raw map[string]any
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return "", "", err
+	}
+	if e, _ := raw["error"].(string); strings.TrimSpace(e) != "" {
+		desc, _ := raw["error_description"].(string)
+		msg := e
+		if strings.TrimSpace(desc) != "" {
+			msg += ": " + desc
+		}
+		return "", "", &AppError{401, "T-ID token error: " + msg}
+	}
+	accessToken, _ = raw["access_token"].(string)
+	idToken, _ = raw["id_token"].(string)
+	return strings.TrimSpace(accessToken), strings.TrimSpace(idToken), nil
+}
+
+func parseOAuthJWTClaims(token string) map[string]any {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return nil
+	}
+	parts := strings.Split(token, ".")
+	if len(parts) < 2 {
+		return nil
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return nil
+	}
+	var claims map[string]any
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return nil
+	}
+	return claims
+}
+
+func (s *AuthService) fetchOAuthUserInfo(ctx context.Context, endpoint, accessToken string) (map[string]any, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(accessToken))
+	res, err := s.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return nil, fmt.Errorf("userinfo status=%d: %s", res.StatusCode, truncateForErr(string(body)))
+	}
+	var raw map[string]any
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return nil, err
+	}
+	return raw, nil
+}
+
+func fillOAuthProfileFromClaims(profile *oauthProfile, claims map[string]any) {
+	if profile == nil || claims == nil {
+		return
+	}
+	if profile.ExternalID == "" {
+		profile.ExternalID = pickVKString(claims, "sub", "user_id", "id", "customer_id")
+	}
+	if profile.Email == "" {
+		profile.Email = strings.ToLower(strings.TrimSpace(pickVKString(claims, "email", "mail")))
+	}
+	if profile.Phone == "" {
+		profile.Phone = strings.TrimSpace(pickVKString(claims, "phone_number", "phone", "msisdn"))
+	}
+	if profile.FullName == "" {
+		name := strings.TrimSpace(pickVKString(claims, "name", "full_name"))
+		if name == "" {
+			first := strings.TrimSpace(pickVKString(claims, "given_name", "first_name"))
+			last := strings.TrimSpace(pickVKString(claims, "family_name", "last_name"))
+			name = strings.TrimSpace(first + " " + last)
+		}
+		profile.FullName = name
+	}
+	if profile.Avatar == "" {
+		profile.Avatar = strings.TrimSpace(pickVKString(claims, "picture", "avatar", "photo"))
+	}
 }
 
 const vkLegacyUsersGetURL = "https://api.vk.com/method/users.get"

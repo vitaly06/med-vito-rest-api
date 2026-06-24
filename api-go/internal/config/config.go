@@ -60,6 +60,14 @@ type Config struct {
 	VkOAuthScope        string
 	VkIDEnabled         bool
 
+	TIDClientID     string
+	TIDClientSecret string
+	TIDRedirectURI  string
+	TIDAuthorizeURL string
+	TIDTokenURL     string
+	TIDUserInfoURL  string
+	TIDScope        string
+
 	DealPlatformFeePercent int
 	DealPayoutDelayDays    int
 	DealAutoCompleteDays   int
@@ -196,6 +204,23 @@ func Load() Config {
 		}
 	}
 
+	tidAuthorize := strings.TrimSpace(os.Getenv("TID_AUTHORIZE_URL"))
+	if tidAuthorize == "" {
+		tidAuthorize = "https://id.tbank.ru/auth/authorize"
+	}
+	tidToken := strings.TrimSpace(os.Getenv("TID_TOKEN_URL"))
+	if tidToken == "" {
+		tidToken = "https://id.tbank.ru/auth/token"
+	}
+	tidUserinfo := strings.TrimSpace(os.Getenv("TID_USERINFO_URL"))
+	if tidUserinfo == "" {
+		tidUserinfo = "https://id.tbank.ru/userinfo"
+	}
+	tidScope := strings.TrimSpace(os.Getenv("TID_SCOPE"))
+	if tidScope == "" {
+		tidScope = "openid email phone profile"
+	}
+
 	return Config{
 		Port:        p,
 		DatabaseURL: os.Getenv("DATABASE_URL"),
@@ -248,6 +273,14 @@ func Load() Config {
 		VkOAuthUserInfoURL:  vkUserinfo,
 		VkOAuthScope:        vkScope,
 		VkIDEnabled:         vkIDMode,
+
+		TIDClientID:     strings.TrimSpace(os.Getenv("TID_CLIENT_ID")),
+		TIDClientSecret: strings.TrimSpace(os.Getenv("TID_CLIENT_SECRET")),
+		TIDRedirectURI:  strings.TrimSpace(os.Getenv("TID_REDIRECT_URI")),
+		TIDAuthorizeURL: tidAuthorize,
+		TIDTokenURL:     tidToken,
+		TIDUserInfoURL:  tidUserinfo,
+		TIDScope:        tidScope,
 
 		DealPlatformFeePercent: feePercent,
 		DealPayoutDelayDays:    payoutDelay,

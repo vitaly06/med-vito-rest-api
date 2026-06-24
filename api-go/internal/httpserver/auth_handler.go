@@ -109,6 +109,14 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 		return c.JSON(fiber.Map{"url": authURL})
 	})
 
+	g.Get("/t-id/url", func(c *fiber.Ctx) error {
+		authURL, err := auth.TIDAuthURL(c.Query("state"))
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(fiber.Map{"url": authURL})
+	})
+
 	g.Post("/vk/sign-in", func(c *fiber.Ctx) error {
 		var body struct {
 			Code     string `json:"code"`
@@ -119,6 +127,23 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректное тело"})
 		}
 		out, sid, err := auth.SignInWithVK(c.UserContext(), body.Code, body.State, body.DeviceID)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		c.Cookie(sessionCookie(cfg, sid, 30*24*60*60))
+		c.Cookie(wsSessionCookie(cfg, sid, 30*24*60*60))
+		return c.JSON(out)
+	})
+
+	g.Post("/t-id/sign-in", func(c *fiber.Ctx) error {
+		var body struct {
+			Code  string `json:"code"`
+			State string `json:"state"`
+		}
+		if err := c.BodyParser(&body); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректное тело"})
+		}
+		out, sid, err := auth.SignInWithTID(c.UserContext(), body.Code, body.State)
 		if err != nil {
 			return writeAppError(c, err)
 		}
