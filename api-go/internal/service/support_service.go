@@ -24,8 +24,18 @@ var (
 	}
 )
 
+// WSMessageNotifier — колбэк, вызывается при каждом новом сообщении.
+// ownerID — владелец тикета (пользователь).
+type WSMessageNotifier func(ownerID int32, ticketID int32, msg *repository.SupportMessageOut)
+
 type SupportService struct {
-	repo *repository.SupportPG
+	repo     *repository.SupportPG
+	onNewMsg WSMessageNotifier
+}
+
+// SetWSNotifier устанавливает хук для WS-бродкаста.
+func (s *SupportService) SetWSNotifier(fn WSMessageNotifier) {
+	s.onNewMsg = fn
 }
 
 const supportCenterDisplayName = "Служба поддержки"
@@ -188,7 +198,11 @@ func (s *SupportService) SendMessage(ctx context.Context, ticketID, userID int32
 	if st == "CLOSED" {
 		return nil, &AppError{400, "Нельзя отправлять сообщения в закрытый тикет"}
 	}
-	return s.repo.SendMessageTx(ctx, ticketID, userID, text, isModerator, st)
+	msg, err := s.repo.SendMessageTx(ctx, ticketID, userID, text, isModerator, st)
+	if err == nil && s.onNewMsg != nil {
+		s.onNewMsg(ownerID, ticketID, msg)
+	}
+	return msg, err
 }
 
 func (s *SupportService) UpdateTicket(ctx context.Context, ticketID, moderatorID int32, status, priority *string) (*repository.SupportTicketFull, error) {
@@ -234,5 +248,8 @@ func (s *SupportService) NotifyUserBilling(ctx context.Context, userID int32, te
 	if err != nil {
 		return
 	}
-	_ = s.repo.PostStaffNotification(ctx, userID, staffID, text)
+	ticketID, msg, err := s.repo.PostStaffNotification(ctx, userID, staffID, text)
+	if err == nil && msg != nil && s.onNewMsg != nil {
+		s.onNewMsg(userID, ticketID, msg)
+	}
 }

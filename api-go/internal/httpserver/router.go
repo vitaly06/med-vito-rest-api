@@ -83,6 +83,7 @@ func NewApp(corsOrigins string, deps AppDeps) *fiber.App {
 	RegisterReservationRoutes(app, deps.Reservation, deps.Auth)
 	RegisterSocketIO(app, corsOrigins, deps.Auth, deps.Chat, deps.Support)
 	RegisterChatWS(app, deps.Auth, deps.Chat)
+	RegisterSupportWS(app, deps.Auth, deps.Support)
 
 	// OpenAPI 2 + Swagger UI (Try it out). doc.json РёР· РїР°РєРµС‚Р° docs (swag init).
 	app.Get("/docs/*", swagger.New(swagger.Config{

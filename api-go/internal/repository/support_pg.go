@@ -473,7 +473,8 @@ func (r *SupportPG) FirstStaffUserID(ctx context.Context) (int32, error) {
 }
 
 // PostStaffNotification — сообщение от службы поддержки в тикет пользователя.
-func (r *SupportPG) PostStaffNotification(ctx context.Context, userID, staffID int32, text string) error {
+// Возвращает ticketID и сохранённое сообщение.
+func (r *SupportPG) PostStaffNotification(ctx context.Context, userID, staffID int32, text string) (int32, *SupportMessageOut, error) {
 	var ticketID int32
 	err := r.pool.QueryRow(ctx, `
 		SELECT id FROM "SupportTicket"
@@ -485,11 +486,11 @@ func (r *SupportPG) PostStaffNotification(ctx context.Context, userID, staffID i
 			VALUES ('OTHER'::"TicketTheme", $1, 'IN_PROGRESS'::"TicketStatus", 'MEDIUM'::"TicketPriority", $2, $3, NOW(), NOW())
 			RETURNING id`, billingNotificationsSubject, userID, staffID).Scan(&ticketID)
 		if err != nil {
-			return err
+			return 0, nil, err
 		}
 	} else if err != nil {
-		return err
+		return 0, nil, err
 	}
-	_, err = r.SendMessageTx(ctx, ticketID, staffID, text, true, "IN_PROGRESS")
-	return err
+	msg, err := r.SendMessageTx(ctx, ticketID, staffID, text, true, "IN_PROGRESS")
+	return ticketID, msg, err
 }
