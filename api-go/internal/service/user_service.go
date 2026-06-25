@@ -47,8 +47,15 @@ func (s *UserService) FindAllAdmin(ctx context.Context) ([]fiberMap, error) {
 	out := make([]fiberMap, 0, len(rows))
 	for _, r := range rows {
 		roleName := "USER"
-		if r.RoleName != nil && strings.TrimSpace(*r.RoleName) != "" {
-			roleName = strings.TrimSpace(*r.RoleName)
+		if r.RoleName != nil {
+			rn := strings.TrimSpace(*r.RoleName)
+			if rn != "" {
+				if strings.EqualFold(rn, "default") {
+					roleName = "USER"
+				} else {
+					roleName = rn
+				}
+			}
 		}
 		out = append(out, fiberMap{
 			"id":              r.ID,

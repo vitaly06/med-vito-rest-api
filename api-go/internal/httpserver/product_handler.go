@@ -358,6 +358,7 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 	g := app.Group("/product")
 	sess := authmw.RequireSession(auth)
 	adm := authmw.RequireAdmin(auth)
+	mod := authmw.RequireModerator(auth)
 	opt := authmw.OptionalSession(auth)
 
 	g.Post("/create", sess, func(c *fiber.Ctx) error {
@@ -461,6 +462,18 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 			viewer = &u.ID
 		}
 		out, err := p.RecommendedBySubcategory(c.UserContext(), viewer, int32(subID), limit)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
+	g.Get("/admin-user-products/:userId", mod, func(c *fiber.Ctx) error {
+		userID, err := strconv.ParseInt(c.Params("userId"), 10, 32)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный userId"})
+		}
+		out, err := p.AdminProductsByUser(c.UserContext(), int32(userID))
 		if err != nil {
 			return writeAppError(c, err)
 		}

@@ -13,16 +13,17 @@ import (
 	"med-vito/api-go/internal/repository"
 )
 
-// ProductService вЂ” Р»РѕРіРёРєР° Nest ProductService (Р±РµР· WebSocket).
+// ProductService — логика Nest ProductService (без WebSocket).
 type ProductService struct {
-	prod *repository.ProductPG
-	s3   *s3client.Client
-	user *UserService
-	stat *StatisticsService
+	prod    *repository.ProductPG
+	s3      *s3client.Client
+	user    *UserService
+	stat    *StatisticsService
+	support *SupportService
 }
 
-func NewProductService(prod *repository.ProductPG, s3 *s3client.Client, user *UserService, stat *StatisticsService) *ProductService {
-	return &ProductService{prod: prod, s3: s3, user: user, stat: stat}
+func NewProductService(prod *repository.ProductPG, s3 *s3client.Client, user *UserService, stat *StatisticsService, support *SupportService) *ProductService {
+	return &ProductService{prod: prod, s3: s3, user: user, stat: stat, support: support}
 }
 
 func formatProductDate(t time.Time) string {
@@ -318,16 +319,29 @@ func (s *ProductService) CreateProduct(ctx context.Context, userID int32, name, 
 		}
 		quantity = int32(q)
 	}
+	beforeRemaining := int32(-1)
+	if s.user != nil {
+		if before, err := s.user.GetRemainingFreeAds(ctx, userID); err == nil {
+			if v, ok := before["remaining"].(int32); ok {
+				beforeRemaining = v
+			} else if v, ok := before["remaining"].(int); ok {
+				beforeRemaining = int32(v)
+			} else if v, ok := before["remaining"].(float64); ok {
+				beforeRemaining = int32(v)
+			}
+		}
+	}
 	err = s.prod.CreateProductTx(ctx, pid, userID, name, int32(price), quantity, state, description, address, vptr, urls, int32(catID), int32(subID), typePtr, intMap)
 	if errors.Is(err, repository.ErrNotFound) {
-		return nil, &AppError{400, "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ"}
+		return nil, &AppError{400, "Пользователь не найден"}
 	}
 	if errors.Is(err, repository.ErrInsufficientFunds) {
-		return nil, &AppError{400, fmt.Sprintf("РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ СЃСЂРµРґСЃС‚РІ РґР»СЏ СЂР°Р·РјРµС‰РµРЅРёСЏ РѕР±СЉСЏРІР»РµРЅРёСЏ. РўСЂРµР±СѓРµС‚СЃСЏ %d СЂСѓР±.", repository.AdListingCost)}
+		return nil, &AppError{400, fmt.Sprintf("Недостаточно средств для размещения объявления. Пополните баланс или бонусы — требуется %d ₽.", repository.AdListingCost)}
 	}
 	if err != nil {
-		return nil, &AppError{400, "РћС€РёР±РєР° РїСЂРё СЃРѕР·РґР°РЅРёРё РїСЂРѕРґСѓРєС‚Р°: " + err.Error()}
+		return nil, &AppError{400, "Ошибка при создании продукта: " + err.Error()}
 	}
+	s.notifyAdListingBilling(ctx, userID, beforeRemaining)
 	prod, err := s.prod.LoadProductWithRelations(ctx, pid)
 	if err != nil {
 		return nil, err
@@ -468,4 +482,44 @@ func parseFieldValuesMap(raw string) (map[string]string, error) {
 		return nil, fmt.Errorf("РЅРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ fieldValues JSON")
 	}
 	return m, nil
+}
+
+func (s *ProductService) notifyAdListingBilling(ctx context.Context, userID int32, beforeRemaining int32) {
+	if s.support == nil || s.user == nil {
+		return
+	}
+	after, err := s.user.GetRemainingFreeAds(ctx, userID)
+	if err != nil {
+		return
+	}
+	remaining := int32(0)
+	total := int32(repository.FreeAdsMonthlyLimit)
+	cost := int32(repository.AdListingCost)
+	if v, ok := after["remaining"].(int32); ok {
+		remaining = v
+	} else if v, ok := after["remaining"].(int); ok {
+		remaining = int32(v)
+	}
+	if v, ok := after["total"].(int32); ok {
+		total = v
+	} else if v, ok := after["total"].(int); ok {
+		total = int32(v)
+	}
+	if v, ok := after["costPerAd"].(int32); ok {
+		cost = v
+	} else if v, ok := after["costPerAd"].(int); ok {
+		cost = int32(v)
+	}
+
+	var text string
+	if beforeRemaining <= 0 {
+		text = fmt.Sprintf("Списано %d ₽ за размещение объявления (сначала бонусы, затем баланс). Бесплатный лимит (%d шт./мес.) исчерпан.", cost, total)
+	} else if remaining == 0 && beforeRemaining == 1 {
+		text = fmt.Sprintf("Использовано последнее бесплатное объявление в этом месяце (%d из %d). Следующие размещения — %d ₽.", total, total, cost)
+	} else if beforeRemaining > remaining {
+		text = fmt.Sprintf("Размещено бесплатное объявление. Осталось %d из %d бесплатных в этом месяце.", remaining, total)
+	} else {
+		return
+	}
+	s.support.NotifyUserBilling(ctx, userID, text)
 }

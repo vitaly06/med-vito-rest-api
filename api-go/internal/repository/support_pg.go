@@ -455,3 +455,41 @@ func (r *SupportPG) TicketStats(ctx context.Context) (*SupportStats, error) {
 	}
 	return &s, prows.Err()
 }
+
+const billingNotificationsSubject = "Уведомления сервиса"
+
+func (r *SupportPG) FirstStaffUserID(ctx context.Context) (int32, error) {
+	var id int32
+	err := r.pool.QueryRow(ctx, `
+		SELECT u.id FROM "User" u
+		JOIN "Role" r ON r.id = u."roleId"
+		WHERE r.name IN ('ADMIN', 'SUPERADMIN', 'SENIOR_MODERATOR')
+		ORDER BY u.id
+		LIMIT 1`).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, ErrSupportTicketNotFound
+	}
+	return id, err
+}
+
+// PostStaffNotification — сообщение от службы поддержки в тикет пользователя.
+func (r *SupportPG) PostStaffNotification(ctx context.Context, userID, staffID int32, text string) error {
+	var ticketID int32
+	err := r.pool.QueryRow(ctx, `
+		SELECT id FROM "SupportTicket"
+		WHERE "userId" = $1 AND subject = $2 AND status IN ('OPEN', 'IN_PROGRESS')
+		ORDER BY "updatedAt" DESC LIMIT 1`, userID, billingNotificationsSubject).Scan(&ticketID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		err = r.pool.QueryRow(ctx, `
+			INSERT INTO "SupportTicket" (theme, subject, status, priority, "userId", "moderatorId", "createdAt", "updatedAt")
+			VALUES ('OTHER'::"TicketTheme", $1, 'IN_PROGRESS'::"TicketStatus", 'MEDIUM'::"TicketPriority", $2, $3, NOW(), NOW())
+			RETURNING id`, billingNotificationsSubject, userID, staffID).Scan(&ticketID)
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+	_, err = r.SendMessageTx(ctx, ticketID, staffID, text, true, "IN_PROGRESS")
+	return err
+}

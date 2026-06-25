@@ -430,7 +430,7 @@ func (s *ProductService) PublishDraft(ctx context.Context, productID, userID int
 			return nil, &AppError{404, "Р§РµСЂРЅРѕРІРёРє РЅРµ РЅР°Р№РґРµРЅ"}
 		}
 		if errors.Is(err, repository.ErrInsufficientFunds) {
-			return nil, &AppError{400, fmt.Sprintf("РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ СЃСЂРµРґСЃС‚РІ РґР»СЏ РїСѓР±Р»РёРєР°С†РёРё. РўСЂРµР±СѓРµС‚СЃСЏ %d СЂСѓР±.", repository.AdListingCost)}
+			return nil, &AppError{400, fmt.Sprintf("Недостаточно средств для публикации. Требуется %d ₽.", repository.AdListingCost)}
 		}
 		return nil, err
 	}
@@ -621,6 +621,47 @@ func (s *ProductService) AllProductsToModerate(ctx context.Context) ([]map[strin
 		out = append(out, s.formatListItem(pr, false, pr.PromotionLevel > 0, pr.PromotionLevel))
 	}
 	return out, nil
+}
+
+func (s *ProductService) AdminProductsByUser(ctx context.Context, userID int32) ([]map[string]any, error) {
+	ok, err := s.prod.UserExists(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, &AppError{404, "Пользователь не найден"}
+	}
+	rows, err := s.prod.ListProductsByUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]map[string]any, 0, len(rows))
+	for _, pr := range rows {
+		item := s.formatListItem(pr, false, pr.PromotionLevel > 0, pr.PromotionLevel)
+		if pr.ModerateState != nil {
+			item["statusLabel"] = adminProductStatusLabel(*pr.ModerateState, pr.IsHide)
+		}
+		out = append(out, item)
+	}
+	return out, nil
+}
+
+func adminProductStatusLabel(state string, hidden bool) string {
+	switch state {
+	case "DRAFT":
+		return "Черновик"
+	case "MODERATE", "AI_REVIEWED":
+		return "На модерации"
+	case "DENIDED":
+		return "Отклонено"
+	case "APPROVED":
+		if hidden {
+			return "Скрыто"
+		}
+		return "Активно"
+	default:
+		return state
+	}
 }
 
 func (s *ProductService) AllPromotedProducts(ctx context.Context) ([]map[string]any, error) {

@@ -21,10 +21,10 @@ import (
 )
 
 const (
-	aiApprovedReason             = "РћРґРѕР±СЂРµРЅРѕ РР Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё"
-	visionTechnicalErrorReason   = "РћС€РёР±РєР° Р°РЅР°Р»РёР·Р° С„РѕС‚Рѕ, С‚СЂРµР±СѓРµС‚СЃСЏ СЂСѓС‡РЅР°СЏ РїСЂРѕРІРµСЂРєР°"
-	textTechnicalErrorReason     = "РћС€РёР±РєР° РР-СЃРµСЂРІРёСЃР°, С‚СЂРµР±СѓРµС‚СЃСЏ СЂСѓС‡РЅР°СЏ РїСЂРѕРІРµСЂРєР°"
-	defaultManualReviewReason    = "РўСЂРµР±СѓРµС‚СЃСЏ СЂСѓС‡РЅР°СЏ РїСЂРѕРІРµСЂРєР°"
+	aiApprovedReason           = "Одобрено ИИ автоматически"
+	visionTechnicalErrorReason = "Ошибка анализа фото, требуется ручная проверка"
+	textTechnicalErrorReason   = "Ошибка ИИ-сервиса, требуется ручная проверка"
+	defaultManualReviewReason  = "Требуется ручная проверка"
 	yandexTextEndpoint           = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
 	yandexVisionEndpoint         = "https://ai.api.cloud.yandex.net/v1/chat/completions"
 	visionImageDownloadTimeout   = 30 * time.Second
@@ -251,10 +251,10 @@ func (s *ModerationService) processProduct(ctx context.Context, product reposito
 
 	var reasons []string
 	if textResult.Category == "MANUAL" && strings.TrimSpace(textResult.Reason) != "" {
-		reasons = append(reasons, "РўРµРєСЃС‚: "+strings.TrimSpace(textResult.Reason))
+		reasons = append(reasons, "Текст: "+strings.TrimSpace(textResult.Reason))
 	}
 	if visionDecision == "MANUAL" && strings.TrimSpace(visionReason) != "" {
-		reasons = append(reasons, "Р¤РѕС‚Рѕ: "+strings.TrimSpace(visionReason))
+		reasons = append(reasons, "Фото: "+strings.TrimSpace(visionReason))
 	}
 	if visionTechnicalFailure && visionDecision != "MANUAL" {
 		reasons = append(reasons, visionTechnicalErrorReason)

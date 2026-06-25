@@ -223,3 +223,16 @@ func (s *SupportService) AssignTicket(ctx context.Context, ticketID, moderatorID
 func (s *SupportService) TicketStats(ctx context.Context) (*repository.SupportStats, error) {
 	return s.repo.TicketStats(ctx)
 }
+
+// NotifyUserBilling — уведомление о лимите/списании в чат «Служба поддержки».
+func (s *SupportService) NotifyUserBilling(ctx context.Context, userID int32, text string) {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return
+	}
+	staffID, err := s.repo.FirstStaffUserID(ctx)
+	if err != nil {
+		return
+	}
+	_ = s.repo.PostStaffNotification(ctx, userID, staffID, text)
+}

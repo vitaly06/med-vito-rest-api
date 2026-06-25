@@ -147,7 +147,12 @@ func (s *ChatService) GetUserChats(ctx context.Context, userID int32) ([]map[str
 				"image": img,
 			}
 		} else {
-			product = nil
+			product = map[string]any{
+				"id":    compID,
+				"name":  "Чат с " + compName,
+				"price": 0,
+				"image": nil,
+			}
 		}
 		var lastMsg any
 		if chat.LMID != nil && chat.LMContent != nil && chat.LMCreated != nil && chat.LMSender != nil && chat.LMRead != nil {
