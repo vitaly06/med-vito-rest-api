@@ -398,14 +398,14 @@ func (r *ProductPG) SearchProducts(ctx context.Context, p ProductSearchParams) (
 		}
 	}
 	if len(p.FieldValues) > 0 {
-		var orParts []string
 		for fid, val := range p.FieldValues {
-			orParts = append(orParts, fmt.Sprintf(`(pfv."fieldId" = $%d AND pfv.value ILIKE $%d)`, n, n+1))
+			where = append(where, fmt.Sprintf(`EXISTS (
+				SELECT 1 FROM "ProductFieldValue" pfv
+				WHERE pfv."productId" = p.id AND pfv."fieldId" = $%d AND pfv.value = $%d)`, n, n+1))
 			id32, _ := parseInt32(fid)
-			args = append(args, id32, "%"+val+"%")
+			args = append(args, id32, strings.TrimSpace(val))
 			n += 2
 		}
-		where = append(where, `EXISTS (SELECT 1 FROM "ProductFieldValue" pfv WHERE pfv."productId" = p.id AND (`+strings.Join(orParts, " OR ")+`))`)
 	}
 
 	paidRankSQL := `CASE

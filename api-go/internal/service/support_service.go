@@ -7,6 +7,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"med-vito/api-go/internal/rbac"
 	"med-vito/api-go/internal/repository"
 )
 
@@ -25,6 +26,25 @@ var (
 
 type SupportService struct {
 	repo *repository.SupportPG
+}
+
+const supportCenterDisplayName = "Служба поддержки"
+
+func maskSupportMessageForUser(m *repository.SupportMessageOut) {
+	if m.Author.Role != nil {
+		name := m.Author.Role.Name
+		if rbac.HasMinRole(&name, 70) {
+			m.Author.FullName = supportCenterDisplayName
+			m.Author.Email = ""
+		}
+	}
+}
+
+func maskTicketModeratorForUser(t *repository.SupportTicketFull) {
+	if t.Moderator != nil {
+		t.Moderator.FullName = supportCenterDisplayName
+		t.Moderator.Email = ""
+	}
 }
 
 func NewSupportService(repo *repository.SupportPG) *SupportService {
@@ -80,6 +100,12 @@ func (s *SupportService) GetTicket(ctx context.Context, ticketID, userID int32, 
 	if err != nil {
 		return nil, err
 	}
+	if !isModerator {
+		for i := range msgs {
+			maskSupportMessageForUser(&msgs[i])
+		}
+		maskTicketModeratorForUser(t)
+	}
 	return &TicketWithMessages{SupportTicketFull: *t, Messages: msgs}, nil
 }
 
@@ -90,6 +116,13 @@ func (s *SupportService) GetUserTickets(ctx context.Context, userID int32, page,
 	list, total, err := s.repo.ListTickets(ctx, &userID, status, priority, theme, search, false, page, limit)
 	if err != nil {
 		return nil, err
+	}
+	for i := range list {
+		if list[i].LastMessage != nil && list[i].LastMessage.AuthorID != list[i].UserID {
+			list[i].LastMessage.Author.FullName = supportCenterDisplayName
+			list[i].LastMessage.Author.Email = ""
+		}
+		maskTicketModeratorForUser(&list[i].SupportTicketFull)
 	}
 	return listTicketsResponse(list, total, page, limit), nil
 }

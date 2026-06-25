@@ -17,16 +17,27 @@ func RegisterChatRoutes(app fiber.Router, chat *service.ChatService, auth *servi
 	g.Post("/start", sess, func(c *fiber.Ctx) error {
 		var body struct {
 			ProductID int32 `json:"productId"`
+			SellerID  int32 `json:"sellerId"`
 		}
-		if err := c.BodyParser(&body); err != nil || body.ProductID <= 0 {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректное тело (нужен productId)"})
+		if err := c.BodyParser(&body); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректное тело"})
 		}
 		me := authmw.UserFromLocals(c)
-		out, err := chat.StartChat(c.UserContext(), body.ProductID, me.ID)
-		if err != nil {
-			return writeAppError(c, err)
+		if body.ProductID > 0 {
+			out, err := chat.StartChat(c.UserContext(), body.ProductID, me.ID)
+			if err != nil {
+				return writeAppError(c, err)
+			}
+			return c.Status(fiber.StatusCreated).JSON(out)
 		}
-		return c.Status(fiber.StatusCreated).JSON(out)
+		if body.SellerID > 0 {
+			out, err := chat.StartDirectChat(c.UserContext(), body.SellerID, me.ID)
+			if err != nil {
+				return writeAppError(c, err)
+			}
+			return c.Status(fiber.StatusCreated).JSON(out)
+		}
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Нужен productId или sellerId"})
 	})
 
 	g.Get("", sess, func(c *fiber.Ctx) error {

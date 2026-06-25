@@ -46,19 +46,40 @@ func (s *UserService) FindAllAdmin(ctx context.Context) ([]fiberMap, error) {
 	}
 	out := make([]fiberMap, 0, len(rows))
 	for _, r := range rows {
+		roleName := "USER"
+		if r.RoleName != nil && strings.TrimSpace(*r.RoleName) != "" {
+			roleName = strings.TrimSpace(*r.RoleName)
+		}
 		out = append(out, fiberMap{
-			"id":           r.ID,
-			"createdAt":    r.CreatedAt,
-			"isBanned":     r.IsBanned,
-			"fullName":     r.FullName,
-			"email":        r.Email,
-			"phoneNumber":  r.PhoneNumber,
-			"rating":       r.Rating,
-			"profileType":  r.ProfileType,
-			"photo":        r.Photo,
-			"balance":      r.Balance,
-			"bonusBalance": r.BonusBalance,
-			"products":     r.ProductsCount,
+			"id":              r.ID,
+			"createdAt":       r.CreatedAt,
+			"isBanned":        r.IsBanned,
+			"fullName":        r.FullName,
+			"email":           r.Email,
+			"phoneNumber":     r.PhoneNumber,
+			"rating":          r.Rating,
+			"profileType":     r.ProfileType,
+			"photo":           r.Photo,
+			"balance":         r.Balance,
+			"bonusBalance":    r.BonusBalance,
+			"role":            roleName,
+			"isEmailVerified": r.IsEmailVerified,
+			"isPhoneVerified": r.IsPhoneVerified,
+			"products":        r.ProductsCount,
+			"productStats": fiberMap{
+				"total":      r.ProductsCount,
+				"drafts":     r.DraftsCount,
+				"moderation": r.ModerationCount,
+				"active":     r.ActiveCount,
+				"hidden":     r.HiddenCount,
+				"denied":     r.DeniedCount,
+			},
+			"adsLimit": fiberMap{
+				"total":     r.FreeAdsLimit,
+				"used":      r.UsedFreeAds,
+				"remaining": maxInt32(0, r.FreeAdsLimit-r.UsedFreeAds),
+				"costPerAd": repository.AdListingCost,
+			},
 		})
 	}
 	return out, nil
@@ -400,4 +421,11 @@ func (s *UserService) AdminSetUserRole(ctx context.Context, userID int32, role s
 func generateVerifyCode6() string {
 	n := 100000 + rand.Intn(900000)
 	return strconv.Itoa(n)
+}
+
+func maxInt32(a, b int32) int32 {
+	if a > b {
+		return a
+	}
+	return b
 }

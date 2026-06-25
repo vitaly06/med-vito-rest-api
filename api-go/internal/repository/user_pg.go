@@ -159,28 +159,49 @@ func (r *UserPG) UpdatePassword(ctx context.Context, userID int32, passwordHash 
 
 // UserAdminRow — список пользователей для админки (как findAll в Nest).
 type UserAdminRow struct {
-	ID            int32
-	CreatedAt     time.Time
-	IsBanned      bool
-	FullName      string
-	Email         string
-	PhoneNumber   string
-	Rating        *int32
-	ProfileType   string
-	Photo         *string
-	Balance       float64
-	BonusBalance  float64
-	ProductsCount int32
+	ID               int32
+	CreatedAt        time.Time
+	IsBanned         bool
+	FullName         string
+	Email            string
+	PhoneNumber      string
+	Rating           *int32
+	ProfileType      string
+	Photo            *string
+	Balance          float64
+	BonusBalance     float64
+	RoleName         *string
+	IsEmailVerified  bool
+	IsPhoneVerified  bool
+	ProductsCount    int32
+	DraftsCount      int32
+	ModerationCount  int32
+	ActiveCount      int32
+	HiddenCount      int32
+	DeniedCount      int32
+	UsedFreeAds      int32
+	FreeAdsLimit     int32
 }
 
 func (r *UserPG) ListUsersAdmin(ctx context.Context) ([]UserAdminRow, error) {
 	const q = `
 		SELECT u."id", u."createdAt", u."isBanned", u."fullName", u."email", u."phoneNumber", u."rating",
 		       u."profileType"::text, u."photo", u."balance", u."bonusBalance",
-		       COUNT(p."id")::int
+		       r."name",
+		       COALESCE(u."isEmailVerified", false),
+		       COALESCE(u."isPhoneVerified", true),
+		       COUNT(p."id")::int,
+		       COUNT(p."id") FILTER (WHERE p."moderateState" = 'DRAFT'::"ProductModerate")::int,
+		       COUNT(p."id") FILTER (WHERE p."moderateState" IN ('MODERATE'::"ProductModerate", 'AI_REVIEWED'::"ProductModerate"))::int,
+		       COUNT(p."id") FILTER (WHERE p."moderateState" = 'APPROVED'::"ProductModerate" AND NOT p."isHide")::int,
+		       COUNT(p."id") FILTER (WHERE p."moderateState" = 'APPROVED'::"ProductModerate" AND p."isHide")::int,
+		       COUNT(p."id") FILTER (WHERE p."moderateState" = 'DENIDED'::"ProductModerate")::int,
+		       COALESCE(u."usedFreeAds", 0),
+		       COALESCE(u."freeAdsLimit", 6)
 		FROM "User" u
+		LEFT JOIN "Role" r ON r."id" = u."roleId"
 		LEFT JOIN "Product" p ON p."userId" = u."id"
-		GROUP BY u."id", u."createdAt"`
+		GROUP BY u."id", u."createdAt", r."name"`
 	rows, err := r.pool.Query(ctx, q)
 	if err != nil {
 		return nil, err
@@ -190,7 +211,10 @@ func (r *UserPG) ListUsersAdmin(ctx context.Context) ([]UserAdminRow, error) {
 	for rows.Next() {
 		var row UserAdminRow
 		if err := rows.Scan(&row.ID, &row.CreatedAt, &row.IsBanned, &row.FullName, &row.Email, &row.PhoneNumber,
-			&row.Rating, &row.ProfileType, &row.Photo, &row.Balance, &row.BonusBalance, &row.ProductsCount); err != nil {
+			&row.Rating, &row.ProfileType, &row.Photo, &row.Balance, &row.BonusBalance,
+			&row.RoleName, &row.IsEmailVerified, &row.IsPhoneVerified,
+			&row.ProductsCount, &row.DraftsCount, &row.ModerationCount, &row.ActiveCount,
+			&row.HiddenCount, &row.DeniedCount, &row.UsedFreeAds, &row.FreeAdsLimit); err != nil {
 			return nil, err
 		}
 		out = append(out, row)

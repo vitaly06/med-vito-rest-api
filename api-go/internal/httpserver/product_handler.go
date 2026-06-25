@@ -381,9 +381,10 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 			if err == nil {
 				return c.Status(fiber.StatusCreated).JSON(out)
 			}
+			return writeAppError(c, err)
 		}
 
-		// Р”Р»СЏ UX: РµСЃР»Рё С„РѕСЂРјР° РЅРµРїРѕР»РЅР°СЏ РёР»Рё create РІРµСЂРЅСѓР» РІР°Р»РёРґР°С†РёСЋ, СЃРѕС…СЂР°РЅСЏРµРј РєР°Рє С‡РµСЂРЅРѕРІРёРє РІРјРµСЃС‚Рѕ 400.
+		// Неполная форма — сохраняем как черновик.
 		out, err := p.CreateDraft(c.UserContext(), me.ID,
 			name, priceStr, quantityStr, state, description, address,
 			categoryStr, subStr, typeStr, fieldJSON, videoStr, files)

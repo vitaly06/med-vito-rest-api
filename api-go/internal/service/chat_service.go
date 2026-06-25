@@ -84,6 +84,31 @@ func (s *ChatService) StartChat(ctx context.Context, productID, buyerID int32) (
 	return s.formatStartChat(full), nil
 }
 
+func (s *ChatService) StartDirectChat(ctx context.Context, sellerID, buyerID int32) (map[string]any, error) {
+	if sellerID <= 0 {
+		return nil, &AppError{400, "Нужен sellerId"}
+	}
+	if sellerID == buyerID {
+		return nil, &AppError{400, "Нельзя писать самому себе"}
+	}
+	existing, err := s.repo.FindDirectChatBetweenUsers(ctx, buyerID, sellerID)
+	if err != nil {
+		return nil, err
+	}
+	if existing != nil {
+		return s.formatStartChat(existing), nil
+	}
+	newID, err := s.repo.InsertDirectChat(ctx, buyerID, sellerID)
+	if err != nil {
+		return nil, err
+	}
+	full, err := s.repo.GetChatFull(ctx, newID)
+	if err != nil {
+		return nil, err
+	}
+	return s.formatStartChat(full), nil
+}
+
 func (s *ChatService) GetUserChats(ctx context.Context, userID int32) ([]map[string]any, error) {
 	rows, err := s.repo.ListChatsForUser(ctx, userID)
 	if err != nil {
@@ -98,6 +123,10 @@ func (s *ChatService) GetUserChats(ctx context.Context, userID int32) ([]map[str
 			compID, compName, compPhone = chat.SellerID, chat.SellerName, chat.SellerPhone
 		} else {
 			compID, compName, compPhone = chat.BuyerID, chat.BuyerName, chat.BuyerPhone
+		}
+		if chat.IsModerationChat {
+			compName = "Модерация платформы"
+			compPhone = ""
 		}
 		unread := chat.UnreadSeller
 		if isBuyer {
@@ -169,6 +198,11 @@ func (s *ChatService) GetChatInfo(ctx context.Context, chatID, userID int32) (ma
 		comp = map[string]any{"id": c.SellerID, "fullName": c.SellerName, "phoneNumber": c.SellerPhone, "role": "seller"}
 	} else {
 		comp = map[string]any{"id": c.BuyerID, "fullName": c.BuyerName, "phoneNumber": c.BuyerPhone, "role": "buyer"}
+	}
+	if c.IsModerationChat {
+		comp["fullName"] = "Модерация платформы"
+		comp["phoneNumber"] = ""
+		comp["role"] = "moderation"
 	}
 	var product any
 	if c.JoinProductID != nil {
