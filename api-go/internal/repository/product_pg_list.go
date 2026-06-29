@@ -36,8 +36,9 @@ type ProductListRow struct {
 	SellerVerified  bool
 	ViewsCount      int32
 	PopularityScore float64
-	ModerateState   *string
-	IsReserved      bool
+	ModerateState             *string
+	ModerationRejectionReason *string
+	IsReserved                bool
 }
 
 const productListSelect = `
@@ -66,6 +67,7 @@ const productListSelect = `
 		(CASE WHEN array_length(p.images, 1) IS NULL OR array_length(p.images, 1) = 0 THEN 0 ELSE 20 END * 0.2)
 	)::float8,
 	p."moderateState"::text,
+	p."moderationRejectionReason",
 	EXISTS (
 		SELECT 1
 		FROM "ProductReservation" pr
@@ -90,7 +92,7 @@ func (r *ProductPG) scanProductListRow(row pgx.Row) (*ProductListRow, error) {
 		&pr.CategoryID, &pr.CategoryName, &pr.CategorySlug,
 		&pr.SubCategoryID, &pr.SubCategoryName, &pr.SubCategorySlug,
 		&typeID, &typeName, &typeSlug,
-		&pr.PromotionLevel, &pr.PromotionName, &pr.SellerRating, &pr.SellerVerified, &pr.ViewsCount, &pr.PopularityScore, &mod, &pr.IsReserved,
+		&pr.PromotionLevel, &pr.PromotionName, &pr.SellerRating, &pr.SellerVerified, &pr.ViewsCount, &pr.PopularityScore, &mod, &pr.ModerationRejectionReason, &pr.IsReserved,
 	)
 	pr.TypeID, pr.TypeName, pr.TypeSlug = typeID, typeName, typeSlug
 	pr.ModerateState = mod

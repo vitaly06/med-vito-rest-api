@@ -12,7 +12,7 @@ import (
 	"med-vito/api-go/internal/service"
 )
 
-// AppDeps вЂ” Р·Р°РІРёСЃРёРјРѕСЃС‚Рё HTTP-СЃР»РѕСЏ (РїРѕ РјРµСЂРµ РјРёРіСЂР°С†РёРё РїРѕРїРѕР»РЅСЏРµС‚СЃСЏ).
+// AppDeps — зависимости HTTP-слоя (по мере миграции пополняется).
 type AppDeps struct {
 	Config      config.Config
 	Log         *service.LogService
@@ -35,7 +35,7 @@ type AppDeps struct {
 	Reservation *service.ReservationService
 }
 
-// NewApp СЃРѕР±РёСЂР°РµС‚ Fiber: middleware + РјР°СЂС€СЂСѓС‚С‹ (handlers = Р±С‹РІС€РёРµ controllers).
+// NewApp собирает Fiber: middleware + маршруты (handlers = бывшие controllers).
 func NewApp(corsOrigins string, deps AppDeps) *fiber.App {
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
@@ -85,7 +85,7 @@ func NewApp(corsOrigins string, deps AppDeps) *fiber.App {
 	RegisterChatWS(app, deps.Auth, deps.Chat)
 	RegisterSupportWS(app, deps.Auth, deps.Support)
 
-	// OpenAPI 2 + Swagger UI (Try it out). doc.json РёР· РїР°РєРµС‚Р° docs (swag init).
+	// OpenAPI 2 + Swagger UI (Try it out). doc.json из пакета docs (swag init).
 	app.Get("/docs/*", swagger.New(swagger.Config{
 		Title:                  "Med Vito API (Go)",
 		WithCredentials:        true,

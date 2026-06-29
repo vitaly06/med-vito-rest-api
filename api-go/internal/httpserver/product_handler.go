@@ -56,7 +56,7 @@ func readImageFilesFromMultipart(form *multipart.Form, field string, max int) ([
 	}
 	fhs := form.File[field]
 	if len(fhs) > max {
-		return nil, fmt.Errorf("РјР°РєСЃРёРјСѓРј %d РёР·РѕР±СЂР°Р¶РµРЅРёР№", max)
+		return nil, fmt.Errorf("максимум %d изображений", max)
 	}
 	var out []service.UploadedFile
 	for _, fh := range fhs {
@@ -78,7 +78,7 @@ func readImageFilesFromMultipart(form *multipart.Form, field string, max int) ([
 	return out, nil
 }
 
-// parseCreateDraftInputs вЂ” multipart | JSON | urlencoded; Р±РµР· MultipartForm РґР»СЏ РЅРµ-multipart (РёРЅР°С‡Рµ 400).
+// parseCreateDraftInputs — multipart | JSON | urlencoded; без MultipartForm для не-multipart (иначе 400).
 func parseCreateDraftInputs(c *fiber.Ctx) (
 	name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr string,
 	files []service.UploadedFile,
@@ -163,7 +163,7 @@ func parseCreateDraftInputs(c *fiber.Ctx) (
 	return name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr, nil, nil
 }
 
-// parseUpdateProductInputs вЂ” PATCH С‚РѕРІР°СЂР°: РїРѕРґРґРµСЂР¶РёРІР°РµС‚ РєР°С‚РµРіРѕСЂРёРё Рё typeId.
+// parseUpdateProductInputs — PATCH товара: поддерживает категории и typeId.
 func parseUpdateProductInputs(c *fiber.Ctx) (
 	name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, videoStr, fieldJSON string,
 	files []service.UploadedFile,
@@ -353,7 +353,7 @@ func parseProductSearchQuery(c *fiber.Ctx) service.ProductSearchQuery {
 	return q
 }
 
-// RegisterProductRoutes вЂ” РєР°Рє Nest ProductController; СЃС‚Р°С‚РёС‡РµСЃРєРёРµ РїСѓС‚Рё РґРѕ :id.
+// RegisterProductRoutes — как Nest ProductController; статические пути до :id.
 func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *service.AuthService) {
 	g := app.Group("/product")
 	sess := authmw.RequireSession(auth)
@@ -365,7 +365,7 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 		me := authmw.UserFromLocals(c)
 		name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr, files, err := parseCreateDraftInputs(c)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "РўРµР»Рѕ: " + err.Error()})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Тело: " + err.Error()})
 		}
 
 		isComplete := strings.TrimSpace(name) != "" &&
@@ -399,7 +399,7 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 		me := authmw.UserFromLocals(c)
 		name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr, files, err := parseCreateDraftInputs(c)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Р§РµСЂРЅРѕРІРёРє: " + err.Error()})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Черновик: " + err.Error()})
 		}
 		out, err := p.CreateDraft(c.UserContext(), me.ID,
 			name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr, files)
@@ -448,7 +448,7 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 	g.Get("/recommended", opt, func(c *fiber.Ctx) error {
 		subID, err := strconv.ParseInt(c.Query("subcategoryId"), 10, 32)
 		if err != nil || subID < 1 {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ subcategoryId"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный subcategoryId"})
 		}
 		limit := 20
 		if v := strings.TrimSpace(c.Query("limit")); v != "" {
@@ -483,7 +483,7 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 	g.Get("/user-products/:id", opt, func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 32)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ id"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
 		}
 		var viewer *int32
 		if u := authmw.UserFromLocals(c); u != nil {
@@ -508,7 +508,7 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 	g.Post("/publish-draft/:id", sess, func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 32)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ id"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
 		}
 		me := authmw.UserFromLocals(c)
 		out, err := p.PublishDraft(c.UserContext(), int32(id), me.ID)
@@ -521,7 +521,7 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 	g.Post("/add-to-favorites/:id", sess, func(c *fiber.Ctx) error {
 		pid, err := strconv.ParseInt(c.Params("id"), 10, 32)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ id"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
 		}
 		me := authmw.UserFromLocals(c)
 		out, err := p.AddFavorite(c.UserContext(), me.ID, int32(pid))
@@ -534,7 +534,7 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 	g.Delete("/remove-from-favorites/:id", sess, func(c *fiber.Ctx) error {
 		pid, err := strconv.ParseInt(c.Params("id"), 10, 32)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ id"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
 		}
 		me := authmw.UserFromLocals(c)
 		out, err := p.RemoveFavorite(c.UserContext(), me.ID, int32(pid))
@@ -556,7 +556,7 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 	g.Get("/product-card/:id", opt, func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 32)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ id"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
 		}
 		var viewer *int32
 		if u := authmw.UserFromLocals(c); u != nil {
@@ -572,7 +572,7 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 	g.Put("/toggle-product/:id", sess, func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 32)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ id"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
 		}
 		me := authmw.UserFromLocals(c)
 		out, err := p.ToggleProduct(c.UserContext(), int32(id), me.ID)
@@ -585,7 +585,7 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 	g.Put("/moderate-product/:id", adm, func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 32)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ id"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
 		}
 		st := c.Query("status")
 		reason := c.Query("reason")
@@ -614,7 +614,7 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 	g.Put("/toggle-promotion/:promotionId", adm, func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("promotionId"), 10, 32)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ promotionId"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный promotionId"})
 		}
 		out, err := p.TogglePromotion(c.UserContext(), int32(id))
 		if err != nil {
@@ -626,7 +626,7 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 	g.Delete("/:id", sess, func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 32)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ id"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
 		}
 		me := authmw.UserFromLocals(c)
 		out, err := p.DeleteProduct(c.UserContext(), int32(id), me.ID)
@@ -639,12 +639,12 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 	g.Patch("/:id", sess, func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 32)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ id"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
 		}
 		me := authmw.UserFromLocals(c)
 		name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, videoStr, fieldJSON, files, err := parseUpdateProductInputs(c)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "РўРѕРІР°СЂ: " + err.Error()})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Товар: " + err.Error()})
 		}
 		out, err := p.UpdateProduct(c.UserContext(), int32(id), me.ID,
 			name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, videoStr, fieldJSON, files)

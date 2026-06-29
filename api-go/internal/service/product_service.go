@@ -32,7 +32,7 @@ func formatProductDate(t time.Time) string {
 	m := int(lt.Month())
 	y := lt.Year() % 100
 	h, mi := lt.Hour(), lt.Minute()
-	return fmt.Sprintf("%02d.%02d.%02d РІ %02d:%02d", d, m, y, h, mi)
+	return fmt.Sprintf("%02d.%02d.%02d в %02d:%02d", d, m, y, h, mi)
 }
 
 func appendProductLifetime(out map[string]any, createdAt time.Time) {
@@ -52,13 +52,13 @@ func appendProductLifetime(out map[string]any, createdAt time.Time) {
 func (s *ProductService) formatListItem(pr repository.ProductListRow, isFav bool, hasPromo bool, promoLevel int32) map[string]any {
 	badges := make([]string, 0, 3)
 	if pr.PromotionLevel >= 100 {
-		badges = append(badges, "РџСЂРµРјРёСѓРј")
+		badges = append(badges, "Премиум")
 	}
 	if pr.SellerVerified {
-		badges = append(badges, "Р’РµСЂРёС„РёС†РёСЂРѕРІР°РЅ")
+		badges = append(badges, "Верифицирован")
 	}
 	if pr.ViewsCount > 100 {
-		badges = append(badges, "РЎСЂРѕС‡РЅРѕ")
+		badges = append(badges, "Срочно")
 	}
 	out := map[string]any{
 		"id":              pr.ID,
@@ -95,6 +95,9 @@ func (s *ProductService) formatListItem(pr repository.ProductListRow, isFav bool
 	}
 	if pr.ModerateState != nil {
 		out["moderateState"] = *pr.ModerateState
+	}
+	if pr.ModerationRejectionReason != nil {
+		out["moderationRejectionReason"] = *pr.ModerationRejectionReason
 	}
 	out["isHide"] = pr.IsHide
 	return out
@@ -140,7 +143,7 @@ func enforcePaidSlots(rows []repository.ProductListRow, page, limit int) []repos
 		targetFree = len(free)
 	}
 
-	// Р”РѕР±РёСЂР°РµРј РґРѕ Р»РёРјРёС‚Р° РѕСЃС‚Р°РІС€РёРјРёСЃСЏ РїР»Р°С‚РЅС‹РјРё/Р±РµСЃРїР»Р°С‚РЅС‹РјРё, РµСЃР»Рё РѕРґРЅР° РёР· РіСЂСѓРїРї Р·Р°РєРѕРЅС‡РёР»Р°СЃСЊ.
+	// Добираем до лимита оставшимися платными/бесплатными, если одна из групп закончилась.
 	for targetPaid+targetFree < limit {
 		if targetFree < len(free) {
 			targetFree++
@@ -157,7 +160,7 @@ func enforcePaidSlots(rows []repository.ProductListRow, page, limit int) []repos
 	useFree := free[:targetFree]
 	out := make([]repository.ProductListRow, 0, targetPaid+targetFree)
 
-	// Р Р°РІРЅРѕРјРµСЂРЅРѕ СЂР°СЃРїСЂРµРґРµР»СЏРµРј РїР»Р°С‚РЅС‹Рµ РІРЅСѓС‚СЂРё Р»РµРЅС‚С‹.
+	// Равномерно распределяем платные внутри ленты.
 	pi := 0
 	fi := 0
 	segment := 0
@@ -226,47 +229,47 @@ func (s *ProductService) mapListWithFavorites(ctx context.Context, rows []reposi
 	return out, nil
 }
 
-// CreateProduct вЂ” multipart + S3; fieldValues JSON map.
+// CreateProduct — multipart + S3; fieldValues JSON map.
 func (s *ProductService) CreateProduct(ctx context.Context, userID int32, name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr string, files []UploadedFile) (map[string]any, error) {
 	if s.s3 == nil {
-		return nil, &AppError{500, "S3 РЅРµ РЅР°СЃС‚СЂРѕРµРЅ"}
+		return nil, &AppError{500, "S3 не настроен"}
 	}
 	if strings.TrimSpace(address) == "" {
-		return nil, &AppError{400, "РђРґСЂРµСЃ РѕР±СЏР·Р°С‚РµР»РµРЅ РґР»СЏ Р·Р°РїРѕР»РЅРµРЅРёСЏ"}
+		return nil, &AppError{400, "Адрес обязателен для заполнения"}
 	}
 	if strings.TrimSpace(name) == "" {
-		return nil, &AppError{400, "РќР°Р·РІР°РЅРёРµ РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ"}
+		return nil, &AppError{400, "Название обязательно"}
 	}
 	if strings.TrimSpace(state) == "" {
-		return nil, &AppError{400, "РЎРѕСЃС‚РѕСЏРЅРёРµ РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ (NEW РёР»Рё USED)"}
+		return nil, &AppError{400, "Состояние обязательно (NEW или USED)"}
 	}
 	if err := validateProductContentLimits(len(files), description, false); err != nil {
 		return nil, err
 	}
 	price, err := strconv.Atoi(strings.TrimSpace(priceStr))
 	if err != nil || price < 1 {
-		return nil, &AppError{400, "Р¦РµРЅР° РґРѕР»Р¶РЅР° Р±С‹С‚СЊ С‡РёСЃР»РѕРј Р±РѕР»СЊС€Рµ 0"}
+		return nil, &AppError{400, "Цена должна быть числом больше 0"}
 	}
 	catID, err := strconv.ParseInt(strings.TrimSpace(categoryStr), 10, 32)
 	if err != nil {
-		return nil, &AppError{400, "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ categoryId"}
+		return nil, &AppError{400, "Некорректный categoryId"}
 	}
 	subID, err := strconv.ParseInt(strings.TrimSpace(subStr), 10, 32)
 	if err != nil {
-		return nil, &AppError{400, "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ subcategoryId"}
+		return nil, &AppError{400, "Некорректный subcategoryId"}
 	}
 	ok, err := s.prod.SubCategoryBelongsToCategory(ctx, int32(catID), int32(subID))
 	if err != nil {
 		return nil, err
 	}
 	if !ok {
-		return nil, &AppError{400, "РџРѕРґРєР°С‚РµРіРѕСЂРёСЏ РЅРµ РЅР°Р№РґРµРЅР° РёР»Рё РЅРµ РїСЂРёРЅР°РґР»РµР¶РёС‚ СѓРєР°Р·Р°РЅРЅРѕР№ РєР°С‚РµРіРѕСЂРёРё"}
+		return nil, &AppError{400, "Подкатегория не найдена или не принадлежит указанной категории"}
 	}
 	var typePtr *int32
 	if strings.TrimSpace(typeStr) != "" {
 		tid64, err := strconv.ParseInt(strings.TrimSpace(typeStr), 10, 32)
 		if err != nil {
-			return nil, &AppError{400, "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ typeId"}
+			return nil, &AppError{400, "Некорректный typeId"}
 		}
 		t := int32(tid64)
 		typePtr = &t
@@ -291,7 +294,7 @@ func (s *ProductService) CreateProduct(ctx context.Context, userID int32, name, 
 	for _, f := range files {
 		u, err := s.s3.Upload(ctx, "products", f.Name, f.ContentType, f.Body)
 		if err != nil {
-			return nil, &AppError{400, "РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РІ S3: " + err.Error()}
+			return nil, &AppError{400, "Ошибка загрузки в S3: " + err.Error()}
 		}
 		urls = append(urls, u)
 	}
@@ -315,7 +318,7 @@ func (s *ProductService) CreateProduct(ctx context.Context, userID int32, name, 
 	if strings.TrimSpace(quantityStr) != "" {
 		q, err := strconv.Atoi(strings.TrimSpace(quantityStr))
 		if err != nil || q < 1 {
-			return nil, &AppError{400, "РљРѕР»РёС‡РµСЃС‚РІРѕ РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ С†РµР»С‹Рј С‡РёСЃР»РѕРј Р±РѕР»СЊС€Рµ 0"}
+			return nil, &AppError{400, "Количество должно быть целым числом больше 0"}
 		}
 		quantity = int32(q)
 	}
@@ -347,27 +350,27 @@ func (s *ProductService) CreateProduct(ctx context.Context, userID int32, name, 
 		return nil, err
 	}
 	return map[string]any{
-		"message":       "РџСЂРѕРґСѓРєС‚ СѓСЃРїРµС€РЅРѕ СЃРѕР·РґР°РЅ",
+		"message":       "Продукт успешно создан",
 		"product":       prod,
 		"isDraft":       false,
 		"moderateState": "MODERATE",
 	}, nil
 }
 
-// UploadedFile вЂ” РѕРґРёРЅ С„Р°Р№Р» РёР· multipart (images).
+// UploadedFile — один файл из multipart (images).
 func (s *ProductService) CreateDraft(ctx context.Context, userID int32, name, priceStr, quantityStr, state, description, address, categoryStr, subStr, typeStr, fieldJSON, videoStr string, files []UploadedFile) (map[string]any, error) {
-	// Р§РµСЂРЅРѕРІРёРє: Р±РµР· Р¶С‘СЃС‚РєРѕР№ РІР°Р»РёРґР°С†РёРё; РІ Р‘Р” РїРѕРґСЃС‚Р°РІР»СЏРµРј РґРµС„РѕР»С‚С‹. S3 РЅСѓР¶РµРЅ С‚РѕР»СЊРєРѕ РµСЃР»Рё СЂРµР°Р»СЊРЅРѕ РіСЂСѓР·РёРј С„Р°Р№Р»С‹.
+	// Черновик: без жёсткой валидации; в БД подставляем дефолты. S3 нужен только если реально грузим файлы.
 	if len(files) > 0 && s.s3 == nil {
-		return nil, &AppError{500, "S3 РЅРµ РЅР°СЃС‚СЂРѕРµРЅ"}
+		return nil, &AppError{500, "S3 не настроен"}
 	}
 
 	name = strings.TrimSpace(name)
 	if name == "" {
-		name = "Р§РµСЂРЅРѕРІРёРє"
+		name = "Черновик"
 	}
 	address = strings.TrimSpace(address)
 	if address == "" {
-		address = "вЂ”"
+		address = "—"
 	}
 	state = strings.TrimSpace(strings.ToUpper(state))
 	if state != "NEW" && state != "USED" {
@@ -418,7 +421,7 @@ func (s *ProductService) CreateDraft(ctx context.Context, userID int32, name, pr
 	for _, f := range files {
 		u, err := s.s3.Upload(ctx, "products", f.Name, f.ContentType, f.Body)
 		if err != nil {
-			return nil, &AppError{400, "РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РІ S3: " + err.Error()}
+			return nil, &AppError{400, "Ошибка загрузки в S3: " + err.Error()}
 		}
 		urls = append(urls, u)
 	}
@@ -459,7 +462,7 @@ func (s *ProductService) CreateDraft(ctx context.Context, userID int32, name, pr
 		return nil, err
 	}
 	return map[string]any{
-		"message":       "Р§РµСЂРЅРѕРІРёРє СЃРѕС…СЂР°РЅРµРЅ",
+		"message":       "Черновик сохранен",
 		"product":       prod,
 		"isDraft":       true,
 		"moderateState": "DRAFT",
@@ -479,7 +482,7 @@ func parseFieldValuesMap(raw string) (map[string]string, error) {
 	}
 	var m map[string]string
 	if err := json.Unmarshal([]byte(raw), &m); err != nil {
-		return nil, fmt.Errorf("РЅРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ fieldValues JSON")
+		return nil, fmt.Errorf("некорректный fieldValues JSON")
 	}
 	return m, nil
 }
