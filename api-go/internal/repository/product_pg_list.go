@@ -135,7 +135,7 @@ func scanProductListRows(rows pgx.Rows) ([]ProductListRow, error) {
 			&pr.CategoryID, &pr.CategoryName, &pr.CategorySlug,
 			&pr.SubCategoryID, &pr.SubCategoryName, &pr.SubCategorySlug,
 			&typeID, &typeName, &typeSlug,
-			&pr.PromotionLevel, &pr.PromotionName, &pr.SellerRating, &pr.SellerVerified, &pr.ViewsCount, &pr.PopularityScore, &mod, &pr.IsReserved,
+			&pr.PromotionLevel, &pr.PromotionName, &pr.SellerRating, &pr.SellerVerified, &pr.ViewsCount, &pr.PopularityScore, &mod, &pr.ModerationRejectionReason, &pr.IsReserved,
 		)
 		if err != nil {
 			return nil, err
