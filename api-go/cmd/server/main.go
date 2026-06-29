@@ -101,7 +101,7 @@ func main() {
 	supRepo := repository.NewSupportPG(pool)
 	supSvc := service.NewSupportService(supRepo)
 	prodSvc := service.NewProductService(prodRepo, s3c, userSvc, statSvc, supSvc)
-	moderationSvc := service.NewModerationService(cfg, prodRepo)
+	moderationSvc := service.NewModerationService(cfg, prodRepo, supSvc)
 	moderationAdminSvc := service.NewModerationAdminService(prodRepo)
 	revRepo := repository.NewReviewPG(pool)
 	chatRepo := repository.NewChatPG(pool)

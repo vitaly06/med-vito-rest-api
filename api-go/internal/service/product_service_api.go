@@ -580,33 +580,8 @@ func (s *ProductService) ModerateProduct(ctx context.Context, productID int32, s
 		return err
 	}
 	if st == "DENIDED" && rptr != nil {
-		adminID, err := s.prod.FirstAdminUserID(ctx)
-		if err != nil || adminID == nil {
-			return nil
-		}
-		chatID, err := s.prod.FindModerationChat(ctx, *adminID, sellerID)
-		if err != nil {
-			return nil
-		}
-		var cid int32
-		if chatID == nil {
-			cid, err = s.prod.CreateModerationChat(ctx, *adminID, sellerID)
-			if err != nil {
-				return nil
-			}
-		} else {
-			cid = *chatID
-		}
-		buyerID, _, err := s.prod.GetChatBuyerSeller(ctx, cid)
-		if err != nil {
-			return nil
-		}
-		msg := fmt.Sprintf("вќЊ Ваш товар \"%s\" был отклонён модерацией.\n\nПричина отказа: %s", name, *rptr)
-		mid, err := s.prod.InsertChatMessage(ctx, cid, *adminID, msg, productID)
-		if err != nil {
-			return nil
-		}
-		_ = s.prod.UpdateChatAfterMessage(ctx, cid, mid, *adminID, buyerID)
+		supportMsg := fmt.Sprintf("❌ Ваш товар «%s» был отклонён модерацией.\n\nПричина: %s\n\nЕсли вы считаете, что произошла ошибка, напишите нам в этот чат.", name, *rptr)
+		s.support.NotifyUserBilling(ctx, sellerID, supportMsg)
 	}
 	return nil
 }

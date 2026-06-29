@@ -110,6 +110,7 @@ type VisionModerationResult struct {
 type ModerationService struct {
 	cfg          config.Config
 	repo         *repository.ProductPG
+	support      *SupportService
 	httpClient   *http.Client
 	pollInterval time.Duration
 	batchSize    int
@@ -118,7 +119,7 @@ type ModerationService struct {
 	isProcessing bool
 }
 
-func NewModerationService(cfg config.Config, repo *repository.ProductPG) *ModerationService {
+func NewModerationService(cfg config.Config, repo *repository.ProductPG, support *SupportService) *ModerationService {
 	poll := time.Duration(cfg.AIModerationPollInterval) * time.Second
 	if poll <= 0 {
 		poll = moderationWorkerDefaultDelay
@@ -130,6 +131,7 @@ func NewModerationService(cfg config.Config, repo *repository.ProductPG) *Modera
 	return &ModerationService{
 		cfg:          cfg,
 		repo:         repo,
+		support:      support,
 		httpClient:   &http.Client{},
 		pollInterval: poll,
 		batchSize:    batchSize,
@@ -293,6 +295,14 @@ func (s *ModerationService) applyDecision(ctx context.Context, productID int32, 
 	payload, _ := json.Marshal(map[string]any{"state": state, "reason": reason})
 	actorRole := "AI"
 	s.repo.InsertModerationAudit(ctx, nil, &actorRole, "product", int64(productID), "AI_MODERATION_DECISION", payload)
+
+	if state == "DENIDED" && reason != nil && s.support != nil {
+		name, sellerID, err := s.repo.GetProductNameAndSeller(ctx, productID)
+		if err == nil {
+			msg := fmt.Sprintf("❌ Ваш товар «%s» был отклонён автоматической модерацией.\n\nПричина: %s\n\nЕсли вы считаете, что произошла ошибка, напишите нам в этот чат.", name, *reason)
+			go s.support.NotifyUserBilling(context.Background(), sellerID, msg)
+		}
+	}
 	return nil
 }
 
