@@ -6,7 +6,30 @@ import (
 	"net"
 	"net/smtp"
 	"strconv"
+	"time"
 )
+
+// loginAuth implements the LOGIN SMTP auth mechanism (required by some servers like Beget).
+type loginAuth struct{ user, pass string }
+
+func newAuth(user, pass string) smtp.Auth { return &loginAuth{user, pass} }
+
+func (a *loginAuth) Start(_ *smtp.ServerInfo) (string, []byte, error) {
+	return "LOGIN", nil, nil
+}
+func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
+	if !more {
+		return nil, nil
+	}
+	switch string(fromServer) {
+	case "Username:":
+		return []byte(a.user), nil
+	case "Password:":
+		return []byte(a.pass), nil
+	default:
+		return nil, fmt.Errorf("unexpected SMTP challenge: %s", fromServer)
+	}
+}
 
 func mailBytes(fromAddr, toAddr, subject, body string, html bool) []byte {
 	ctype := "text/plain; charset=UTF-8"
@@ -26,8 +49,7 @@ func SendText(host string, port int, user, password, fromAddr, toAddr, subject, 
 	if useTLS || port == 465 {
 		return sendSMTPS(addr, user, password, fromAddr, []string{toAddr}, msg, tlsInsecure)
 	}
-	auth := smtp.PlainAuth("", user, password, host)
-	return smtp.SendMail(addr, auth, fromAddr, []string{toAddr}, msg)
+	return smtp.SendMail(addr, newAuth(user, password), fromAddr, []string{toAddr}, msg)
 }
 
 // SendHTML — письмо с телом text/html (как Nest + hbs).
@@ -38,19 +60,27 @@ func SendHTML(host string, port int, user, password, fromAddr, toAddr, subject, 
 	if useTLS || port == 465 {
 		return sendSMTPS(addr, user, password, fromAddr, []string{toAddr}, msg, tlsInsecure)
 	}
-	auth := smtp.PlainAuth("", user, password, host)
-	return smtp.SendMail(addr, auth, fromAddr, []string{toAddr}, msg)
+	return smtp.SendMail(addr, newAuth(user, password), fromAddr, []string{toAddr}, msg)
 }
 
 func sendSMTPS(addr, user, pass, from string, to []string, msg []byte, tlsInsecure bool) error {
 	host, _, _ := net.SplitHostPort(addr)
-	conn, err := tls.Dial("tcp", addr, &tls.Config{
+	rawConn, err := net.DialTimeout("tcp", addr, 10*time.Second)
+	if err != nil {
+		return fmt.Errorf("smtp dial %s: %w", addr, err)
+	}
+	conn := tls.Client(rawConn, &tls.Config{
 		ServerName:         host,
 		InsecureSkipVerify: tlsInsecure,
 		MinVersion:         tls.VersionTLS12,
 	})
-	if err != nil {
+	if err := conn.SetDeadline(time.Now().Add(15 * time.Second)); err != nil {
+		rawConn.Close()
 		return err
+	}
+	if err := conn.Handshake(); err != nil {
+		rawConn.Close()
+		return fmt.Errorf("smtp tls handshake: %w", err)
 	}
 	defer conn.Close()
 	c, err := smtp.NewClient(conn, host)
@@ -59,8 +89,7 @@ func sendSMTPS(addr, user, pass, from string, to []string, msg []byte, tlsInsecu
 	}
 	defer c.Close()
 	if ok, _ := c.Extension("AUTH"); ok {
-		auth := smtp.PlainAuth("", user, pass, host)
-		if err := c.Auth(auth); err != nil {
+		if err := c.Auth(newAuth(user, pass)); err != nil {
 			return err
 		}
 	}
@@ -108,10 +137,11 @@ func sendSTARTTLS(host string, port int, user, password, fromAddr, toAddr, subje
 	addr := net.JoinHostPort(host, strconv.Itoa(port))
 	msg := mailBytes(fromAddr, toAddr, subject, body, html)
 
-	conn, err := net.Dial("tcp", addr)
+	conn, err := net.DialTimeout("tcp", addr, 10*time.Second)
 	if err != nil {
-		return err
+		return fmt.Errorf("smtp dial %s: %w", addr, err)
 	}
+	_ = conn.SetDeadline(time.Now().Add(20 * time.Second))
 	defer conn.Close()
 	c, err := smtp.NewClient(conn, host)
 	if err != nil {
@@ -131,9 +161,8 @@ func sendSTARTTLS(host string, port int, user, password, fromAddr, toAddr, subje
 			return err
 		}
 	}
-	auth := smtp.PlainAuth("", user, password, host)
 	if ok, _ := c.Extension("AUTH"); ok {
-		if err := c.Auth(auth); err != nil {
+		if err := c.Auth(newAuth(user, password)); err != nil {
 			return err
 		}
 	}
