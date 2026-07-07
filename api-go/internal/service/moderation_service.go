@@ -21,10 +21,10 @@ import (
 )
 
 const (
-	aiApprovedReason           = "Одобрено ИИ автоматически"
-	visionTechnicalErrorReason = "Ошибка анализа фото, требуется ручная проверка"
-	textTechnicalErrorReason   = "Ошибка ИИ-сервиса, требуется ручная проверка"
-	defaultManualReviewReason  = "Требуется ручная проверка"
+	aiApprovedReason             = "Одобрено ИИ автоматически"
+	visionTechnicalErrorReason   = "Ошибка анализа фото, требуется ручная проверка"
+	textTechnicalErrorReason     = "Ошибка ИИ-сервиса, требуется ручная проверка"
+	defaultManualReviewReason    = "Требуется ручная проверка"
 	yandexTextEndpoint           = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
 	yandexVisionEndpoint         = "https://ai.api.cloud.yandex.net/v1/chat/completions"
 	visionImageDownloadTimeout   = 30 * time.Second
@@ -44,7 +44,7 @@ const textSystemPrompt = `Ты — автоматический модерато
 - Мошеннические признаки: "предоплата", "переведи деньги", "только безнал", "аванс"
 - SEO-спам: многократные повторы одних и тех же слов или ключевых фраз, бессмысленный набор текста, перечисление несвязанных слов для выдачи в поиске
 - НЕ является спамом: вежливые фразы продавца ("советуем заглянуть", "в нашем профиле есть другие товары", "отличное качество"), стандартные описания товара, упоминание ассортимента магазина
-- Подозрительно низкая цена (менее 10% от рыночной для категории)
+
 
 Для каждого из 4 критериев укажи статус: OK / SUSPICIOUS / VIOLATION.
 - OK — нарушений нет
