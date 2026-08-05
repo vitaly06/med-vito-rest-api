@@ -133,9 +133,15 @@ func cdekStatusIndicatesReadyForPickup(status string) bool {
 	if status == "" {
 		return false
 	}
+	// Официальные коды CDEK API v2 когда посылка в ПВЗ получателя
 	for _, part := range []string{
-		"READY_FOR_PICKUP", "READY_TO_PICKUP", "POSTOMAT", "PVZ", "PICKUP",
+		"READY_FOR_PICKUP", "READY_TO_PICKUP",
+		"POSTOMAT", "PVZ", "PICKUP",
 		"AWAITING", "STORAGE",
+		// CDEK v2: прибыло на склад/ПВЗ назначения
+		"ARRIVED_AT_DESTINATION", "ACCEPTED_AT_DESTINATION",
+		"RECEIVED_AT_DESTINATION",
+		// иногда CDEK возвращает просто "DELIVERED" без "RECIPIENT"
 	} {
 		if strings.Contains(status, part) {
 			return true
