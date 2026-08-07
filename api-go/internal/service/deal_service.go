@@ -781,18 +781,36 @@ func (s *DealService) GetDealCDEKQR(ctx context.Context, userID, dealID int32) (
 		return nil, &AppError{400, "CDEK сервис не инициализирован"}
 	}
 	qrData, qrURL := s.cdek.QRByOrderUUID(ctx, *deal.CDEKOrderUUID)
-	if qrData == nil && qrURL == nil {
-		return nil, &AppError{404, "CDEK не вернул QR по этой отправке"}
-	}
 	trackPending := deal.CDEKTrackNumber == nil || strings.TrimSpace(*deal.CDEKTrackNumber) == ""
+
+	barcodePdfUrl := fmt.Sprintf("/deals/%d/cdek-barcode-pdf", deal.ID)
+	waybillPdfUrl := fmt.Sprintf("/deals/%d/cdek-waybill-pdf", deal.ID)
+
 	return map[string]any{
-		"qrCodeData":   qrData,
-		"qrCodeUrl":    qrURL,
-		"trackNumber":  deal.CDEKTrackNumber,
-		"trackingUrl":  buildCDEKTrackingURL(deal.CDEKTrackNumber),
-		"orderUuid":    deal.CDEKOrderUUID,
-		"trackPending": trackPending,
+		"qrCodeData":    qrData,
+		"qrCodeUrl":     qrURL,
+		"trackNumber":   deal.CDEKTrackNumber,
+		"trackingUrl":   buildCDEKTrackingURL(deal.CDEKTrackNumber),
+		"orderUuid":     deal.CDEKOrderUUID,
+		"trackPending":  trackPending,
+		"barcodePdfUrl": barcodePdfUrl,
+		"waybillPdfUrl": waybillPdfUrl,
 	}, nil
+}
+
+func (s *DealService) GetDealCDEKPrintPDF(ctx context.Context, userID, dealID int32, kind string) ([]byte, error) {
+	deal, err := s.getUserDeal(ctx, dealID, userID, "participant")
+	if err != nil {
+		return nil, err
+	}
+	deal = s.refreshDealFromCDEK(ctx, deal)
+	if deal.CDEKOrderUUID == nil || strings.TrimSpace(*deal.CDEKOrderUUID) == "" {
+		return nil, &AppError{404, "Для сделки еще не сохранен orderUuid CDEK"}
+	}
+	if s.cdek == nil {
+		return nil, &AppError{400, "CDEK сервис не инициализирован"}
+	}
+	return s.cdek.GetPDFForm(ctx, kind, *deal.CDEKOrderUUID)
 }
 
 func (s *DealService) MyPurchases(ctx context.Context, buyerID int32) ([]map[string]any, error) {

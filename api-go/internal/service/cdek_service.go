@@ -842,3 +842,92 @@ func normalizeTariffItem(in map[string]any) map[string]any {
 	out["raw"] = in
 	return out
 }
+
+func (s *CDEKService) GetPDFForm(ctx context.Context, kind string, orderUUID string) ([]byte, error) {
+	orderUUID = strings.TrimSpace(orderUUID)
+	if orderUUID == "" {
+		return nil, &AppError{400, "orderUUID не может быть пустым"}
+	}
+
+	var printPath string
+	if kind == "barcode" {
+		printPath = "/print/barcodes"
+	} else if kind == "waybill" {
+		printPath = "/print/orders"
+	} else {
+		return nil, &AppError{400, "неизвестный тип печатной формы"}
+	}
+
+	// 1. POST request to initiate printing
+	payload := map[string]any{
+		"orders": []map[string]any{
+			{"order_uuid": orderUUID},
+		},
+	}
+	var initRes map[string]any
+	if err := s.postJSON(ctx, printPath, payload, &initRes); err != nil {
+		return nil, err
+	}
+
+	entity, _ := initRes["entity"].(map[string]any)
+	if entity == nil {
+		return nil, &AppError{500, "некорректный ответ от CDEK при инициализации печати"}
+	}
+	printUUID, _ := entity["uuid"].(string)
+	if printUUID == "" {
+		return nil, &AppError{500, "CDEK не вернул UUID печатной формы"}
+	}
+
+	// 2. Poll the status of the print job
+	var pdfURL string
+	for i := 0; i < 10; i++ {
+		// Wait before checking
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(300 * time.Millisecond):
+		}
+
+		var checkRes map[string]any
+		if err := s.getJSON(ctx, printPath+"/"+printUUID, &checkRes); err != nil {
+			return nil, err
+		}
+
+		checkEntity, _ := checkRes["entity"].(map[string]any)
+		if checkEntity != nil {
+			if u, ok := checkEntity["url"].(string); ok && u != "" {
+				pdfURL = u
+				break
+			}
+		}
+	}
+
+	if pdfURL == "" {
+		return nil, &AppError{408, "CDEK не успел сформировать печатную форму"}
+	}
+
+	// 3. Download the PDF bytes
+	token, err := s.token(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, pdfURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		raw, _ := io.ReadAll(resp.Body)
+		return nil, &AppError{Status: resp.StatusCode, Message: "ошибка загрузки PDF: " + string(raw)}
+	}
+
+	return io.ReadAll(resp.Body)
+}

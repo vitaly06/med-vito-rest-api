@@ -81,6 +81,36 @@ func RegisterDealRoutes(app fiber.Router, deals *service.DealService, auth *serv
 		return c.JSON(out)
 	})
 
+	g.Get("/:id/cdek-barcode-pdf", sess, func(c *fiber.Ctx) error {
+		id, err := parseDealID(c)
+		if err != nil {
+			return err
+		}
+		me := authmw.UserFromLocals(c)
+		pdfBytes, err := deals.GetDealCDEKPrintPDF(c.UserContext(), me.ID, id, "barcode")
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		c.Set(fiber.HeaderContentType, "application/pdf")
+		c.Set(fiber.HeaderContentDisposition, "inline; filename=\"barcode.pdf\"")
+		return c.Send(pdfBytes)
+	})
+
+	g.Get("/:id/cdek-waybill-pdf", sess, func(c *fiber.Ctx) error {
+		id, err := parseDealID(c)
+		if err != nil {
+			return err
+		}
+		me := authmw.UserFromLocals(c)
+		pdfBytes, err := deals.GetDealCDEKPrintPDF(c.UserContext(), me.ID, id, "waybill")
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		c.Set(fiber.HeaderContentType, "application/pdf")
+		c.Set(fiber.HeaderContentDisposition, "inline; filename=\"waybill.pdf\"")
+		return c.Send(pdfBytes)
+	})
+
 	g.Post("/:id/pay", sess, func(c *fiber.Ctx) error {
 		id, err := parseDealID(c)
 		if err != nil {
