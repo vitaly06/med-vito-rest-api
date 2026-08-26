@@ -9,11 +9,12 @@ import (
 )
 
 type PromotionService struct {
-	repo *repository.PromotionPG
+	repo    *repository.PromotionPG
+	support *SupportService
 }
 
-func NewPromotionService(repo *repository.PromotionPG) *PromotionService {
-	return &PromotionService{repo: repo}
+func NewPromotionService(repo *repository.PromotionPG, support *SupportService) *PromotionService {
+	return &PromotionService{repo: repo, support: support}
 }
 
 func (s *PromotionService) AllPromotions(ctx context.Context) ([]repository.PromotionTariff, error) {
@@ -45,6 +46,11 @@ func (s *PromotionService) AddPromotion(ctx context.Context, userID, productID, 
 	}
 	if err != nil {
 		return nil, err
+	}
+	if s.support != nil {
+		msg := fmt.Sprintf("🚀 Продвижение объявления успешно активировано!\nСписано: %.2f ₽\nСрок действия: %d дней (до %s).",
+			res.TotalPrice, res.Days, res.EndDate.Format("02.01.2006 15:04"))
+		go s.support.NotifyUserBilling(context.Background(), userID, msg)
 	}
 	return map[string]any{
 		"message": "Продвижение успешно активировано",

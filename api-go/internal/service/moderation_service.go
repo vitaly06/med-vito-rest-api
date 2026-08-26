@@ -46,6 +46,12 @@ const textSystemPrompt = `Ты — автоматический модерато
 - НЕ является спамом: вежливые фразы продавца ("советуем заглянуть", "в нашем профиле есть другие товары", "отличное качество"), стандартные описания товара, упоминание ассортимента магазина
 
 
+ВАЖНО — цена НЕ является критерием модерации:
+- Никогда не помечай объявление как SUSPICIOUS или VIOLATION только из-за цены (низкой, высокой, нулевой).
+- Цена 1 рубль, 100 рублей или 1 000 000 рублей — не нарушение.
+- fraud = VIOLATION допустим ТОЛЬКО при наличии явных мошеннических фраз (предоплата, аванс, переводи деньги и т.д.), но НЕ из-за цены.
+
+
 Для каждого из 4 критериев укажи статус: OK / SUSPICIOUS / VIOLATION.
 - OK — нарушений нет
 - SUSPICIOUS — есть признаки, но неоднозначно (требуется модератор)
@@ -70,16 +76,17 @@ const textSystemPrompt = `Ты — автоматический модерато
 
 const visionPrompt = `Это фото для объявления на маркетплейсе.
 
-Проверь наличие ЛЮБОГО из следующих нарушений:
+Проверь наличие ЛЮБОГО из следующих явных нарушений:
 1. Оружие, боеприпасы, взрывчатка, ножи как основной товар
 2. NSFW / откровенный контент / части тела
 3. Насилие, кровь, шокирующие материалы
 4. Скриншот стороннего сайта/приложения с контактами (телефон, email, ник)
 5. Наркотики, алкоголь, табак
 
-Если хотя бы одно нарушение есть — DENIED.
-Если фото нечёткое, подозрительное или невозможно определить товар — MANUAL.
-Если фото обычного товара (в т.ч. немедицинского бытового) без нарушений — APPROVED.
+Правила принятия решения:
+- DENIED — только если одно из нарушений выше явно присутствует на фото.
+- MANUAL — только если нарушение неоднозначно или фото полностью нечитаемо (чёрный экран, повреждённый файл). Немного нечёткое, тёмное или снятое под углом фото обычного товара — это APPROVED, не MANUAL.
+- APPROVED — фото обычного товара без нарушений из списка выше, в том числе нечёткое, тёмное, снятое с необычного угла.
 
 Ответь СТРОГО в JSON без markdown-обёртки:
 {
@@ -225,6 +232,7 @@ func (s *ModerationService) processProduct(ctx context.Context, product reposito
 		visionResult, err := s.moderateImage(ctx, imageURL)
 		if err != nil {
 			log.Printf("AI moderation worker: [#%d] vision moderation error: %v", product.ID, err)
+			visionTechnicalFailure = true
 			continue
 		}
 		log.Printf("AI moderation worker: [#%d] Vision [%s] -> %s", product.ID, imageURL, visionResult.Decision)
@@ -411,7 +419,7 @@ func isPriceOnlyModerationDecision(in TextModerationResult) bool {
 		return false
 	}
 
-	priceMarkers := []string{"низк", "дешев", "занижен", "цена", "стоим", "рын", "price", "cheap"}
+	priceMarkers := []string{"низк", "дешев", "занижен", "цена", "стоим", "рын", "price", "cheap", "1 руб", "подозр"}
 	hasPriceMarker := false
 	for _, marker := range priceMarkers {
 		if strings.Contains(reason, marker) {
@@ -423,6 +431,7 @@ func isPriceOnlyModerationDecision(in TextModerationResult) bool {
 		return false
 	}
 
+	// Явные мошеннические признаки — не перехватываем, пусть остаётся DENIED/MANUAL.
 	explicitViolationMarkers := []string{
 		"предоплат", "аванс", "перевод", "безнал", "обман", "мошенн",
 		"telegram", "whatsapp", "телефон", "email", "почт", "ссылка",
@@ -434,6 +443,7 @@ func isPriceOnlyModerationDecision(in TextModerationResult) bool {
 		}
 	}
 
+	// Contacts или Spam VIOLATION — реальное нарушение, не трогаем.
 	if strings.EqualFold(strings.TrimSpace(in.Details.Contacts), "VIOLATION") {
 		return false
 	}
@@ -443,6 +453,9 @@ func isPriceOnlyModerationDecision(in TextModerationResult) bool {
 	if strings.EqualFold(strings.TrimSpace(in.Details.Categorization), "VIOLATION") {
 		return false
 	}
+	// fraud VIOLATION допустимо перехватывать, если reason содержит только ценовые слова
+	// (ИИ ошибочно интерпретирует низкую цену как мошенничество).
+	// Contacts и Spam уже проверены выше — они OK, значит перехватываем.
 
 	return true
 }
@@ -637,7 +650,7 @@ func (s *ModerationAdminService) GetProduct(ctx context.Context, productID int32
 		typeMap = map[string]any{"id": *item.TypeID, "name": item.TypeName}
 	}
 
-	return map[string]any{
+	out := map[string]any{
 		"id":                        item.ID,
 		"name":                      item.Name,
 		"price":                     item.Price,
@@ -659,7 +672,9 @@ func (s *ModerationAdminService) GetProduct(ctx context.Context, productID int32
 			"profileType": item.UserProfileType,
 		},
 		"fieldValues": fieldValues,
-	}, nil
+	}
+	appendProductLifetime(out, item.CreatedAt)
+	return out, nil
 }
 
 func (s *ModerationAdminService) AddAppeal(ctx context.Context, userID, productID int32, reason string) error {

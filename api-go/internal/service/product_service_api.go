@@ -613,6 +613,7 @@ func (s *ProductService) AdminProductsByUser(ctx context.Context, userID int32) 
 	out := make([]map[string]any, 0, len(rows))
 	for _, pr := range rows {
 		item := s.formatListItem(pr, false, pr.PromotionLevel > 0, pr.PromotionLevel)
+		// expiration fields are added within formatListItem
 		if pr.ModerateState != nil {
 			item["statusLabel"] = adminProductStatusLabel(*pr.ModerateState, pr.IsHide)
 		}

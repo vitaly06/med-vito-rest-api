@@ -822,6 +822,88 @@ func (r *ProductPG) GetChatBuyerSeller(ctx context.Context, chatID int32) (buyer
 	return buyerID, sellerID, err
 }
 
+// ExpiredProductRow — строка объявления, которое было деактивировано.
+type ExpiredProductRow struct {
+	ID     int32
+	UserID int32
+	Name   string
+}
+
+// ExpireProducts деактивирует объявления старше 30 дней (isHide = true), у которых нет активного платного промо.
+// Возвращает список деактивированных объявлений для уведомлений.
+func (r *ProductPG) ExpireProducts(ctx context.Context) ([]ExpiredProductRow, error) {
+	rows, err := r.pool.Query(ctx, `
+		UPDATE "Product"
+		SET "isHide" = true, "updatedAt" = NOW()
+		WHERE "moderateState" = 'APPROVED'
+		  AND "isHide" = false
+		  AND "createdAt" + INTERVAL '30 days' <= NOW()
+		  AND id NOT IN (
+		    SELECT "productId" FROM "ProductPromotion"
+		    WHERE "isActive" = true
+		      AND "isPaid" = true
+		      AND "endDate" >= NOW()
+		  )
+		RETURNING id, "userId", name
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var result []ExpiredProductRow
+	for rows.Next() {
+		var row ExpiredProductRow
+		if err := rows.Scan(&row.ID, &row.UserID, &row.Name); err != nil {
+			continue
+		}
+		result = append(result, row)
+	}
+	return result, rows.Err()
+}
+
+// ExpiringProductRow — строка объявления с email и телефоном продавца для уведомления.
+type ExpiringProductRow struct {
+	ID     int32
+	UserID int32
+	Name   string
+	Email  string
+	Phone  string
+}
+
+// ProductsExpiringIn3Days возвращает объявления, которым осталось менее 3 дней до деактивации.
+// Используется для заблаговременных уведомлений продавцам.
+func (r *ProductPG) ProductsExpiringIn3Days(ctx context.Context) ([]ExpiringProductRow, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT p.id, p."userId", p.name,
+		       COALESCE(u.email, ''), COALESCE(u.phone, '')
+		FROM "Product" p
+		JOIN "User" u ON u.id = p."userId"
+		WHERE p."moderateState" = 'APPROVED'
+		  AND p."isHide" = false
+		  AND p."createdAt" + INTERVAL '27 days' <= NOW()
+		  AND p."createdAt" + INTERVAL '30 days' > NOW()
+		  AND p.id NOT IN (
+		    SELECT "productId" FROM "ProductPromotion"
+		    WHERE "isActive" = true
+		      AND "isPaid" = true
+		      AND "endDate" >= NOW()
+		  )
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var result []ExpiringProductRow
+	for rows.Next() {
+		var row ExpiringProductRow
+		if err := rows.Scan(&row.ID, &row.UserID, &row.Name, &row.Email, &row.Phone); err != nil {
+			continue
+		}
+		result = append(result, row)
+	}
+	return result, rows.Err()
+}
+
 func (r *ProductPG) TogglePromotionActive(ctx context.Context, promotionRowID int32) (productID int32, productName string, promoName string, isActive bool, start, end time.Time, err error) {
 	var curActive bool
 	err = r.pool.QueryRow(ctx, `SELECT pp."isActive", pp."productId", pr.name, pp."startDate", pp."endDate", p.name

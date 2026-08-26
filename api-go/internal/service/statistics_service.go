@@ -93,3 +93,10 @@ func (s *StatisticsService) CabinetDashboard(ctx context.Context, userID int32, 
 		},
 	}, nil
 }
+
+func (s *StatisticsService) SystemPlatformDashboard(ctx context.Context, days int) (map[string]any, error) {
+	if days <= 0 {
+		days = 30
+	}
+	return s.repo.SystemOverallStats(ctx, days)
+}

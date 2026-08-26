@@ -100,6 +100,25 @@ func (s *ProductService) formatListItem(pr repository.ProductListRow, isFav bool
 		out["moderationRejectionReason"] = *pr.ModerationRejectionReason
 	}
 	out["isHide"] = pr.IsHide
+
+	// Expiration info
+	if !pr.ExpiresAt.IsZero() {
+		expires := pr.ExpiresAt
+		out["expiresAt"] = expires.Format(time.RFC3339)
+		remaining := time.Until(expires)
+		remainingDays := int(remaining.Hours() / 24)
+		if remaining > 0 && remaining%(24*time.Hour) != 0 {
+			remainingDays++
+		}
+		if remainingDays < 0 {
+			remainingDays = 0
+		}
+		out["daysUntilExpiration"] = remainingDays
+		out["isExpired"] = remaining <= 0
+	} else {
+		appendProductLifetime(out, pr.CreatedAt)
+	}
+
 	return out
 }
 

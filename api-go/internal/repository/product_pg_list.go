@@ -16,6 +16,7 @@ type ProductListRow struct {
 	Name            string
 	Address         string
 	CreatedAt       time.Time
+	ExpiresAt       time.Time // added
 	IsHide          bool
 	Price           int32
 	Quantity        int32
@@ -39,10 +40,13 @@ type ProductListRow struct {
 	ModerateState             *string
 	ModerationRejectionReason *string
 	IsReserved                bool
+	IsPaid          bool   // added
+	DaysUntilExpiry int    // added
+	IsExpired       bool   // added
 }
 
 const productListSelect = `
-	p.id, p.images, p.name, p.address, p."createdAt", p."isHide", p.price, p.quantity, p."userId", p."videoUrl",
+	p.id, p.images, p.name, p.address, p."createdAt", p."expiresAt", p."isHide", p.price, p.quantity, p."userId", p."videoUrl",
 	c.id, c.name, c.slug,
 	sc.id, sc.name, sc.slug,
 	t.id, t.name, t.slug,
@@ -73,7 +77,9 @@ const productListSelect = `
 		FROM "ProductReservation" pr
 		WHERE pr."productId" = p.id
 		  AND pr.status = 'ACTIVE'
-	)`
+	),
+	CASE WHEN EXISTS (SELECT 1 FROM "ProductPromotion" pp WHERE pp."productId" = p.id AND pp."isActive" AND pp."isPaid" AND pp."endDate" >= NOW()) THEN true ELSE false END as "isPaid"
+`
 
 const productListFrom = `
 	FROM "Product" p
@@ -87,15 +93,26 @@ func (r *ProductPG) scanProductListRow(row pgx.Row) (*ProductListRow, error) {
 	var typeID *int32
 	var typeName, typeSlug *string
 	var mod *string
+	var expiresAt time.Time
+	var isPaid bool
 	err := row.Scan(
-		&pr.ID, &pr.Images, &pr.Name, &pr.Address, &pr.CreatedAt, &pr.IsHide, &pr.Price, &pr.Quantity, &pr.UserID, &pr.VideoURL,
+		&pr.ID, &pr.Images, &pr.Name, &pr.Address, &pr.CreatedAt, &expiresAt, &pr.IsHide, &pr.Price, &pr.Quantity, &pr.UserID, &pr.VideoURL,
 		&pr.CategoryID, &pr.CategoryName, &pr.CategorySlug,
 		&pr.SubCategoryID, &pr.SubCategoryName, &pr.SubCategorySlug,
 		&typeID, &typeName, &typeSlug,
 		&pr.PromotionLevel, &pr.PromotionName, &pr.SellerRating, &pr.SellerVerified, &pr.ViewsCount, &pr.PopularityScore, &mod, &pr.ModerationRejectionReason, &pr.IsReserved,
+		&isPaid,
 	)
 	pr.TypeID, pr.TypeName, pr.TypeSlug = typeID, typeName, typeSlug
 	pr.ModerateState = mod
+	pr.ExpiresAt = expiresAt
+	pr.IsPaid = isPaid
+	// compute remaining days and expiration flag
+	if !pr.ExpiresAt.IsZero() {
+		days := int(time.Until(pr.ExpiresAt).Hours() / 24)
+		pr.DaysUntilExpiry = days
+		pr.IsExpired = time.Now().After(pr.ExpiresAt)
+	}
 	if err != nil {
 		return nil, err
 	}

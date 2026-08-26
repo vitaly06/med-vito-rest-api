@@ -357,3 +357,36 @@ func (r *StatisticsPG) RevenueByTypeAndCategory(ctx context.Context, days int) (
 	}
 	return out, rows.Err()
 }
+
+func (r *StatisticsPG) SystemOverallStats(ctx context.Context, days int) (map[string]any, error) {
+	var totalProducts, activeProducts, paidProducts, freeProducts int64
+	var totalUsers, totalDeals int64
+	var totalRevenue float64
+
+	_ = r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "Product"`).Scan(&totalProducts)
+	_ = r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "Product" WHERE "moderateState" = 'APPROVED' AND "isHide" = false`).Scan(&activeProducts)
+	_ = r.pool.QueryRow(ctx, `
+		SELECT COUNT(DISTINCT "productId")
+		FROM "ProductPromotion"
+		WHERE "isActive" = true AND "isPaid" = true AND "endDate" >= NOW()
+	`).Scan(&paidProducts)
+
+	freeProducts = activeProducts - paidProducts
+	if freeProducts < 0 {
+		freeProducts = 0
+	}
+
+	_ = r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "User"`).Scan(&totalUsers)
+	_ = r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "Deal"`).Scan(&totalDeals)
+	_ = r.pool.QueryRow(ctx, `SELECT COALESCE(SUM("totalPrice"), 0) FROM "ProductPromotion" WHERE "isPaid" = true`).Scan(&totalRevenue)
+
+	return map[string]any{
+		"totalProducts":  totalProducts,
+		"activeProducts": activeProducts,
+		"paidProducts":   paidProducts,
+		"freeProducts":   freeProducts,
+		"totalUsers":     totalUsers,
+		"totalDeals":     totalDeals,
+		"totalRevenue":   totalRevenue,
+	}, nil
+}

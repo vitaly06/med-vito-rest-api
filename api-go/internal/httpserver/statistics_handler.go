@@ -89,4 +89,19 @@ func RegisterStatisticsRoutes(app fiber.Router, stat *service.StatisticsService,
 		}
 		return c.JSON(out)
 	})
+
+	mod := authmw.RequireModerator(auth)
+	g.Get("/admin-dashboard", mod, func(c *fiber.Ctx) error {
+		days := 30
+		if v := strings.TrimSpace(c.Query("days")); v != "" {
+			if n, err := strconv.Atoi(v); err == nil && n > 0 {
+				days = n
+			}
+		}
+		out, err := stat.SystemPlatformDashboard(c.UserContext(), days)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
 }
