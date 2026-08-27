@@ -875,7 +875,7 @@ type ExpiringProductRow struct {
 func (r *ProductPG) ProductsExpiringIn3Days(ctx context.Context) ([]ExpiringProductRow, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT p.id, p."userId", p.name,
-		       COALESCE(u.email, ''), COALESCE(u.phone, '')
+		       COALESCE(u.email, ''), COALESCE(u."phoneNumber", '')
 		FROM "Product" p
 		JOIN "User" u ON u.id = p."userId"
 		WHERE p."moderateState" = 'APPROVED'
