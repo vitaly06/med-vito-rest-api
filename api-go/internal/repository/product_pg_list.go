@@ -147,18 +147,29 @@ func scanProductListRows(rows pgx.Rows) ([]ProductListRow, error) {
 		var typeID *int32
 		var typeName, typeSlug *string
 		var mod *string
+		var expiresAt time.Time
+		var isPaid bool
 		err := rows.Scan(
-			&pr.ID, &pr.Images, &pr.Name, &pr.Address, &pr.CreatedAt, &pr.IsHide, &pr.Price, &pr.Quantity, &pr.UserID, &pr.VideoURL,
+			&pr.ID, &pr.Images, &pr.Name, &pr.Address, &pr.CreatedAt, &expiresAt, &pr.IsHide, &pr.Price, &pr.Quantity, &pr.UserID, &pr.VideoURL,
 			&pr.CategoryID, &pr.CategoryName, &pr.CategorySlug,
 			&pr.SubCategoryID, &pr.SubCategoryName, &pr.SubCategorySlug,
 			&typeID, &typeName, &typeSlug,
 			&pr.PromotionLevel, &pr.PromotionName, &pr.SellerRating, &pr.SellerVerified, &pr.ViewsCount, &pr.PopularityScore, &mod, &pr.ModerationRejectionReason, &pr.IsReserved,
+			&isPaid,
 		)
 		if err != nil {
 			return nil, err
 		}
 		pr.TypeID, pr.TypeName, pr.TypeSlug = typeID, typeName, typeSlug
 		pr.ModerateState = mod
+		pr.ExpiresAt = expiresAt
+		pr.IsPaid = isPaid
+		// вычисляем оставшиеся дни и флаг истечения
+		if !pr.ExpiresAt.IsZero() {
+			days := int(time.Until(pr.ExpiresAt).Hours() / 24)
+			pr.DaysUntilExpiry = days
+			pr.IsExpired = time.Now().After(pr.ExpiresAt)
+		}
 		out = append(out, pr)
 	}
 	return out, rows.Err()
