@@ -68,6 +68,10 @@ type Config struct {
 	TIDUserInfoURL  string
 	TIDScope        string
 
+	YandexClientID     string
+	YandexClientSecret string
+	YandexRedirectURI  string
+
 	DealPlatformFeePercent int
 	DealPayoutDelayDays    int
 	DealAutoCompleteDays   int
@@ -281,6 +285,10 @@ func Load() Config {
 		TIDTokenURL:     tidToken,
 		TIDUserInfoURL:  tidUserinfo,
 		TIDScope:        tidScope,
+
+		YandexClientID:     strings.TrimSpace(os.Getenv("YANDEX_OAUTH_CLIENT_ID")),
+		YandexClientSecret: strings.TrimSpace(os.Getenv("YANDEX_OAUTH_CLIENT_SECRET")),
+		YandexRedirectURI:  strings.TrimSpace(os.Getenv("YANDEX_OAUTH_REDIRECT_URI")),
 
 		DealPlatformFeePercent: feePercent,
 		DealPayoutDelayDays:    payoutDelay,

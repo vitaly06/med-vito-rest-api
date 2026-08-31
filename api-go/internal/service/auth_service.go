@@ -1868,3 +1868,221 @@ func pickVKPath(payload map[string]any, path string) (any, bool) {
 	}
 	return cur, true
 }
+
+// ──────────────────────────────────────────────
+// Яндекс OAuth
+// ──────────────────────────────────────────────
+
+const (
+	yandexAuthorizeURL = "https://oauth.yandex.ru/authorize"
+	yandexTokenURL     = "https://oauth.yandex.ru/token"
+	yandexUserInfoURL  = "https://login.yandex.ru/info"
+	yandexPKCEPrefix   = "yandex-pkce:"
+	yandexPKCETTL      = 10 * time.Minute
+)
+
+// YandexAuthURL генерирует URL для редиректа на Яндекс OAuth.
+func (s *AuthService) YandexAuthURL(state string) (string, error) {
+	if strings.TrimSpace(s.cfg.YandexClientID) == "" {
+		return "", &AppError{500, "Яндекс OAuth не настроен: YANDEX_OAUTH_CLIENT_ID"}
+	}
+	if strings.TrimSpace(s.cfg.YandexRedirectURI) == "" {
+		return "", &AppError{500, "Яндекс OAuth не настроен: YANDEX_OAUTH_REDIRECT_URI"}
+	}
+	if strings.TrimSpace(state) == "" {
+		state = generateSessionID()
+	}
+	// Сохраняем state в Redis для проверки при callback
+	if err := s.rdb.Set(context.Background(), yandexPKCEPrefix+state, "1", yandexPKCETTL).Err(); err != nil {
+		return "", err
+	}
+	q := url.Values{}
+	q.Set("response_type", "code")
+	q.Set("client_id", s.cfg.YandexClientID)
+	q.Set("redirect_uri", s.cfg.YandexRedirectURI)
+	q.Set("state", state)
+	q.Set("scope", "login:email login:info login:avatar")
+	return yandexAuthorizeURL + "?" + q.Encode(), nil
+}
+
+// SignInWithYandex обменивает code на токен, получает профиль и создаёт/находит пользователя.
+func (s *AuthService) SignInWithYandex(ctx context.Context, code, state string) (*signInResponse, string, error) {
+	code = strings.TrimSpace(code)
+	if code == "" {
+		return nil, "", &AppError{400, "Нужен code"}
+	}
+	if strings.TrimSpace(s.cfg.YandexClientID) == "" || strings.TrimSpace(s.cfg.YandexClientSecret) == "" {
+		return nil, "", &AppError{500, "Яндекс OAuth не настроен в .env"}
+	}
+
+	// Проверяем state
+	state = strings.TrimSpace(state)
+	if state != "" {
+		val, err := s.rdb.Get(ctx, yandexPKCEPrefix+state).Result()
+		if err == redis.Nil || val == "" {
+			return nil, "", &AppError{401, "Яндекс OAuth: истекла сессия авторизации"}
+		}
+		if err != nil {
+			return nil, "", err
+		}
+		_ = s.rdb.Del(ctx, yandexPKCEPrefix+state)
+	}
+
+	// Обмен code → access_token
+	form := url.Values{}
+	form.Set("grant_type", "authorization_code")
+	form.Set("code", code)
+	form.Set("client_id", s.cfg.YandexClientID)
+	form.Set("client_secret", s.cfg.YandexClientSecret)
+	form.Set("redirect_uri", s.cfg.YandexRedirectURI)
+
+	tokenReq, err := http.NewRequestWithContext(ctx, http.MethodPost, yandexTokenURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return nil, "", err
+	}
+	tokenReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	tokenRes, err := s.client.Do(tokenReq)
+	if err != nil {
+		return nil, "", err
+	}
+	defer tokenRes.Body.Close()
+	tokenBody, err := io.ReadAll(tokenRes.Body)
+	if err != nil {
+		return nil, "", err
+	}
+	if tokenRes.StatusCode < 200 || tokenRes.StatusCode >= 300 {
+		return nil, "", &AppError{401, "Яндекс OAuth token error: " + truncateForErr(string(tokenBody))}
+	}
+
+	var tokenData struct {
+		AccessToken string `json:"access_token"`
+		TokenType   string `json:"token_type"`
+		Error       string `json:"error"`
+		ErrorDesc   string `json:"error_description"`
+	}
+	if err := json.Unmarshal(tokenBody, &tokenData); err != nil {
+		return nil, "", err
+	}
+	if tokenData.Error != "" {
+		return nil, "", &AppError{401, "Яндекс OAuth: " + tokenData.ErrorDesc}
+	}
+	if tokenData.AccessToken == "" {
+		return nil, "", &AppError{401, "Яндекс OAuth: пустой access_token"}
+	}
+
+	// Получаем профиль пользователя
+	profile, err := s.fetchYandexUserInfo(ctx, tokenData.AccessToken)
+	if err != nil {
+		return nil, "", err
+	}
+
+	user, err := s.findOrCreateTrustedOAuthUser(ctx, *profile)
+	if err != nil {
+		return nil, "", err
+	}
+	_ = s.users.UpsertOAuthIdentity(ctx, "yandex", profile.ExternalID, user.ID)
+
+	sid := generateSessionID()
+	sp := sessionPayload{
+		UserID:       user.ID,
+		Email:        user.Email,
+		ProfileType:  user.ProfileType,
+		AuthProvider: "yandex",
+	}
+	b, _ := json.Marshal(sp)
+	if err := s.rdb.Set(ctx, sessionKeyPrefix+sid, b, sessionTTL).Err(); err != nil {
+		return nil, "", err
+	}
+
+	var photo *string
+	if user.Photo != nil && *user.Photo != "" {
+		p := s.cfg.BaseURL + *user.Photo
+		photo = &p
+	} else if strings.TrimSpace(profile.Avatar) != "" {
+		a := strings.TrimSpace(profile.Avatar)
+		photo = &a
+	}
+
+	out := &signInResponse{Message: "Вы успешно авторизовались через Яндекс!"}
+	out.User.ID = user.ID
+	out.User.Email = user.Email
+	out.User.FullName = user.FullName
+	out.User.PhoneNumber = user.PhoneNumber
+	out.User.ProfileType = user.ProfileType
+	out.User.Photo = photo
+	return out, sid, nil
+}
+
+// fetchYandexUserInfo запрашивает профиль пользователя у Яндекс.
+func (s *AuthService) fetchYandexUserInfo(ctx context.Context, accessToken string) (*oauthProfile, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, yandexUserInfoURL+"?format=json", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "OAuth "+accessToken)
+
+	res, err := s.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return nil, &AppError{401, "Яндекс OAuth userinfo error: " + truncateForErr(string(body))}
+	}
+
+	var info struct {
+		ID          string `json:"id"`
+		Login       string `json:"login"`
+		FirstName   string `json:"first_name"`
+		LastName    string `json:"last_name"`
+		DisplayName string `json:"display_name"`
+		RealName    string `json:"real_name"`
+		DefaultEmail string `json:"default_email"`
+		Emails      []string `json:"emails"`
+		DefaultAvatarID string `json:"default_avatar_id"`
+	}
+	if err := json.Unmarshal(body, &info); err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(info.ID) == "" {
+		return nil, &AppError{401, "Яндекс не вернул идентификатор пользователя"}
+	}
+
+	// Имя
+	fullName := strings.TrimSpace(strings.TrimSpace(info.FirstName) + " " + strings.TrimSpace(info.LastName))
+	if fullName == "" {
+		fullName = strings.TrimSpace(info.DisplayName)
+	}
+	if fullName == "" {
+		fullName = strings.TrimSpace(info.RealName)
+	}
+	if fullName == "" {
+		fullName = strings.TrimSpace(info.Login)
+	}
+
+	// Email
+	email := strings.ToLower(strings.TrimSpace(info.DefaultEmail))
+	if email == "" && len(info.Emails) > 0 {
+		email = strings.ToLower(strings.TrimSpace(info.Emails[0]))
+	}
+
+	// Аватар
+	var avatar string
+	if strings.TrimSpace(info.DefaultAvatarID) != "" {
+		avatar = "https://avatars.yandex.net/get-yapic/" + info.DefaultAvatarID + "/islands-200"
+	}
+
+	return &oauthProfile{
+		Provider:   "yandex",
+		ExternalID: info.ID,
+		Email:      email,
+		FullName:   fullName,
+		Avatar:     avatar,
+	}, nil
+}
+
