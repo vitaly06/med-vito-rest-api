@@ -300,7 +300,7 @@ func (r *StatisticsPG) AdsTypeDashboard(ctx context.Context, userID int32, days 
 			SELECT 
 				p.id,
 				p."isHide",
-				p."moderateState",
+				p."moderateState"::text AS moderate_state,
 				p."expiresAt",
 				COALESCE((
 					SELECT MAX(pr."pricePerDay")
@@ -314,12 +314,12 @@ func (r *StatisticsPG) AdsTypeDashboard(ctx context.Context, userID int32, days 
 		)
 		SELECT
 			COUNT(*)::bigint AS total_count,
-			COUNT(*) FILTER (WHERE "moderateState" = 'APPROVED' AND NOT "isHide" AND promo_price >= 100)::bigint AS vip_count,
-			COUNT(*) FILTER (WHERE "moderateState" = 'APPROVED' AND NOT "isHide" AND promo_price > 0 AND promo_price < 100)::bigint AS top_count,
-			COUNT(*) FILTER (WHERE "moderateState" = 'APPROVED' AND NOT "isHide" AND promo_price = 0)::bigint AS free_count,
-			COUNT(*) FILTER (WHERE "moderateState" IN ('MODERATE', 'AI_REVIEWED'))::bigint AS moderation_count,
-			COUNT(*) FILTER (WHERE "isHide" = true AND "moderateState" != 'DRAFT')::bigint AS hidden_count,
-			COUNT(*) FILTER (WHERE "moderateState" = 'DRAFT')::bigint AS draft_count,
+			COUNT(*) FILTER (WHERE moderate_state = 'APPROVED' AND NOT "isHide" AND promo_price >= 100)::bigint AS vip_count,
+			COUNT(*) FILTER (WHERE moderate_state = 'APPROVED' AND NOT "isHide" AND promo_price > 0 AND promo_price < 100)::bigint AS top_count,
+			COUNT(*) FILTER (WHERE moderate_state = 'APPROVED' AND NOT "isHide" AND promo_price = 0)::bigint AS free_count,
+			COUNT(*) FILTER (WHERE moderate_state IN ('MODERATE', 'AI_REVIEWED'))::bigint AS moderation_count,
+			COUNT(*) FILTER (WHERE "isHide" = true AND moderate_state != 'DRAFT')::bigint AS hidden_count,
+			COUNT(*) FILTER (WHERE moderate_state = 'DRAFT')::bigint AS draft_count,
 			COUNT(*) FILTER (WHERE "expiresAt" IS NOT NULL AND "expiresAt" <= NOW() AND NOT "isHide")::bigint AS expired_count,
 			COALESCE(AVG(views_count) FILTER (WHERE promo_price > 0), 0)::float8 AS avg_paid_views,
 			COALESCE(AVG(views_count) FILTER (WHERE promo_price = 0), 0)::float8 AS avg_free_views
@@ -334,17 +334,23 @@ func (r *StatisticsPG) AdsTypeDashboard(ctx context.Context, userID int32, days 
 	dynRows, err := r.pool.Query(ctx, `
 		SELECT 
 			d::date::text AS day,
-			COUNT(DISTINCT p.id) FILTER (WHERE p.id IS NOT NULL AND p."createdAt"::date = d::date)::bigint AS created_count,
-			COUNT(DISTINCT pp.id) FILTER (WHERE pp.id IS NOT NULL AND pp."createdAt"::date = d::date)::bigint AS promoted_count
+			COALESCE((
+				SELECT COUNT(*) 
+				FROM "Product" p 
+				WHERE p."userId" = $1 AND p."createdAt"::date = d::date
+			), 0)::bigint AS created_count,
+			COALESCE((
+				SELECT COUNT(*) 
+				FROM "ProductPromotion" pp 
+				JOIN "Product" p ON p.id = pp."productId"
+				WHERE p."userId" = $1 AND pp."isPaid" = true AND pp."createdAt"::date = d::date
+			), 0)::bigint AS promoted_count
 		FROM generate_series(
-			(CURRENT_DATE - ($2::text || ' days')::interval)::date,
+			CURRENT_DATE - ($2 * interval '1 day'),
 			CURRENT_DATE,
-			'1 day'::interval
-		) d
-		LEFT JOIN "Product" p ON p."userId" = $1 AND p."createdAt"::date = d::date
-		LEFT JOIN "ProductPromotion" pp ON pp."productId" = p.id AND pp."isPaid" = true
-		GROUP BY d::date
-		ORDER BY d::date ASC`, userID, days)
+			interval '1 day'
+		) AS t(d)
+		ORDER BY d ASC`, userID, days)
 	if err != nil {
 		return nil, err
 	}
@@ -383,7 +389,7 @@ func (r *StatisticsPG) TariffFunnel(ctx context.Context, userID int32, days int)
 		SELECT step, COUNT(*)::bigint
 		FROM "TariffFunnelEvent"
 		WHERE ("userId" = $1 OR "userId" IS NULL)
-		  AND "createdAt" >= NOW() - ($2::text || ' days')::interval
+		  AND "createdAt" >= NOW() - ($2 * interval '1 day')
 		GROUP BY step`, userID, days)
 	if err != nil {
 		return nil, err
@@ -417,7 +423,7 @@ func (r *StatisticsPG) RevenueByTypeAndCategory(ctx context.Context, days int) (
 		JOIN "Product" p ON p.id = pp."productId"
 		JOIN "Category" c ON c.id = p."categoryId"
 		WHERE pp."isPaid" = true
-		  AND pp."createdAt" >= NOW() - ($1::text || ' days')::interval
+		  AND pp."createdAt" >= NOW() - ($1 * interval '1 day')
 		GROUP BY pr.name, c.name
 		ORDER BY SUM(pp."totalPrice") DESC`, days)
 	if err != nil {
