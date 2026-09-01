@@ -187,8 +187,8 @@ func (r *ProductPG) CreateProductTx(ctx context.Context, productID, userID int32
 	}
 	descPtr := nullIfEmpty(description)
 	_, err = tx.Exec(ctx, `
-		INSERT INTO "Product" (id, name, price, quantity, state, description, address, "videoUrl", images, "isHide", "moderateState", "categoryId", "subCategoryId", "typeId", "userId", "createdAt", "updatedAt")
-		VALUES ($1,$2,$3,$4,$5::"ProductState",$6,$7,$8,$9::text[], false, 'MODERATE'::"ProductModerate",$10,$11,$12,$13,NOW(),NOW())`,
+		INSERT INTO "Product" (id, name, price, quantity, state, description, address, "videoUrl", images, "isHide", "moderateState", "categoryId", "subCategoryId", "typeId", "userId", "createdAt", "updatedAt", "expiresAt")
+		VALUES ($1,$2,$3,$4,$5::"ProductState",$6,$7,$8,$9::text[], false, 'MODERATE'::"ProductModerate",$10,$11,$12,$13,NOW(),NOW(), NOW() + INTERVAL '30 days')`,
 		productID, name, price, quantity, state, descPtr, address, video, images, categoryID, subCategoryID, typeVal, userID)
 	if err != nil {
 		return err
@@ -221,8 +221,8 @@ func (r *ProductPG) CreateDraftTx(ctx context.Context, productID, userID int32, 
 	}
 	descPtr := nullIfEmpty(description)
 	_, err = tx.Exec(ctx, `
-		INSERT INTO "Product" (id, name, price, quantity, state, description, address, "videoUrl", images, "isHide", "moderateState", "categoryId", "subCategoryId", "typeId", "userId", "createdAt", "updatedAt")
-		VALUES ($1,$2,$3,$4,$5::"ProductState",$6,$7,$8,$9::text[], true, 'DRAFT'::"ProductModerate",$10,$11,$12,$13,NOW(),NOW())`,
+		INSERT INTO "Product" (id, name, price, quantity, state, description, address, "videoUrl", images, "isHide", "moderateState", "categoryId", "subCategoryId", "typeId", "userId", "createdAt", "updatedAt", "expiresAt")
+		VALUES ($1,$2,$3,$4,$5::"ProductState",$6,$7,$8,$9::text[], true, 'DRAFT'::"ProductModerate",$10,$11,$12,$13,NOW(),NOW(), NOW() + INTERVAL '30 days')`,
 		productID, name, price, quantity, state, descPtr, address, video, images, categoryID, subCategoryID, typeVal, userID)
 	if err != nil {
 		return err
@@ -300,7 +300,7 @@ func (r *ProductPG) PublishDraftTx(ctx context.Context, productID, userID int32)
 		}
 	}
 
-	_, err = tx.Exec(ctx, `UPDATE "Product" SET "moderateState" = 'MODERATE'::"ProductModerate", "isHide" = false, "updatedAt" = NOW() WHERE id = $1`, productID)
+	_, err = tx.Exec(ctx, `UPDATE "Product" SET "moderateState" = 'MODERATE'::"ProductModerate", "isHide" = false, "updatedAt" = NOW(), "expiresAt" = NOW() + INTERVAL '30 days' WHERE id = $1`, productID)
 	if err != nil {
 		return err
 	}
@@ -718,7 +718,12 @@ func (r *ProductPG) UpsertProductView(ctx context.Context, viewerID, productID i
 }
 
 func (r *ProductPG) ToggleProductHide(ctx context.Context, productID int32) error {
-	const q = `UPDATE "Product" SET "isHide" = NOT "isHide", "updatedAt" = NOW() WHERE id = $1`
+	const q = `
+		UPDATE "Product" 
+		SET "isHide" = NOT "isHide", 
+		    "updatedAt" = NOW(),
+		    "expiresAt" = CASE WHEN "isHide" = true THEN NOW() + INTERVAL '30 days' ELSE "expiresAt" END
+		WHERE id = $1`
 	tag, err := r.pool.Exec(ctx, q, productID)
 	if err != nil {
 		return err
