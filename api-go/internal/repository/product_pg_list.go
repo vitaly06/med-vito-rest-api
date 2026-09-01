@@ -16,7 +16,7 @@ type ProductListRow struct {
 	Name            string
 	Address         string
 	CreatedAt       time.Time
-	ExpiresAt       time.Time // added
+	ExpiresAt       *time.Time // pointer to handle NULL
 	IsHide          bool
 	Price           int32
 	Quantity        int32
@@ -95,7 +95,7 @@ func (r *ProductPG) scanProductListRow(row pgx.Row) (*ProductListRow, error) {
 	var typeID *int32
 	var typeName, typeSlug *string
 	var mod *string
-	var expiresAt time.Time
+	var expiresAt *time.Time
 	var isPaid bool
 	err := row.Scan(
 		&pr.ID, &pr.Images, &pr.Name, &pr.Address, &pr.CreatedAt, &expiresAt, &pr.IsHide, &pr.Price, &pr.Quantity, &pr.UserID, &pr.VideoURL,
@@ -113,10 +113,10 @@ func (r *ProductPG) scanProductListRow(row pgx.Row) (*ProductListRow, error) {
 	pr.ExpiresAt = expiresAt
 	pr.IsPaid = isPaid
 	// compute remaining days and expiration flag
-	if !pr.ExpiresAt.IsZero() {
-		days := int(time.Until(pr.ExpiresAt).Hours() / 24)
+	if pr.ExpiresAt != nil && !pr.ExpiresAt.IsZero() {
+		days := int(time.Until(*pr.ExpiresAt).Hours() / 24)
 		pr.DaysUntilExpiry = days
-		pr.IsExpired = time.Now().After(pr.ExpiresAt)
+		pr.IsExpired = time.Now().After(*pr.ExpiresAt)
 	}
 	return &pr, nil
 }
@@ -149,7 +149,7 @@ func scanProductListRows(rows pgx.Rows) ([]ProductListRow, error) {
 		var typeID *int32
 		var typeName, typeSlug *string
 		var mod *string
-		var expiresAt time.Time
+		var expiresAt *time.Time
 		var isPaid bool
 		err := rows.Scan(
 			&pr.ID, &pr.Images, &pr.Name, &pr.Address, &pr.CreatedAt, &expiresAt, &pr.IsHide, &pr.Price, &pr.Quantity, &pr.UserID, &pr.VideoURL,
@@ -167,10 +167,10 @@ func scanProductListRows(rows pgx.Rows) ([]ProductListRow, error) {
 		pr.ExpiresAt = expiresAt
 		pr.IsPaid = isPaid
 		// вычисляем оставшиеся дни и флаг истечения
-		if !pr.ExpiresAt.IsZero() {
-			days := int(time.Until(pr.ExpiresAt).Hours() / 24)
+		if pr.ExpiresAt != nil && !pr.ExpiresAt.IsZero() {
+			days := int(time.Until(*pr.ExpiresAt).Hours() / 24)
 			pr.DaysUntilExpiry = days
-			pr.IsExpired = time.Now().After(pr.ExpiresAt)
+			pr.IsExpired = time.Now().After(*pr.ExpiresAt)
 		}
 		out = append(out, pr)
 	}

@@ -103,8 +103,8 @@ func (s *ProductService) formatListItem(pr repository.ProductListRow, isFav bool
 	out["isHide"] = pr.IsHide
 
 	// Expiration info
-	if !pr.ExpiresAt.IsZero() {
-		expires := pr.ExpiresAt
+	if pr.ExpiresAt != nil && !pr.ExpiresAt.IsZero() {
+		expires := *pr.ExpiresAt
 		out["expiresAt"] = expires.Format(time.RFC3339)
 		remaining := time.Until(expires)
 		remainingDays := int(remaining.Hours() / 24)
