@@ -6,12 +6,10 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-medvito}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-medvito}
       POSTGRES_DB: ${POSTGRES_DB:-medvito}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -28,7 +26,7 @@ services:
     volumes:
       - ./dumps:/dumps:ro
       - ./docker/postgres/init-db.sh:/init-db.sh:ro
-    entrypoint: ["/bin/sh", "/init-db.sh"]
+    entrypoint: [ "/bin/sh", "/init-db.sh" ]
     depends_on:
       postgres:
         condition: service_healthy
@@ -43,11 +41,7 @@ services:
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          'if [ -n "$$REDIS_PASSWORD" ]; then redis-cli -a "$$REDIS_PASSWORD" ping; else redis-cli ping; fi',
-        ]
+      test: [ "CMD-SHELL", 'if [ -n "$$REDIS_PASSWORD" ]; then redis-cli -a "$$REDIS_PASSWORD" ping; else redis-cli ping; fi' ]
       interval: 5s
       timeout: 3s
       retries: 10
