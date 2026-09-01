@@ -225,12 +225,20 @@ func (r *StatisticsPG) UserHasPaidAccess(ctx context.Context, userID int32) (boo
 	var one int
 	err := r.pool.QueryRow(ctx, `
 		SELECT 1
-		FROM "ProductPromotion" pp
-		JOIN "Product" p ON p.id = pp."productId"
-		WHERE p."userId" = $1
-		  AND pp."isActive" = true
-		  AND pp."isPaid" = true
-		  AND pp."endDate" >= NOW()
+		FROM "User" u
+		LEFT JOIN "Role" ro ON ro.id = u."roleId"
+		WHERE u.id = $1 AND (
+			ro.name IN ('ADMIN', 'MODERATOR', 'SUPERADMIN')
+			OR EXISTS (
+				SELECT 1 FROM "ProductPromotion" pp
+				JOIN "Product" p ON p.id = pp."productId"
+				WHERE p."userId" = u.id AND pp."isActive" = true AND pp."isPaid" = true AND pp."endDate" >= NOW()
+			)
+			OR EXISTS (
+				SELECT 1 FROM "TariffFunnelEvent" tfe
+				WHERE tfe."userId" = u.id AND tfe.step = 'publication'
+			)
+		)
 		LIMIT 1`, userID).Scan(&one)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
