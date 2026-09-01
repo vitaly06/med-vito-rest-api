@@ -837,7 +837,8 @@ func (r *ProductPG) ExpireProducts(ctx context.Context) ([]ExpiredProductRow, er
 		SET "isHide" = true, "updatedAt" = NOW()
 		WHERE "moderateState" = 'APPROVED'
 		  AND "isHide" = false
-		  AND "createdAt" + INTERVAL '30 days' <= NOW()
+		  AND "expiresAt" IS NOT NULL
+		  AND "expiresAt" <= NOW()
 		  AND id NOT IN (
 		    SELECT "productId" FROM "ProductPromotion"
 		    WHERE "isActive" = true
@@ -880,8 +881,9 @@ func (r *ProductPG) ProductsExpiringIn3Days(ctx context.Context) ([]ExpiringProd
 		JOIN "User" u ON u.id = p."userId"
 		WHERE p."moderateState" = 'APPROVED'
 		  AND p."isHide" = false
-		  AND p."createdAt" + INTERVAL '27 days' <= NOW()
-		  AND p."createdAt" + INTERVAL '30 days' > NOW()
+		  AND p."expiresAt" IS NOT NULL
+		  AND p."expiresAt" - INTERVAL '3 days' <= NOW()
+		  AND p."expiresAt" > NOW()
 		  AND p.id NOT IN (
 		    SELECT "productId" FROM "ProductPromotion"
 		    WHERE "isActive" = true
