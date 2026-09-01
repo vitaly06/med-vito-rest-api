@@ -36,6 +36,7 @@ type ProductListRow struct {
 	SellerRating    *int32
 	SellerVerified  bool
 	ViewsCount      int32
+	TodayViewsCount int32
 	PopularityScore float64
 	ModerateState             *string
 	ModerationRejectionReason *string
@@ -65,6 +66,7 @@ const productListSelect = `
 	u.rating,
 	COALESCE(u."isEmailVerified", false),
 	COALESCE((SELECT COUNT(*)::int FROM "ProductView" pv WHERE pv."productId" = p.id), 0)::int,
+	COALESCE((SELECT COUNT(*)::int FROM "ProductView" pv WHERE pv."productId" = p.id AND pv."viewedAt" >= CURRENT_DATE), 0)::int,
 	(
 		(COALESCE((SELECT COUNT(*)::numeric FROM "ProductView" pv WHERE pv."productId" = p.id), 0) * 0.5) +
 		(COALESCE(u.rating, 0)::numeric * 0.3) +
@@ -100,7 +102,7 @@ func (r *ProductPG) scanProductListRow(row pgx.Row) (*ProductListRow, error) {
 		&pr.CategoryID, &pr.CategoryName, &pr.CategorySlug,
 		&pr.SubCategoryID, &pr.SubCategoryName, &pr.SubCategorySlug,
 		&typeID, &typeName, &typeSlug,
-		&pr.PromotionLevel, &pr.PromotionName, &pr.SellerRating, &pr.SellerVerified, &pr.ViewsCount, &pr.PopularityScore, &mod, &pr.ModerationRejectionReason, &pr.IsReserved,
+		&pr.PromotionLevel, &pr.PromotionName, &pr.SellerRating, &pr.SellerVerified, &pr.ViewsCount, &pr.TodayViewsCount, &pr.PopularityScore, &mod, &pr.ModerationRejectionReason, &pr.IsReserved,
 		&isPaid,
 	)
 	pr.TypeID, pr.TypeName, pr.TypeSlug = typeID, typeName, typeSlug
@@ -154,7 +156,7 @@ func scanProductListRows(rows pgx.Rows) ([]ProductListRow, error) {
 			&pr.CategoryID, &pr.CategoryName, &pr.CategorySlug,
 			&pr.SubCategoryID, &pr.SubCategoryName, &pr.SubCategorySlug,
 			&typeID, &typeName, &typeSlug,
-			&pr.PromotionLevel, &pr.PromotionName, &pr.SellerRating, &pr.SellerVerified, &pr.ViewsCount, &pr.PopularityScore, &mod, &pr.ModerationRejectionReason, &pr.IsReserved,
+			&pr.PromotionLevel, &pr.PromotionName, &pr.SellerRating, &pr.SellerVerified, &pr.ViewsCount, &pr.TodayViewsCount, &pr.PopularityScore, &mod, &pr.ModerationRejectionReason, &pr.IsReserved,
 			&isPaid,
 		)
 		if err != nil {
@@ -503,31 +505,32 @@ func parseInt32(s string) (int32, bool) {
 }
 
 type ProductCardDB struct {
-	ID             int32
-	Name           string
-	Description    *string
-	Price          int32
-	Quantity       int32
-	IsHide         bool
-	Images         []string
-	Address        string
-	UserID         int32
-	VideoURL       *string
-	CategoryID     int32
-	CategoryName   string
-	CategorySlug   string
-	SubCatID       int32
-	SubCatName     string
-	SubCatSlug     string
-	TypeID         *int32
-	TypeName       *string
-	TypeSlug       *string
-	ModerateState  string
-	State          string
-	PromotionLevel int32
-	PromotionName  *string
-	ViewsCount     int32
-	FieldPairs     []struct{ FieldName, Value string }
+	ID              int32
+	Name            string
+	Description     *string
+	Price           int32
+	Quantity        int32
+	IsHide          bool
+	Images          []string
+	Address         string
+	UserID          int32
+	VideoURL        *string
+	CategoryID      int32
+	CategoryName    string
+	CategorySlug    string
+	SubCatID        int32
+	SubCatName      string
+	SubCatSlug      string
+	TypeID          *int32
+	TypeName        *string
+	TypeSlug        *string
+	ModerateState   string
+	State           string
+	PromotionLevel  int32
+	PromotionName   *string
+	ViewsCount      int32
+	TodayViewsCount int32
+	FieldPairs      []struct{ FieldName, Value string }
 }
 
 func (r *ProductPG) GetProductCard(ctx context.Context, productID int32) (*ProductCardDB, error) {
@@ -546,7 +549,8 @@ func (r *ProductPG) GetProductCard(ctx context.Context, productID int32) (*Produ
 				WHERE pp."productId" = p.id AND pp."isActive" AND pp."isPaid" AND pp."endDate" >= NOW()
 				ORDER BY pr."pricePerDay" DESC LIMIT 1
 			),
-			COALESCE((SELECT COUNT(*)::int FROM "ProductView" pv WHERE pv."productId" = p.id), 0)::int
+			COALESCE((SELECT COUNT(*)::int FROM "ProductView" pv WHERE pv."productId" = p.id), 0)::int,
+			COALESCE((SELECT COUNT(*)::int FROM "ProductView" pv WHERE pv."productId" = p.id AND pv."viewedAt" >= CURRENT_DATE), 0)::int
 		FROM "Product" p
 		JOIN "Category" c ON c.id = p."categoryId"
 		JOIN "SubCategory" sc ON sc.id = p."subCategoryId"
@@ -560,7 +564,7 @@ func (r *ProductPG) GetProductCard(ctx context.Context, productID int32) (*Produ
 		&card.CategoryID, &card.CategoryName, &card.CategorySlug,
 		&card.SubCatID, &card.SubCatName, &card.SubCatSlug,
 		&typeID, &typeName, &typeSlug,
-		&card.PromotionLevel, &card.PromotionName, &card.ViewsCount,
+		&card.PromotionLevel, &card.PromotionName, &card.ViewsCount, &card.TodayViewsCount,
 	)
 	card.TypeID, card.TypeName, card.TypeSlug = typeID, typeName, typeSlug
 	if errors.Is(err, pgx.ErrNoRows) {

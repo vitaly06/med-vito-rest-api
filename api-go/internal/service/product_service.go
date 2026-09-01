@@ -86,6 +86,7 @@ func (s *ProductService) formatListItem(pr repository.ProductListRow, isFav bool
 		"sellerRating":    pr.SellerRating,
 		"sellerVerified":  pr.SellerVerified,
 		"viewsCount":      pr.ViewsCount,
+		"todayViewsCount": pr.TodayViewsCount,
 		"popularityScore": pr.PopularityScore,
 		"badges":          badges,
 		"isReserved":      pr.IsReserved,

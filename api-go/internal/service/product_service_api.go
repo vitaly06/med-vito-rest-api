@@ -542,6 +542,7 @@ func (s *ProductService) GetProductCard(ctx context.Context, productID int32, vi
 		"promotionLevel": card.PromotionLevel,
 		"promotionName":  card.PromotionName,
 		"viewsCount":     card.ViewsCount,
+		"todayViewsCount": card.TodayViewsCount,
 	}, nil
 }
 
