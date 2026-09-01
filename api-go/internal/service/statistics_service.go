@@ -92,7 +92,7 @@ func (s *StatisticsService) SearchQueriesInsights(ctx context.Context, userID in
 }
 
 func (s *StatisticsService) CabinetDashboard(ctx context.Context, userID int32, days int) (map[string]any, error) {
-	types, err := s.repo.AdsTypeDashboard(ctx, userID)
+	types, err := s.repo.AdsTypeDashboard(ctx, userID, days)
 	if err != nil {
 		return nil, err
 	}

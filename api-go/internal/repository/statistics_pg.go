@@ -282,27 +282,97 @@ func (r *StatisticsPG) TopSearchQueries(ctx context.Context, days int) ([]Search
 	return out, rows.Err()
 }
 
-func (r *StatisticsPG) AdsTypeDashboard(ctx context.Context, userID int32) (map[string]any, error) {
-	var freeCount, paidCount int64
-	if err := r.pool.QueryRow(ctx, `
+type DailyDynamicRow struct {
+	Date          string `json:"date"`
+	CreatedCount  int64  `json:"createdCount"`
+	PromotedCount int64  `json:"promotedCount"`
+}
+
+func (r *StatisticsPG) AdsTypeDashboard(ctx context.Context, userID int32, days int) (map[string]any, error) {
+	if days <= 0 {
+		days = 30
+	}
+	var total, vip, top, free, moderation, hidden, drafts, expired int64
+	var avgPaidViews, avgFreeViews float64
+
+	err := r.pool.QueryRow(ctx, `
+		WITH user_products AS (
+			SELECT 
+				p.id,
+				p."isHide",
+				p."moderateState",
+				p."expiresAt",
+				COALESCE((
+					SELECT MAX(pr."pricePerDay")
+					FROM "ProductPromotion" pp
+					JOIN "Promotion" pr ON pr.id = pp."promotionId"
+					WHERE pp."productId" = p.id AND pp."isActive" = true AND pp."isPaid" = true AND pp."endDate" >= NOW()
+				), 0) AS promo_price,
+				COALESCE((SELECT COUNT(*) FROM "ProductView" pv WHERE pv."productId" = p.id), 0) AS views_count
+			FROM "Product" p
+			WHERE p."userId" = $1
+		)
 		SELECT
-			COUNT(*) FILTER (WHERE COALESCE((
-				SELECT MAX(pr."pricePerDay")
-				FROM "ProductPromotion" pp
-				JOIN "Promotion" pr ON pr.id = pp."promotionId"
-				WHERE pp."productId" = p.id AND pp."isActive" = true AND pp."isPaid" = true AND pp."endDate" >= NOW()
-			),0) = 0)::bigint AS free_count,
-			COUNT(*) FILTER (WHERE COALESCE((
-				SELECT MAX(pr."pricePerDay")
-				FROM "ProductPromotion" pp
-				JOIN "Promotion" pr ON pr.id = pp."promotionId"
-				WHERE pp."productId" = p.id AND pp."isActive" = true AND pp."isPaid" = true AND pp."endDate" >= NOW()
-			),0) > 0)::bigint AS paid_count
-		FROM "Product" p
-		WHERE p."userId" = $1`, userID).Scan(&freeCount, &paidCount); err != nil {
+			COUNT(*)::bigint AS total_count,
+			COUNT(*) FILTER (WHERE "moderateState" = 'APPROVED' AND NOT "isHide" AND promo_price >= 100)::bigint AS vip_count,
+			COUNT(*) FILTER (WHERE "moderateState" = 'APPROVED' AND NOT "isHide" AND promo_price > 0 AND promo_price < 100)::bigint AS top_count,
+			COUNT(*) FILTER (WHERE "moderateState" = 'APPROVED' AND NOT "isHide" AND promo_price = 0)::bigint AS free_count,
+			COUNT(*) FILTER (WHERE "moderateState" IN ('MODERATE', 'AI_REVIEWED'))::bigint AS moderation_count,
+			COUNT(*) FILTER (WHERE "isHide" = true AND "moderateState" != 'DRAFT')::bigint AS hidden_count,
+			COUNT(*) FILTER (WHERE "moderateState" = 'DRAFT')::bigint AS draft_count,
+			COUNT(*) FILTER (WHERE "expiresAt" IS NOT NULL AND "expiresAt" <= NOW() AND NOT "isHide")::bigint AS expired_count,
+			COALESCE(AVG(views_count) FILTER (WHERE promo_price > 0), 0)::float8 AS avg_paid_views,
+			COALESCE(AVG(views_count) FILTER (WHERE promo_price = 0), 0)::float8 AS avg_free_views
+		FROM user_products`, userID).Scan(
+		&total, &vip, &top, &free, &moderation, &hidden, &drafts, &expired,
+		&avgPaidViews, &avgFreeViews,
+	)
+	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"free": freeCount, "paid": paidCount, "total": freeCount + paidCount}, nil
+
+	dynRows, err := r.pool.Query(ctx, `
+		SELECT 
+			d::date::text AS day,
+			COUNT(DISTINCT p.id) FILTER (WHERE p.id IS NOT NULL AND p."createdAt"::date = d::date)::bigint AS created_count,
+			COUNT(DISTINCT pp.id) FILTER (WHERE pp.id IS NOT NULL AND pp."createdAt"::date = d::date)::bigint AS promoted_count
+		FROM generate_series(
+			(CURRENT_DATE - ($2::text || ' days')::interval)::date,
+			CURRENT_DATE,
+			'1 day'::interval
+		) d
+		LEFT JOIN "Product" p ON p."userId" = $1 AND p."createdAt"::date = d::date
+		LEFT JOIN "ProductPromotion" pp ON pp."productId" = p.id AND pp."isPaid" = true
+		GROUP BY d::date
+		ORDER BY d::date ASC`, userID, days)
+	if err != nil {
+		return nil, err
+	}
+	defer dynRows.Close()
+
+	var dynamics []DailyDynamicRow
+	for dynRows.Next() {
+		var row DailyDynamicRow
+		if err := dynRows.Scan(&row.Date, &row.CreatedCount, &row.PromotedCount); err != nil {
+			return nil, err
+		}
+		dynamics = append(dynamics, row)
+	}
+
+	return map[string]any{
+		"days":          days,
+		"total":         total,
+		"vip":           vip,
+		"top":           top,
+		"free":          free,
+		"moderation":    moderation,
+		"hidden":        hidden,
+		"drafts":        drafts,
+		"expired":       expired,
+		"avgPaidViews":  int64(avgPaidViews),
+		"avgFreeViews":  int64(avgFreeViews),
+		"dailyDynamics": dynamics,
+	}, nil
 }
 
 func (r *StatisticsPG) TariffFunnel(ctx context.Context, userID int32, days int) (map[string]int64, error) {
