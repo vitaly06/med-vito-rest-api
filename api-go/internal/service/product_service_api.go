@@ -369,9 +369,9 @@ func (s *ProductService) ProductsByUserID(ctx context.Context, viewer *int32, us
 		if pr.ModerateState != nil && *pr.ModerateState == "DRAFT" && (viewer == nil || *viewer != userID) {
 			continue
 		}
-		fav, err := s.prod.IsFavorite(ctx, userID, pr.ID)
-		if err != nil {
-			return nil, err
+		var fav bool
+		if viewer != nil {
+			fav, _ = s.prod.IsFavorite(ctx, *viewer, pr.ID)
 		}
 		hasPromo := pr.PromotionLevel > 0
 		item := s.formatListItem(pr, fav, hasPromo, pr.PromotionLevel)

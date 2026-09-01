@@ -105,6 +105,9 @@ func (r *ProductPG) scanProductListRow(row pgx.Row) (*ProductListRow, error) {
 		&pr.PromotionLevel, &pr.PromotionName, &pr.SellerRating, &pr.SellerVerified, &pr.ViewsCount, &pr.TodayViewsCount, &pr.PopularityScore, &mod, &pr.ModerationRejectionReason, &pr.IsReserved,
 		&isPaid,
 	)
+	if err != nil {
+		return nil, err
+	}
 	pr.TypeID, pr.TypeName, pr.TypeSlug = typeID, typeName, typeSlug
 	pr.ModerateState = mod
 	pr.ExpiresAt = expiresAt
@@ -114,9 +117,6 @@ func (r *ProductPG) scanProductListRow(row pgx.Row) (*ProductListRow, error) {
 		days := int(time.Until(pr.ExpiresAt).Hours() / 24)
 		pr.DaysUntilExpiry = days
 		pr.IsExpired = time.Now().After(pr.ExpiresAt)
-	}
-	if err != nil {
-		return nil, err
 	}
 	return &pr, nil
 }
