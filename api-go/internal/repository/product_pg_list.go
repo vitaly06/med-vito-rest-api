@@ -503,34 +503,50 @@ func parseInt32(s string) (int32, bool) {
 }
 
 type ProductCardDB struct {
-	ID            int32
-	Name          string
-	Description   *string
-	Price         int32
-	Quantity      int32
-	IsHide        bool
-	Images        []string
-	Address       string
-	UserID        int32
-	VideoURL      *string
-	CategoryID    int32
-	CategoryName  string
-	CategorySlug  string
-	SubCatID      int32
-	SubCatName    string
-	SubCatSlug    string
-	TypeID        *int32
-	TypeName      *string
-	TypeSlug      *string
-	ModerateState string
-	State         string
-	FieldPairs    []struct{ FieldName, Value string }
+	ID             int32
+	Name           string
+	Description    *string
+	Price          int32
+	Quantity       int32
+	IsHide         bool
+	Images         []string
+	Address        string
+	UserID         int32
+	VideoURL       *string
+	CategoryID     int32
+	CategoryName   string
+	CategorySlug   string
+	SubCatID       int32
+	SubCatName     string
+	SubCatSlug     string
+	TypeID         *int32
+	TypeName       *string
+	TypeSlug       *string
+	ModerateState  string
+	State          string
+	PromotionLevel int32
+	PromotionName  *string
+	ViewsCount     int32
+	FieldPairs     []struct{ FieldName, Value string }
 }
 
 func (r *ProductPG) GetProductCard(ctx context.Context, productID int32) (*ProductCardDB, error) {
 	const q = `
 		SELECT p.id, p.name, p.description, p.price, p.quantity, p."isHide", p.images, p.address, p."userId", p."videoUrl", p."moderateState"::text, p.state::text,
-			c.id, c.name, c.slug, sc.id, sc.name, sc.slug, t.id, t.name, t.slug
+			c.id, c.name, c.slug, sc.id, sc.name, sc.slug, t.id, t.name, t.slug,
+			COALESCE((
+				SELECT pr."pricePerDay" FROM "ProductPromotion" pp
+				JOIN "Promotion" pr ON pr.id = pp."promotionId"
+				WHERE pp."productId" = p.id AND pp."isActive" AND pp."isPaid" AND pp."endDate" >= NOW()
+				ORDER BY pr."pricePerDay" DESC LIMIT 1
+			), 0)::int,
+			(
+				SELECT pr.name FROM "ProductPromotion" pp
+				JOIN "Promotion" pr ON pr.id = pp."promotionId"
+				WHERE pp."productId" = p.id AND pp."isActive" AND pp."isPaid" AND pp."endDate" >= NOW()
+				ORDER BY pr."pricePerDay" DESC LIMIT 1
+			),
+			COALESCE((SELECT COUNT(*)::int FROM "ProductView" pv WHERE pv."productId" = p.id), 0)::int
 		FROM "Product" p
 		JOIN "Category" c ON c.id = p."categoryId"
 		JOIN "SubCategory" sc ON sc.id = p."subCategoryId"
@@ -544,6 +560,7 @@ func (r *ProductPG) GetProductCard(ctx context.Context, productID int32) (*Produ
 		&card.CategoryID, &card.CategoryName, &card.CategorySlug,
 		&card.SubCatID, &card.SubCatName, &card.SubCatSlug,
 		&typeID, &typeName, &typeSlug,
+		&card.PromotionLevel, &card.PromotionName, &card.ViewsCount,
 	)
 	card.TypeID, card.TypeName, card.TypeSlug = typeID, typeName, typeSlug
 	if errors.Is(err, pgx.ErrNoRows) {

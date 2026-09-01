@@ -48,7 +48,7 @@ func (s *PromotionService) AddPromotion(ctx context.Context, userID, productID, 
 		return nil, err
 	}
 	if s.support != nil {
-		msg := fmt.Sprintf("🚀 Продвижение объявления успешно активировано!\nСписано: %.2f ₽\nСрок действия: %d дней (до %s).",
+		msg := fmt.Sprintf("🚀 Продвижение объявления успешно активировано!\nСписано: %d ₽\nСрок действия: %d дней (до %s).",
 			res.TotalPrice, res.Days, res.EndDate.Format("02.01.2006 15:04"))
 		go s.support.NotifyUserBilling(context.Background(), userID, msg)
 	}

@@ -522,6 +522,7 @@ func (s *ProductService) GetProductCard(ctx context.Context, productID int32, vi
 	if err != nil {
 		return nil, err
 	}
+	hasPromo := card.PromotionLevel > 0
 	return map[string]any{
 		"id": card.ID, "name": card.Name, "description": card.Description, "price": card.Price, "quantity": card.Quantity,
 		"isHide": card.IsHide, "images": card.Images, "address": card.Address, "userId": card.UserID, "videoUrl": card.VideoURL,
@@ -533,9 +534,14 @@ func (s *ProductService) GetProductCard(ctx context.Context, productID int32, vi
 			}
 			return map[string]any{"id": *card.TypeID, "name": card.TypeName, "slug": card.TypeSlug}
 		}(),
-		"fieldValues": fvArr,
-		"isFavorited": fav,
-		"seller":      seller,
+		"fieldValues":    fvArr,
+		"isFavorited":    fav,
+		"seller":         seller,
+		"hasPromotion":   hasPromo,
+		"isPaid":         hasPromo,
+		"promotionLevel": card.PromotionLevel,
+		"promotionName":  card.PromotionName,
+		"viewsCount":     card.ViewsCount,
 	}, nil
 }
 
