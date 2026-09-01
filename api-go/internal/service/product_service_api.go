@@ -376,7 +376,7 @@ func (s *ProductService) ProductsByUserID(ctx context.Context, viewer *int32, us
 		hasPromo := pr.PromotionLevel > 0
 		item := s.formatListItem(pr, fav, hasPromo, pr.PromotionLevel)
 		if viewer != nil && *viewer == userID && (pr.ModerateState == nil || *pr.ModerateState != "DRAFT") {
-			appendProductLifetime(item, pr.CreatedAt)
+			appendProductLifetime(item, pr.CreatedAt, pr.ExpiresAt)
 		}
 		out = append(out, item)
 	}

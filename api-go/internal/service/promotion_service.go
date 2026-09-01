@@ -48,18 +48,28 @@ func (s *PromotionService) AddPromotion(ctx context.Context, userID, productID, 
 		return nil, err
 	}
 	if s.support != nil {
-		msg := fmt.Sprintf("🚀 Продвижение объявления успешно активировано!\nСписано: %d ₽\nСрок действия: %d дней (до %s).",
-			res.TotalPrice, res.Days, res.EndDate.Format("02.01.2006 15:04"))
+		name := res.ProductName
+		if name == "" {
+			name = fmt.Sprintf("ID %d", productID)
+		}
+		tariff := res.TariffName
+		if tariff == "" {
+			tariff = "Платное продвижение"
+		}
+		msg := fmt.Sprintf("🚀 Продвижение объявления «%s» успешно активировано!\nТариф: %s\nСписано: %d ₽\nСрок действия: %d дн. (до %s).",
+			name, tariff, res.TotalPrice, res.Days, res.EndDate.Format("02.01.2006 15:04"))
 		go s.support.NotifyUserBilling(context.Background(), userID, msg)
 	}
 	return map[string]any{
 		"message": "Продвижение успешно активировано",
 		"promotion": map[string]any{
-			"id":         res.ID,
-			"days":       res.Days,
-			"totalPrice": res.TotalPrice,
-			"startDate":  res.StartDate,
-			"endDate":    res.EndDate,
+			"id":          res.ID,
+			"productName": res.ProductName,
+			"tariffName":  res.TariffName,
+			"days":        res.Days,
+			"totalPrice":  res.TotalPrice,
+			"startDate":   res.StartDate,
+			"endDate":     res.EndDate,
 		},
 	}, nil
 }

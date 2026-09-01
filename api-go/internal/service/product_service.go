@@ -35,8 +35,13 @@ func formatProductDate(t time.Time) string {
 	return fmt.Sprintf("%02d.%02d.%02d в %02d:%02d", d, m, y, h, mi)
 }
 
-func appendProductLifetime(out map[string]any, createdAt time.Time) {
-	expiresAt := createdAt.Add(30 * 24 * time.Hour)
+func appendProductLifetime(out map[string]any, createdAt time.Time, expiresAtPtr *time.Time) {
+	var expiresAt time.Time
+	if expiresAtPtr != nil && !expiresAtPtr.IsZero() {
+		expiresAt = *expiresAtPtr
+	} else {
+		expiresAt = createdAt.Add(30 * 24 * time.Hour)
+	}
 	remainingDuration := time.Until(expiresAt)
 	remainingDays := int(remainingDuration.Hours() / 24)
 	if remainingDuration > 0 && remainingDuration%(24*time.Hour) != 0 {
@@ -49,6 +54,7 @@ func appendProductLifetime(out map[string]any, createdAt time.Time) {
 	out["daysUntilExpiration"] = remainingDays
 	out["isExpired"] = remainingDuration <= 0
 }
+
 func (s *ProductService) formatListItem(pr repository.ProductListRow, isFav bool, hasPromo bool, promoLevel int32) map[string]any {
 	badges := make([]string, 0, 3)
 	if pr.PromotionLevel >= 100 {
@@ -103,22 +109,7 @@ func (s *ProductService) formatListItem(pr repository.ProductListRow, isFav bool
 	out["isHide"] = pr.IsHide
 
 	// Expiration info
-	if pr.ExpiresAt != nil && !pr.ExpiresAt.IsZero() {
-		expires := *pr.ExpiresAt
-		out["expiresAt"] = expires.Format(time.RFC3339)
-		remaining := time.Until(expires)
-		remainingDays := int(remaining.Hours() / 24)
-		if remaining > 0 && remaining%(24*time.Hour) != 0 {
-			remainingDays++
-		}
-		if remainingDays < 0 {
-			remainingDays = 0
-		}
-		out["daysUntilExpiration"] = remainingDays
-		out["isExpired"] = remaining <= 0
-	} else {
-		appendProductLifetime(out, pr.CreatedAt)
-	}
+	appendProductLifetime(out, pr.CreatedAt, pr.ExpiresAt)
 
 	return out
 }

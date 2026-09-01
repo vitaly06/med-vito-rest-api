@@ -55,11 +55,13 @@ func (r *PromotionPG) ListTariffs(ctx context.Context) ([]PromotionTariff, error
 }
 
 type AddPromotionResult struct {
-	ID         int32
-	Days       int32
-	TotalPrice int32
-	StartDate  time.Time
-	EndDate    time.Time
+	ID          int32
+	ProductName string
+	TariffName  string
+	Days        int32
+	TotalPrice  int32
+	StartDate   time.Time
+	EndDate     time.Time
 }
 
 func (r *PromotionPG) InsertFunnelEvent(ctx context.Context, userID *int32, step string, promotionID, productID *int32) {
@@ -80,7 +82,8 @@ func (r *PromotionPG) AddProductPromotion(ctx context.Context, userID, productID
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	var ownerID int32
-	err = tx.QueryRow(ctx, `SELECT "userId" FROM "Product" WHERE id = $1 FOR UPDATE`, productID).Scan(&ownerID)
+	var prodName string
+	err = tx.QueryRow(ctx, `SELECT "userId", name FROM "Product" WHERE id = $1 FOR UPDATE`, productID).Scan(&ownerID, &prodName)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrPromoProductNotFound
 	}
@@ -92,7 +95,8 @@ func (r *PromotionPG) AddProductPromotion(ctx context.Context, userID, productID
 	}
 
 	var pricePerDay int32
-	err = tx.QueryRow(ctx, `SELECT "pricePerDay" FROM "Promotion" WHERE id = $1 FOR UPDATE`, promotionID).Scan(&pricePerDay)
+	var tariffName string
+	err = tx.QueryRow(ctx, `SELECT "pricePerDay", name FROM "Promotion" WHERE id = $1 FOR UPDATE`, promotionID).Scan(&pricePerDay, &tariffName)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrPromoTariffNotFound
 	}
@@ -186,7 +190,12 @@ func (r *PromotionPG) AddProductPromotion(ctx context.Context, userID, productID
 	if _, err := tx.Exec(ctx, `UPDATE "ProductPromotion" SET "isPaid" = true, "updatedAt" = NOW() WHERE id = $1`, ppID); err != nil {
 		return nil, err
 	}
-	if _, err := tx.Exec(ctx, `UPDATE "Product" SET "updatedAt" = NOW() WHERE id = $1`, productID); err != nil {
+	if _, err := tx.Exec(ctx, `
+		UPDATE "Product"
+		SET "isHide" = false,
+		    "expiresAt" = GREATEST(COALESCE("expiresAt", NOW()), $2),
+		    "updatedAt" = NOW()
+		WHERE id = $1`, productID, end); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -195,10 +204,12 @@ func (r *PromotionPG) AddProductPromotion(ctx context.Context, userID, productID
 	r.InsertFunnelEvent(ctx, &userID, "payment", &promotionID, &productID)
 	r.InsertFunnelEvent(ctx, &userID, "publication", &promotionID, &productID)
 	return &AddPromotionResult{
-		ID:         ppID,
-		Days:       days,
-		TotalPrice: totalPrice,
-		StartDate:  start,
-		EndDate:    end,
+		ID:          ppID,
+		ProductName: prodName,
+		TariffName:  tariffName,
+		Days:        days,
+		TotalPrice:  totalPrice,
+		StartDate:   start,
+		EndDate:     end,
 	}, nil
 }

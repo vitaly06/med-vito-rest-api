@@ -673,7 +673,7 @@ func (s *ModerationAdminService) GetProduct(ctx context.Context, productID int32
 		},
 		"fieldValues": fieldValues,
 	}
-	appendProductLifetime(out, item.CreatedAt)
+	appendProductLifetime(out, item.CreatedAt, nil)
 	return out, nil
 }
 

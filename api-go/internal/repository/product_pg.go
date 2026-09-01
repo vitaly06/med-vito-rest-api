@@ -840,10 +840,13 @@ func (r *ProductPG) ExpireProducts(ctx context.Context) ([]ExpiredProductRow, er
 	rows, err := r.pool.Query(ctx, `
 		UPDATE "Product"
 		SET "isHide" = true, "updatedAt" = NOW()
-		WHERE "moderateState" = 'APPROVED'
+		WHERE "moderateState"::text = 'APPROVED'
 		  AND "isHide" = false
-		  AND "expiresAt" IS NOT NULL
-		  AND "expiresAt" <= NOW()
+		  AND (
+		    ("expiresAt" IS NOT NULL AND "expiresAt" <= NOW())
+		    OR
+		    ("expiresAt" IS NULL AND "createdAt" <= NOW() - INTERVAL '30 days')
+		  )
 		  AND id NOT IN (
 		    SELECT "productId" FROM "ProductPromotion"
 		    WHERE "isActive" = true
@@ -884,11 +887,13 @@ func (r *ProductPG) ProductsExpiringIn3Days(ctx context.Context) ([]ExpiringProd
 		       COALESCE(u.email, ''), COALESCE(u."phoneNumber", '')
 		FROM "Product" p
 		JOIN "User" u ON u.id = p."userId"
-		WHERE p."moderateState" = 'APPROVED'
+		WHERE p."moderateState"::text = 'APPROVED'
 		  AND p."isHide" = false
-		  AND p."expiresAt" IS NOT NULL
-		  AND p."expiresAt" - INTERVAL '3 days' <= NOW()
-		  AND p."expiresAt" > NOW()
+		  AND (
+		    (p."expiresAt" IS NOT NULL AND p."expiresAt" - INTERVAL '3 days' <= NOW() AND p."expiresAt" > NOW())
+		    OR
+		    (p."expiresAt" IS NULL AND p."createdAt" + INTERVAL '27 days' <= NOW() AND p."createdAt" + INTERVAL '30 days' > NOW())
+		  )
 		  AND p.id NOT IN (
 		    SELECT "productId" FROM "ProductPromotion"
 		    WHERE "isActive" = true
