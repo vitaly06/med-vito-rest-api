@@ -84,11 +84,12 @@ func (s *AuthService) defaultUserRoleID(ctx context.Context) (int32, error) {
 }
 
 type sessionPayload struct {
-	UserID              int32  `json:"userId"`
-	Email               string `json:"email"`
-	ProfileType         string `json:"profileType"`
-	AuthProvider        string `json:"authProvider,omitempty"`
-	RequireVKOnboarding bool   `json:"requireVkOnboarding,omitempty"`
+	UserID                  int32  `json:"userId"`
+	Email                   string `json:"email"`
+	ProfileType             string `json:"profileType"`
+	AuthProvider            string `json:"authProvider,omitempty"`
+	RequireVKOnboarding     bool   `json:"requireVkOnboarding,omitempty"`
+	RequireYandexOnboarding bool   `json:"requireYandexOnboarding,omitempty"`
 }
 
 type signUpCache struct {
@@ -104,12 +105,14 @@ type signUpCache struct {
 type signInResponse struct {
 	Message string `json:"message"`
 	User    struct {
-		ID          int32   `json:"id"`
-		Email       string  `json:"email"`
-		FullName    string  `json:"fullName"`
-		PhoneNumber string  `json:"phoneNumber"`
-		ProfileType string  `json:"profileType"`
-		Photo       *string `json:"photo"`
+		ID                      int32   `json:"id"`
+		Email                   string  `json:"email"`
+		FullName                string  `json:"fullName"`
+		PhoneNumber             string  `json:"phoneNumber"`
+		ProfileType             string  `json:"profileType"`
+		Photo                   *string `json:"photo"`
+		RequireVKOnboarding     bool    `json:"requireVkOnboarding,omitempty"`
+		RequireYandexOnboarding bool    `json:"requireYandexOnboarding,omitempty"`
 	} `json:"user"`
 }
 
@@ -874,6 +877,104 @@ func (s *AuthService) SessionRequiresVKOnboarding(ctx context.Context, sessionID
 		return false
 	}
 	return IsVKOnboardingRequired(u, true)
+}
+
+func IsYandexOnboardingRequired(u *domain.UserEntity, isYandexUser bool) bool {
+	if u == nil || !isYandexUser {
+		return false
+	}
+	phone := strings.TrimSpace(u.PhoneNumber)
+	if phone == "" {
+		return true
+	}
+	return !u.IsPhoneVerified
+}
+
+func (s *AuthService) YandexOnboardingStatus(ctx context.Context, userID int32) (map[string]any, error) {
+	u, err := s.users.FindUserByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	hasYandexIdentity, err := s.users.HasOAuthProviderForUser(ctx, userID, "yandex")
+	if err != nil {
+		return nil, err
+	}
+	isYandexUser := hasYandexIdentity || strings.HasSuffix(strings.ToLower(u.Email), "@yandex.ru") || strings.HasSuffix(strings.ToLower(u.Email), "@ya.ru")
+	return map[string]any{
+		"required":        IsYandexOnboardingRequired(u, isYandexUser),
+		"isPhoneVerified": u.IsPhoneVerified,
+		"phoneNumber":     u.PhoneNumber,
+		"email":           u.Email,
+	}, nil
+}
+
+func (s *AuthService) YandexOnboardingStartPhone(ctx context.Context, userID int32, phone string) error {
+	phone = strings.TrimSpace(phone)
+	if phone == "" {
+		return &AppError{400, "Нужно указать номер телефона"}
+	}
+	if otherID, err := s.users.FindUserIDByPhone(ctx, phone); err != nil {
+		return err
+	} else if otherID != nil && *otherID != userID {
+		return &AppError{400, "Пользователь с таким номером телефона уже существует"}
+	}
+	code := s.generateVerifyCode()
+	payload, _ := json.Marshal(map[string]any{"userId": userID, "phone": phone, "code": code})
+	if err := s.rdb.Set(ctx, "yandex:verify:phone:"+code, payload, verifyPhoneTTL).Err(); err != nil {
+		return err
+	}
+	return s.sendVKPhoneCode(ctx, phone, code)
+}
+
+func (s *AuthService) YandexOnboardingVerifyPhoneCode(ctx context.Context, userID int32, code string) error {
+	code = strings.TrimSpace(code)
+	raw, err := s.rdb.Get(ctx, "yandex:verify:phone:"+code).Bytes()
+	if err == redis.Nil || len(raw) == 0 {
+		return &AppError{400, "Неверный код подтверждения"}
+	}
+	if err != nil {
+		return err
+	}
+	var cached struct {
+		UserID int32  `json:"userId"`
+		Phone  string `json:"phone"`
+		Code   string `json:"code"`
+	}
+	if err := json.Unmarshal(raw, &cached); err != nil {
+		return err
+	}
+	if cached.Code != code || cached.UserID != userID {
+		return &AppError{400, "Неверный код подтверждения"}
+	}
+	if err := s.users.SetPhone(ctx, cached.UserID, cached.Phone); err != nil {
+		return err
+	}
+	if err := s.users.SetPhoneVerified(ctx, cached.UserID, true); err != nil {
+		return err
+	}
+	_ = s.rdb.Del(ctx, "yandex:verify:phone:"+code).Err()
+	return nil
+}
+
+func (s *AuthService) SessionRequiresYandexOnboarding(ctx context.Context, sessionID string, u *domain.UserEntity) bool {
+	if sessionID == "" || u == nil {
+		return false
+	}
+	raw, err := s.rdb.Get(ctx, sessionKeyPrefix+sessionID).Bytes()
+	if err != nil || len(raw) == 0 {
+		return false
+	}
+	var sp sessionPayload
+	if err := json.Unmarshal(raw, &sp); err != nil {
+		return false
+	}
+	if strings.ToLower(strings.TrimSpace(sp.AuthProvider)) != "yandex" {
+		return false
+	}
+	if !sp.RequireYandexOnboarding {
+		return false
+	}
+	return IsYandexOnboardingRequired(u, true)
 }
 
 func parseSessionIDCookie(cookieHeader string) string {
@@ -1983,12 +2084,14 @@ func (s *AuthService) SignInWithYandex(ctx context.Context, code, state string) 
 	}
 	_ = s.users.UpsertOAuthIdentity(ctx, "yandex", profile.ExternalID, user.ID)
 
+	requireYandexOnboarding := IsYandexOnboardingRequired(user, true)
 	sid := generateSessionID()
 	sp := sessionPayload{
-		UserID:       user.ID,
-		Email:        user.Email,
-		ProfileType:  user.ProfileType,
-		AuthProvider: "yandex",
+		UserID:                  user.ID,
+		Email:                   user.Email,
+		ProfileType:             user.ProfileType,
+		AuthProvider:            "yandex",
+		RequireYandexOnboarding: requireYandexOnboarding,
 	}
 	b, _ := json.Marshal(sp)
 	if err := s.rdb.Set(ctx, sessionKeyPrefix+sid, b, sessionTTL).Err(); err != nil {
@@ -2011,6 +2114,7 @@ func (s *AuthService) SignInWithYandex(ctx context.Context, code, state string) 
 	out.User.PhoneNumber = user.PhoneNumber
 	out.User.ProfileType = user.ProfileType
 	out.User.Photo = photo
+	out.User.RequireYandexOnboarding = requireYandexOnboarding
 	return out, sid, nil
 }
 

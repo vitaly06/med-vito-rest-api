@@ -177,6 +177,38 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 		return c.JSON(out)
 	})
 
+	g.Get("/yandex/onboarding/status", middleware.RequireSession(auth), func(c *fiber.Ctx) error {
+		u := middleware.UserFromLocals(c)
+		out, err := auth.YandexOnboardingStatus(c.UserContext(), u.ID)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
+	g.Post("/yandex/onboarding/start-phone", middleware.RequireSession(auth), func(c *fiber.Ctx) error {
+		u := middleware.UserFromLocals(c)
+		var body struct {
+			PhoneNumber string `json:"phoneNumber"`
+		}
+		if err := c.BodyParser(&body); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректное тело"})
+		}
+		if err := auth.YandexOnboardingStartPhone(c.UserContext(), u.ID, body.PhoneNumber); err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(fiber.Map{"message": "Код подтверждения отправлен на телефон"})
+	})
+
+	g.Post("/yandex/onboarding/verify-phone", middleware.RequireSession(auth), func(c *fiber.Ctx) error {
+		u := middleware.UserFromLocals(c)
+		code := c.Query("code")
+		if err := auth.YandexOnboardingVerifyPhoneCode(c.UserContext(), u.ID, code); err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(fiber.Map{"message": "Телефон успешно подтверждён"})
+	})
+
 	g.Get("/vk/onboarding/status", middleware.RequireSession(auth), func(c *fiber.Ctx) error {
 		u := middleware.UserFromLocals(c)
 		out, err := auth.VKOnboardingStatus(c.UserContext(), u.ID)

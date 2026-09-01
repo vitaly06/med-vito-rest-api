@@ -35,6 +35,13 @@ func RequireSession(auth *service.AuthService) fiber.Handler {
 				"code":       "VK_ONBOARDING_REQUIRED",
 			})
 		}
+		if auth.SessionRequiresYandexOnboarding(c.UserContext(), sid, u) && !allowDuringYandexOnboarding(c.Path()) {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"statusCode": fiber.StatusForbidden,
+				"message":    "Требуется подтвердить номер телефона по SMS",
+				"code":       "YANDEX_ONBOARDING_REQUIRED",
+			})
+		}
 		c.Locals(UserLocalsKey, u)
 		return c.Next()
 	}
@@ -49,6 +56,17 @@ func allowDuringVKOnboarding(path string) bool {
 		return true
 	}
 	return strings.HasPrefix(path, "/auth/vk/onboarding/")
+}
+
+func allowDuringYandexOnboarding(path string) bool {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return false
+	}
+	if path == "/auth/me" || path == "/auth/logout" {
+		return true
+	}
+	return strings.HasPrefix(path, "/auth/yandex/onboarding/")
 }
 
 func RequireRoleLevel(auth *service.AuthService, minLevel int, denyMessage string) fiber.Handler {
