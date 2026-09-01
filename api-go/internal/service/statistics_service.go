@@ -54,18 +54,41 @@ func (s *StatisticsService) TrackSearch(ctx context.Context, userID *int32, quer
 }
 
 func (s *StatisticsService) SearchQueriesInsights(ctx context.Context, userID int32, days int) (map[string]any, error) {
-	ok, err := s.repo.UserHasPaidAccess(ctx, userID)
+	hasPaid, err := s.repo.UserHasPaidAccess(ctx, userID)
 	if err != nil {
 		return nil, err
-	}
-	if !ok {
-		return nil, &AppError{403, "Доступ к статистике поисковых запросов доступен только при активном платном размещении"}
 	}
 	rows, err := s.repo.TopSearchQueries(ctx, days)
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"days": days, "items": rows}, nil
+	if rows == nil {
+		rows = []repository.SearchQueryStatRow{}
+	}
+
+	if !hasPaid {
+		previewLimit := 3
+		if len(rows) < previewLimit {
+			previewLimit = len(rows)
+		}
+		previewItems := rows[:previewLimit]
+		return map[string]any{
+			"days":        days,
+			"hasAccess":   false,
+			"isLocked":    true,
+			"totalCount":  len(rows),
+			"items":       previewItems,
+			"lockMessage": "Доступ к аналитике поисковых запросов доступен продавцам с активным платным продвижением",
+		}, nil
+	}
+
+	return map[string]any{
+		"days":       days,
+		"hasAccess":  true,
+		"isLocked":   false,
+		"totalCount": len(rows),
+		"items":      rows,
+	}, nil
 }
 
 func (s *StatisticsService) CabinetDashboard(ctx context.Context, userID int32, days int) (map[string]any, error) {
