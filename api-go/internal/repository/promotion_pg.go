@@ -15,6 +15,7 @@ var (
 	ErrPromoTariffNotFound  = errors.New("promotion: tariff not found")
 	ErrPromoNotOwner        = errors.New("promotion: not product owner")
 	ErrPromoDowngrade       = errors.New("promotion: downgrade not allowed")
+	ErrPromoNotApproved     = errors.New("promotion: product not approved")
 )
 
 type PromotionInsufficientError struct {
@@ -83,7 +84,8 @@ func (r *PromotionPG) AddProductPromotion(ctx context.Context, userID, productID
 
 	var ownerID int32
 	var prodName string
-	err = tx.QueryRow(ctx, `SELECT "userId", name FROM "Product" WHERE id = $1 FOR UPDATE`, productID).Scan(&ownerID, &prodName)
+	var moderateState string
+	err = tx.QueryRow(ctx, `SELECT "userId", name, COALESCE("moderateState"::text, 'MODERATE') FROM "Product" WHERE id = $1 FOR UPDATE`, productID).Scan(&ownerID, &prodName, &moderateState)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrPromoProductNotFound
 	}
@@ -92,6 +94,9 @@ func (r *PromotionPG) AddProductPromotion(ctx context.Context, userID, productID
 	}
 	if ownerID != userID {
 		return nil, ErrPromoNotOwner
+	}
+	if moderateState != "APPROVED" {
+		return nil, ErrPromoNotApproved
 	}
 
 	var pricePerDay int32

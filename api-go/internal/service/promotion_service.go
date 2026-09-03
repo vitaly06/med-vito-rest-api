@@ -40,6 +40,9 @@ func (s *PromotionService) AddPromotion(ctx context.Context, userID, productID, 
 	if errors.Is(err, repository.ErrPromoDowngrade) {
 		return nil, &AppError{400, "Понижение типа объявления не предусмотрено: доступен только апгрейд"}
 	}
+	if errors.Is(err, repository.ErrPromoNotApproved) {
+		return nil, &AppError{400, "Продвижение доступно только для одобренных объявлений. Дождитесь прохождения модерации"}
+	}
 	var ins *repository.PromotionInsufficientError
 	if errors.As(err, &ins) {
 		return nil, &AppError{400, fmt.Sprintf("Недостаточно средств. Требуется: %g₽, доступно: %g₽", ins.Required, ins.Available)}
