@@ -1258,9 +1258,11 @@ func (s *DealService) AdminDealLogs(ctx context.Context, dealID int32) ([]map[st
 	out := make([]map[string]any, 0, len(rows))
 	for _, row := range rows {
 		out = append(out, map[string]any{
-			"id":     row.ID,
-			"userId": row.UserID,
-			"action": row.Action,
+			"id":        row.ID,
+			"userId":    row.UserID,
+			"action":    row.Action,
+			"userName":  row.UserName,
+			"userEmail": row.UserEmail,
 		})
 	}
 	return out, nil

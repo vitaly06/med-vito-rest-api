@@ -9,15 +9,19 @@ import (
 	"strings"
 	"time"
 
+	"med-vito/api-go/internal/config"
+	"med-vito/api-go/internal/pkg/mail"
 	"med-vito/api-go/internal/repository"
 )
 
 type ChatService struct {
-	repo *repository.ChatPG
+	repo  *repository.ChatPG
+	users *repository.UserPG
+	cfg   config.Config
 }
 
-func NewChatService(repo *repository.ChatPG) *ChatService {
-	return &ChatService{repo: repo}
+func NewChatService(repo *repository.ChatPG, users *repository.UserPG, cfg config.Config) *ChatService {
+	return &ChatService{repo: repo, users: users, cfg: cfg}
 }
 
 func formatChatShortDate(t time.Time) string {
@@ -328,6 +332,9 @@ func (s *ChatService) SendMessage(ctx context.Context, chatID, senderID int32, c
 	if err != nil {
 		return nil, err
 	}
+
+	s.sendAsyncChatMessageNotification(chatID, senderID, senderName, content)
+
 	return map[string]any{
 		"id":         msgID,
 		"content":    content,
@@ -337,6 +344,68 @@ func (s *ChatService) SendMessage(ctx context.Context, chatID, senderID int32, c
 		"createdAt":  createdAt,
 		"timeString": messageTimeString(createdAt),
 	}, nil
+}
+
+func (s *ChatService) sendAsyncChatMessageNotification(chatID, senderID int32, senderName, content string) {
+	if s == nil || s.users == nil {
+		return
+	}
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+
+		full, err := s.repo.GetChatFull(ctx, chatID)
+		if err != nil || full == nil {
+			return
+		}
+
+		recipientID := full.SellerID
+		if senderID == full.SellerID {
+			recipientID = full.BuyerID
+		}
+
+		recipient, err := s.users.FindUserByID(ctx, recipientID)
+		if err != nil || recipient == nil {
+			return
+		}
+
+		email := strings.TrimSpace(strings.ToLower(recipient.Email))
+		if email == "" || strings.HasSuffix(email, "@oauth.local") || !strings.Contains(email, "@") {
+			return
+		}
+
+		productTitle := "объявлению"
+		if full.ProductName != nil && strings.TrimSpace(*full.ProductName) != "" {
+			productTitle = fmt.Sprintf("товару «%s»", strings.TrimSpace(*full.ProductName))
+		}
+
+		subject := fmt.Sprintf("Новое сообщение от %s", senderName)
+		baseUrl := strings.TrimRight(s.cfg.BaseURL, "/")
+		if baseUrl == "" {
+			baseUrl = "http://localhost:3000"
+		}
+		body := fmt.Sprintf(`
+			<div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+				<h2 style="color: #2563eb;">Новое сообщение в чате</h2>
+				<p>Здравствуйте, <b>%s</b>!</p>
+				<p>Пользователь <b>%s</b> прислал вам сообщение по %s:</p>
+				<blockquote style="border-left: 4px solid #2563eb; margin: 16px 0; padding: 10px 16px; background-color: #f3f4f6; border-radius: 4px;">
+					%s
+				</blockquote>
+				<p style="margin-top: 24px;">
+					<a href="%s/profile/messages/%d" style="background-color: #2563eb; color: #ffffff; text-decoration: none; padding: 10px 18px; border-radius: 6px; display: inline-block; font-weight: bold;">
+						Перейти к переписке
+					</a>
+				</p>
+			</div>
+		`, recipient.FullName, senderName, productTitle, content, baseUrl, chatID)
+
+		_ = mail.SendHTMLSmart(
+			s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword,
+			s.cfg.SMTPFrom, email, subject, body,
+			s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure,
+		)
+	}()
 }
 
 // MarkMessagesAsRead — как Nest markMessagesAsRead.

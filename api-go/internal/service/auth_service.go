@@ -884,7 +884,7 @@ func IsYandexOnboardingRequired(u *domain.UserEntity, isYandexUser bool) bool {
 		return false
 	}
 	phone := strings.TrimSpace(u.PhoneNumber)
-	if phone == "" {
+	if phone == "" || isDealPhoneSynthetic(phone) {
 		return true
 	}
 	return !u.IsPhoneVerified
@@ -899,10 +899,10 @@ func (s *AuthService) YandexOnboardingStatus(ctx context.Context, userID int32) 
 	if err != nil {
 		return nil, err
 	}
-	isYandexUser := hasYandexIdentity || strings.HasSuffix(strings.ToLower(u.Email), "@yandex.ru") || strings.HasSuffix(strings.ToLower(u.Email), "@ya.ru")
+	isYandexUser := hasYandexIdentity || strings.HasPrefix(strings.ToUpper(u.PhoneNumber), "YANDEX_")
 	return map[string]any{
 		"required":        IsYandexOnboardingRequired(u, isYandexUser),
-		"isPhoneVerified": u.IsPhoneVerified,
+		"isPhoneVerified": u.IsPhoneVerified && !isDealPhoneSynthetic(u.PhoneNumber),
 		"phoneNumber":     u.PhoneNumber,
 		"email":           u.Email,
 	}, nil
@@ -912,11 +912,6 @@ func (s *AuthService) YandexOnboardingStartPhone(ctx context.Context, userID int
 	phone = strings.TrimSpace(phone)
 	if phone == "" {
 		return &AppError{400, "Нужно указать номер телефона"}
-	}
-	if otherID, err := s.users.FindUserIDByPhone(ctx, phone); err != nil {
-		return err
-	} else if otherID != nil && *otherID != userID {
-		return &AppError{400, "Пользователь с таким номером телефона уже существует"}
 	}
 	code := s.generateVerifyCode()
 	payload, _ := json.Marshal(map[string]any{"userId": userID, "phone": phone, "code": code})
@@ -946,10 +941,20 @@ func (s *AuthService) YandexOnboardingVerifyPhoneCode(ctx context.Context, userI
 	if cached.Code != code || cached.UserID != userID {
 		return &AppError{400, "Неверный код подтверждения"}
 	}
-	if err := s.users.SetPhone(ctx, cached.UserID, cached.Phone); err != nil {
+
+	targetUserID := userID
+	if otherID, err := s.users.FindUserIDByPhone(ctx, cached.Phone); err == nil && otherID != nil && *otherID != userID {
+		targetUserID = *otherID
+		current, errCur := s.users.FindUserByID(ctx, userID)
+		if errCur == nil && current != nil {
+			_ = s.users.UpsertOAuthIdentity(ctx, "yandex", fmt.Sprintf("%d", current.ID), targetUserID)
+		}
+	}
+
+	if err := s.users.SetPhone(ctx, targetUserID, cached.Phone); err != nil {
 		return err
 	}
-	if err := s.users.SetPhoneVerified(ctx, cached.UserID, true); err != nil {
+	if err := s.users.SetPhoneVerified(ctx, targetUserID, true); err != nil {
 		return err
 	}
 	_ = s.rdb.Del(ctx, "yandex:verify:phone:"+code).Err()

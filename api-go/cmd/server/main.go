@@ -106,7 +106,7 @@ func main() {
 	revRepo := repository.NewReviewPG(pool)
 	chatRepo := repository.NewChatPG(pool)
 	revSvc := service.NewReviewService(revRepo, chatRepo, cfg)
-	chatSvc := service.NewChatService(chatRepo)
+	chatSvc := service.NewChatService(chatRepo, userRepo, cfg)
 	payRepo := repository.NewPaymentPG(pool)
 	dealRepo := repository.NewDealPG(pool)
 	paySvc := service.NewPaymentService(cfg, payRepo, dealRepo)

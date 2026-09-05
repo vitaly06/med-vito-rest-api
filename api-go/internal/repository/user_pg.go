@@ -179,6 +179,8 @@ type UserAdminRow struct {
 	ActiveCount      int32
 	HiddenCount      int32
 	DeniedCount      int32
+	PaidCount        int32
+	FreeCount        int32
 	UsedFreeAds      int32
 	FreeAdsLimit     int32
 }
@@ -196,6 +198,8 @@ func (r *UserPG) ListUsersAdmin(ctx context.Context) ([]UserAdminRow, error) {
 		       COUNT(p."id") FILTER (WHERE p."moderateState" = 'APPROVED'::"ProductModerate" AND NOT p."isHide")::int,
 		       COUNT(p."id") FILTER (WHERE p."moderateState" = 'APPROVED'::"ProductModerate" AND p."isHide")::int,
 		       COUNT(p."id") FILTER (WHERE p."moderateState" = 'DENIDED'::"ProductModerate")::int,
+		       (SELECT COUNT(DISTINCT pp."productId") FROM "ProductPromotion" pp JOIN "Product" pr ON pr.id = pp."productId" WHERE pr."userId" = u."id" AND pp."isActive" = true AND pp."isPaid" = true AND pp."endDate" >= NOW())::int,
+		       GREATEST(0, COUNT(p."id") FILTER (WHERE p."moderateState" = 'APPROVED'::"ProductModerate" AND NOT p."isHide")::int - (SELECT COUNT(DISTINCT pp."productId") FROM "ProductPromotion" pp JOIN "Product" pr ON pr.id = pp."productId" WHERE pr."userId" = u."id" AND pp."isActive" = true AND pp."isPaid" = true AND pp."endDate" >= NOW())::int),
 		       COALESCE(u."usedFreeAds", 0),
 		       COALESCE(u."freeAdsLimit", 6)
 		FROM "User" u
@@ -214,7 +218,7 @@ func (r *UserPG) ListUsersAdmin(ctx context.Context) ([]UserAdminRow, error) {
 			&row.Rating, &row.ProfileType, &row.Photo, &row.Balance, &row.BonusBalance,
 			&row.RoleName, &row.IsEmailVerified, &row.IsPhoneVerified,
 			&row.ProductsCount, &row.DraftsCount, &row.ModerationCount, &row.ActiveCount,
-			&row.HiddenCount, &row.DeniedCount, &row.UsedFreeAds, &row.FreeAdsLimit); err != nil {
+			&row.HiddenCount, &row.DeniedCount, &row.PaidCount, &row.FreeCount, &row.UsedFreeAds, &row.FreeAdsLimit); err != nil {
 			return nil, err
 		}
 		out = append(out, row)

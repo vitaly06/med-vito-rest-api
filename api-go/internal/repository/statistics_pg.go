@@ -458,9 +458,16 @@ func (r *StatisticsPG) RevenueByTypeAndCategory(ctx context.Context, days int) (
 }
 
 func (r *StatisticsPG) SystemOverallStats(ctx context.Context, days int) (map[string]any, error) {
+	if days <= 0 {
+		days = 30
+	}
 	var totalProducts, activeProducts, paidProducts, freeProducts int64
 	var totalUsers, totalDeals int64
-	var totalRevenue float64
+	var totalRevenue, periodRevenue float64
+	var moderationCount, draftsCount, hiddenCount, deniedCount int64
+	var newUsersCount, newProductsCount int64
+	var individualUsersCount, legalUsersCount, bannedUsersCount int64
+	var emailVerifiedCount, phoneVerifiedCount int64
 
 	_ = r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "Product"`).Scan(&totalProducts)
 	_ = r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "Product" WHERE "moderateState" = 'APPROVED' AND "isHide" = false`).Scan(&activeProducts)
@@ -475,17 +482,134 @@ func (r *StatisticsPG) SystemOverallStats(ctx context.Context, days int) (map[st
 		freeProducts = 0
 	}
 
+	_ = r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "Product" WHERE "moderateState" IN ('MODERATE', 'AI_REVIEWED')`).Scan(&moderationCount)
+	_ = r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "Product" WHERE "moderateState" = 'DRAFT'`).Scan(&draftsCount)
+	_ = r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "Product" WHERE "moderateState" = 'APPROVED' AND "isHide" = true`).Scan(&hiddenCount)
+	_ = r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "Product" WHERE "moderateState" = 'DENIDED'`).Scan(&deniedCount)
+
 	_ = r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "User"`).Scan(&totalUsers)
+	_ = r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "User" WHERE "profileType"::text = 'INDIVIDUAL'`).Scan(&individualUsersCount)
+	_ = r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "User" WHERE "profileType"::text IN ('OOO', 'IP')`).Scan(&legalUsersCount)
+	_ = r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "User" WHERE "isBanned" = true`).Scan(&bannedUsersCount)
+	_ = r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "User" WHERE "isEmailVerified" = true`).Scan(&emailVerifiedCount)
+	_ = r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "User" WHERE "isPhoneVerified" = true`).Scan(&phoneVerifiedCount)
+
 	_ = r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "Deal"`).Scan(&totalDeals)
 	_ = r.pool.QueryRow(ctx, `SELECT COALESCE(SUM("totalPrice"), 0) FROM "ProductPromotion" WHERE "isPaid" = true`).Scan(&totalRevenue)
+	_ = r.pool.QueryRow(ctx, `SELECT COALESCE(SUM("totalPrice"), 0) FROM "ProductPromotion" WHERE "isPaid" = true AND "createdAt" >= NOW() - ($1 * interval '1 day')`, days).Scan(&periodRevenue)
+
+	_ = r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "User" WHERE "createdAt" >= NOW() - ($1 * interval '1 day')`, days).Scan(&newUsersCount)
+	_ = r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "Product" WHERE "createdAt" >= NOW() - ($1 * interval '1 day')`, days).Scan(&newProductsCount)
+
+	// Top regions
+	type regionRow struct {
+		Region string `json:"region"`
+		Count  int64  `json:"count"`
+	}
+	regionRows, _ := r.pool.Query(ctx, `
+		SELECT COALESCE(NULLIF(TRIM(SPLIT_PART(address, ',', 1)), ''), 'Не указано') AS region, COUNT(*)::bigint
+		FROM "Product"
+		WHERE "moderateState" = 'APPROVED' AND "isHide" = false
+		GROUP BY region
+		ORDER BY COUNT(*) DESC
+		LIMIT 10`)
+	var topRegions []regionRow
+	if regionRows != nil {
+		defer regionRows.Close()
+		for regionRows.Next() {
+			var rr regionRow
+			if err := regionRows.Scan(&rr.Region, &rr.Count); err == nil {
+				topRegions = append(topRegions, rr)
+			}
+		}
+	}
+	if topRegions == nil {
+		topRegions = []regionRow{}
+	}
+
+	// Top categories
+	type categoryStatRow struct {
+		ID    int32  `json:"id"`
+		Name  string `json:"name"`
+		Count int64  `json:"count"`
+	}
+	catRows, _ := r.pool.Query(ctx, `
+		SELECT c.id, c.name, COUNT(p.id)::bigint
+		FROM "Category" c
+		LEFT JOIN "Product" p ON p."categoryId" = c.id AND p."moderateState" = 'APPROVED' AND p."isHide" = false
+		GROUP BY c.id, c.name
+		ORDER BY COUNT(p.id) DESC
+		LIMIT 10`)
+	var topCategories []categoryStatRow
+	if catRows != nil {
+		defer catRows.Close()
+		for catRows.Next() {
+			var cr categoryStatRow
+			if err := catRows.Scan(&cr.ID, &cr.Name, &cr.Count); err == nil {
+				topCategories = append(topCategories, cr)
+			}
+		}
+	}
+	if topCategories == nil {
+		topCategories = []categoryStatRow{}
+	}
+
+	// Daily dynamics for timeline chart
+	type analyticsDailyRow struct {
+		Date         string  `json:"date"`
+		UsersCount   int64   `json:"usersCount"`
+		ProductsCount int64  `json:"productsCount"`
+		Revenue      float64 `json:"revenue"`
+	}
+	dynRows, _ := r.pool.Query(ctx, `
+		SELECT 
+			d::date::text AS day,
+			COALESCE((SELECT COUNT(*) FROM "User" u WHERE u."createdAt"::date = d::date), 0)::bigint AS u_cnt,
+			COALESCE((SELECT COUNT(*) FROM "Product" p WHERE p."createdAt"::date = d::date), 0)::bigint AS p_cnt,
+			COALESCE((SELECT SUM("totalPrice") FROM "ProductPromotion" pp WHERE pp."isPaid" = true AND pp."createdAt"::date = d::date), 0)::float8 AS rev
+		FROM generate_series(
+			CURRENT_DATE - ($1 * interval '1 day'),
+			CURRENT_DATE,
+			interval '1 day'
+		) AS t(d)
+		ORDER BY d ASC`, days)
+	var dailyDynamics []analyticsDailyRow
+	if dynRows != nil {
+		defer dynRows.Close()
+		for dynRows.Next() {
+			var dr analyticsDailyRow
+			if err := dynRows.Scan(&dr.Date, &dr.UsersCount, &dr.ProductsCount, &dr.Revenue); err == nil {
+				dailyDynamics = append(dailyDynamics, dr)
+			}
+		}
+	}
+	if dailyDynamics == nil {
+		dailyDynamics = []analyticsDailyRow{}
+	}
 
 	return map[string]any{
-		"totalProducts":  totalProducts,
-		"activeProducts": activeProducts,
-		"paidProducts":   paidProducts,
-		"freeProducts":   freeProducts,
-		"totalUsers":     totalUsers,
-		"totalDeals":     totalDeals,
-		"totalRevenue":   totalRevenue,
+		"days":                 days,
+		"totalProducts":        totalProducts,
+		"activeProducts":       activeProducts,
+		"paidProducts":         paidProducts,
+		"freeProducts":         freeProducts,
+		"moderationCount":      moderationCount,
+		"draftsCount":          draftsCount,
+		"hiddenCount":          hiddenCount,
+		"deniedCount":          deniedCount,
+		"totalUsers":           totalUsers,
+		"individualUsersCount": individualUsersCount,
+		"legalUsersCount":      legalUsersCount,
+		"bannedUsersCount":     bannedUsersCount,
+		"emailVerifiedCount":   emailVerifiedCount,
+		"phoneVerifiedCount":   phoneVerifiedCount,
+		"newUsersCount":        newUsersCount,
+		"newProductsCount":     newProductsCount,
+		"totalDeals":           totalDeals,
+		"totalRevenue":         totalRevenue,
+		"periodRevenue":        periodRevenue,
+		"topRegions":           topRegions,
+		"topCategories":        topCategories,
+		"dailyDynamics":        dailyDynamics,
 	}, nil
 }

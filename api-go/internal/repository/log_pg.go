@@ -19,7 +19,12 @@ func NewLogPG(pool *pgxpool.Pool) *LogPG {
 }
 
 func (r *LogPG) FindAll(ctx context.Context) ([]domain.Log, error) {
-	const q = `SELECT "id", "userId", "action" FROM "Log" ORDER BY "id" ASC`
+	const q = `
+		SELECT l."id", l."userId", l."action", COALESCE(u."fullName", ''), COALESCE(u."email", '')
+		FROM "Log" l
+		LEFT JOIN "User" u ON l."userId" = u."id"
+		ORDER BY l."id" DESC
+	`
 
 	rows, err := r.pool.Query(ctx, q)
 	if err != nil {
@@ -30,7 +35,7 @@ func (r *LogPG) FindAll(ctx context.Context) ([]domain.Log, error) {
 	var out []domain.Log
 	for rows.Next() {
 		var row domain.Log
-		if err := rows.Scan(&row.ID, &row.UserID, &row.Action); err != nil {
+		if err := rows.Scan(&row.ID, &row.UserID, &row.Action, &row.UserName, &row.UserEmail); err != nil {
 			return nil, fmt.Errorf("log scan: %w", err)
 		}
 		out = append(out, row)
@@ -51,7 +56,13 @@ func (r *LogPG) Insert(ctx context.Context, userID int32, action string) error {
 }
 
 func (r *LogPG) FindByDealID(ctx context.Context, dealID int32) ([]domain.Log, error) {
-	const q = `SELECT "id", "userId", "action" FROM "Log" WHERE action ILIKE $1 ORDER BY "id" DESC`
+	const q = `
+		SELECT l."id", l."userId", l."action", COALESCE(u."fullName", ''), COALESCE(u."email", '')
+		FROM "Log" l
+		LEFT JOIN "User" u ON l."userId" = u."id"
+		WHERE l.action ILIKE $1
+		ORDER BY l."id" DESC
+	`
 	pattern := fmt.Sprintf("%%deal_id=%d%%", dealID)
 	rows, err := r.pool.Query(ctx, q, pattern)
 	if err != nil {
@@ -62,7 +73,7 @@ func (r *LogPG) FindByDealID(ctx context.Context, dealID int32) ([]domain.Log, e
 	var out []domain.Log
 	for rows.Next() {
 		var row domain.Log
-		if err := rows.Scan(&row.ID, &row.UserID, &row.Action); err != nil {
+		if err := rows.Scan(&row.ID, &row.UserID, &row.Action, &row.UserName, &row.UserEmail); err != nil {
 			return nil, fmt.Errorf("log scan: %w", err)
 		}
 		out = append(out, row)

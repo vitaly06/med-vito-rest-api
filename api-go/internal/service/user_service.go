@@ -80,6 +80,8 @@ func (s *UserService) FindAllAdmin(ctx context.Context) ([]fiberMap, error) {
 				"active":     r.ActiveCount,
 				"hidden":     r.HiddenCount,
 				"denied":     r.DeniedCount,
+				"paid":       r.PaidCount,
+				"free":       r.FreeCount,
 			},
 			"adsLimit": fiberMap{
 				"total":     r.FreeAdsLimit,
@@ -405,6 +407,9 @@ func (s *UserService) AdminUpdateUser(ctx context.Context, userID int32, fullNam
 			return nil, &AppError{404, "Пользователь не найден"}
 		}
 		return nil, err
+	}
+	if phone != nil && !isDealPhoneSynthetic(*phone) {
+		_ = s.users.SetPhoneVerified(ctx, userID, true)
 	}
 	return fiberMap{"message": "Данные пользователя успешно обновлены"}, nil
 }
