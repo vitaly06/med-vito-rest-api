@@ -468,8 +468,8 @@ func (s *DealService) PayDeal(ctx context.Context, buyerID, dealID int32) (map[s
 		dealTrace(dealID, buyerID, "pay_skip", "reason=payment_already_initialized paymentId=%s", trimOrDash(deal.PaymentID))
 		return map[string]any{"deal": s.formatDeal(*deal), "paymentId": *deal.PaymentID, "paymentUrl": *deal.PaymentURL, "orderId": deal.OrderID}, nil
 	}
-	// Temporary test mode: always initialize deal payment for 1 RUB.
-	paymentID, paymentURL, orderID, err := s.payment.CreateDealPayment(ctx, buyerID, deal.ID, 1, "Безопасная сделка: "+deal.ProductName)
+	// Инициализируем платёж на полную сумму сделки (товар + доставка).
+	paymentID, paymentURL, orderID, err := s.payment.CreateDealPayment(ctx, buyerID, deal.ID, float64(deal.TotalAmount), "Безопасная сделка: "+deal.ProductName)
 	if err != nil {
 		dealTrace(dealID, buyerID, "pay_fail", "create_deal_payment_err=%v", err)
 		return nil, err
