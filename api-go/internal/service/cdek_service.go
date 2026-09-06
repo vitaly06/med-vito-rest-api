@@ -108,7 +108,44 @@ type CDEKTariffsRequest struct {
 
 const cdekAllowedTariffCode = 136
 
-func (s *CDEKService) Calculate(ctx context.Context, req CDEKCalculateRequest) (map[string]any, error) {
+// CDEKPriceBreakdown — структурированный результат расчёта стоимости доставки.
+type CDEKPriceBreakdown struct {
+	DeliverySum float64          `json:"delivery_sum"` // базовая стоимость без доп. услуг
+	TotalSum    float64          `json:"total_sum"`    // итоговая стоимость с услугами
+	PeriodMin   int              `json:"period_min"`   // мин. дней доставки
+	PeriodMax   int              `json:"period_max"`   // макс. дней доставки
+	WeightCalc  int              `json:"weight_calc"`  // расчётный вес (г)
+	Currency    string           `json:"currency"`
+	Services    []CDEKServiceLine `json:"services"` // детализация дополнительных услуг
+}
+
+// CDEKServiceLine — одна строка доп. услуги в разбивке.
+type CDEKServiceLine struct {
+	Code string  `json:"code"`
+	Name string  `json:"name"` // человекочитаемое название
+	Sum  float64 `json:"sum"`
+}
+
+// cdekServiceNames — перевод кодов услуг CDEK в русские названия.
+var cdekServiceNames = map[string]string{
+	"INSURANCE":          "Страховка",
+	"CARTON_BOX_XS":      "Коробка XS",
+	"CARTON_BOX_S":       "Коробка S",
+	"CARTON_BOX_M":       "Коробка M",
+	"CARTON_BOX_L":       "Коробка L",
+	"CARTON_BOX_500":     "Коробка 500×500",
+	"BUBBLE_WRAP":        "Пузырчатая плёнка",
+	"DELICATE_CARGO":     "Хрупкий груз",
+	"SECURE_PACKAGE":     "Защитный пакет",
+	"REVERSE":            "Обратная отправка",
+	"TRYING_ON":          "Примерка",
+	"PARTIAL_DELIVERY":   "Частичная выдача",
+	"COURIER_PACKAGE_A2": "Фирменный пакет A2",
+	"GO_LIGHT":           "Экономичная доставка",
+	"PACKAGE_1":          "Упаковка №1",
+}
+
+func (s *CDEKService) Calculate(ctx context.Context, req CDEKCalculateRequest) (*CDEKPriceBreakdown, error) {
 	if req.TariffCode <= 0 || req.FromCityCode <= 0 || req.ToCityCode <= 0 {
 		return nil, &AppError{400, "Нужны tariffCode, fromCityCode и toCityCode"}
 	}
@@ -116,17 +153,26 @@ func (s *CDEKService) Calculate(ctx context.Context, req CDEKCalculateRequest) (
 		return nil, &AppError{400, "Доступен только тариф 136 (склад-склад)"}
 	}
 	if req.Weight <= 0 {
-		req.Weight = 1000
+		return nil, &AppError{400, "Укажите вес посылки (г), минимум 1"}
 	}
-	if req.Length <= 0 {
-		req.Length = 20
+	if req.Length <= 0 || req.Width <= 0 || req.Height <= 0 {
+		return nil, &AppError{400, "Укажите габариты посылки: длина, ширина и высота (см)"}
 	}
-	if req.Width <= 0 {
-		req.Width = 20
+	// Ограничения CDEK: макс. вес 30 кг, макс. сторона 150 см
+	if req.Weight > 30000 {
+		return nil, &AppError{400, "Максимальный вес для тарифа 136 — 30 кг (30 000 г)"}
 	}
-	if req.Height <= 0 {
-		req.Height = 20
+	maxSide := req.Length
+	if req.Width > maxSide {
+		maxSide = req.Width
 	}
+	if req.Height > maxSide {
+		maxSide = req.Height
+	}
+	if maxSide > 150 {
+		return nil, &AppError{400, "Максимальная сторона посылки — 150 см"}
+	}
+
 	payload := map[string]any{
 		"tariff_code": req.TariffCode,
 		"from_location": map[string]any{
@@ -144,12 +190,114 @@ func (s *CDEKService) Calculate(ctx context.Context, req CDEKCalculateRequest) (
 			},
 		},
 	}
-	var out map[string]any
-	if err := s.postJSON(ctx, "/calculator/tariff", payload, &out); err != nil {
+	var raw map[string]any
+	if err := s.postJSON(ctx, "/calculator/tariff", payload, &raw); err != nil {
 		return nil, err
 	}
+	log.Printf("cdek calculate raw response: %+v", raw)
+	return parseCDEKCalculateResponse(raw)
+}
+
+// parseCDEKCalculateResponse разбирает ответ CDEK /calculator/tariff.
+func parseCDEKCalculateResponse(raw map[string]any) (*CDEKPriceBreakdown, error) {
+	// Проверяем errors в теле (CDEK возвращает HTTP 200 + errors для невалидных запросов)
+	if errs, ok := raw["errors"].([]any); ok && len(errs) > 0 {
+		var msgs []string
+		for _, e := range errs {
+			em, ok := e.(map[string]any)
+			if !ok {
+				continue
+			}
+			if m := normalizeAnyString(em["message"]); m != nil {
+				msgs = append(msgs, *m)
+			}
+		}
+		if len(msgs) > 0 {
+			return nil, &AppError{400, "СДЭК: " + strings.Join(msgs, "; ")}
+		}
+	}
+
+	out := &CDEKPriceBreakdown{Currency: "RUB"}
+	out.DeliverySum = cdekToFloat(raw["delivery_sum"])
+	out.TotalSum = cdekToFloat(raw["total_sum"])
+	out.PeriodMin = cdekToInt(raw["period_min"])
+	out.PeriodMax = cdekToInt(raw["period_max"])
+	out.WeightCalc = cdekToInt(raw["weight_calc"])
+	if c, _ := raw["currency"].(string); c != "" {
+		out.Currency = c
+	}
+
+	// Парсим дополнительные услуги
+	if services, ok := raw["services"].([]any); ok {
+		for _, s := range services {
+			sm, ok := s.(map[string]any)
+			if !ok {
+				continue
+			}
+			code, _ := sm["code"].(string)
+			sum := cdekToFloat(sm["sum"])
+			if code == "" || sum <= 0 {
+				continue
+			}
+			name := code
+			if n, ok := cdekServiceNames[code]; ok {
+				name = n
+			}
+			out.Services = append(out.Services, CDEKServiceLine{Code: code, Name: name, Sum: sum})
+		}
+	}
+
+	// Если total_sum не пришёл — считаем сами
+	if out.TotalSum == 0 {
+		out.TotalSum = out.DeliverySum
+		for _, svc := range out.Services {
+			out.TotalSum += svc.Sum
+		}
+	}
+
+	if out.TotalSum == 0 && out.DeliverySum == 0 {
+		return nil, &AppError{502, "СДЭК вернул нулевую стоимость — проверьте параметры запроса и учётные данные CDEK"}
+	}
+
 	return out, nil
 }
+
+// cdekToFloat конвертирует json.Number / float64 / string в float64.
+func cdekToFloat(v any) float64 {
+	switch t := v.(type) {
+	case float64:
+		return t
+	case json.Number:
+		f, _ := t.Float64()
+		return f
+	case int64:
+		return float64(t)
+	case int:
+		return float64(t)
+	case string:
+		f, _ := strconv.ParseFloat(strings.TrimSpace(t), 64)
+		return f
+	}
+	return 0
+}
+
+// cdekToInt конвертирует json.Number / float64 в int.
+func cdekToInt(v any) int {
+	switch t := v.(type) {
+	case float64:
+		return int(t)
+	case json.Number:
+		i, _ := t.Int64()
+		return int(i)
+	case int:
+		return t
+	case int64:
+		return int(t)
+	}
+	return 0
+}
+
+
 
 func (s *CDEKService) Tariffs(ctx context.Context, req CDEKTariffsRequest) ([]map[string]any, error) {
 	if req.FromCityCode <= 0 || req.ToCityCode <= 0 {

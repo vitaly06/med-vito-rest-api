@@ -47,7 +47,16 @@ func RegisterCDEKRoutes(app fiber.Router, cdek *service.CDEKService) {
 		if err != nil {
 			return writeAppError(c, err)
 		}
-		return c.JSON(out)
+		// Формируем ответ: поля в snake_case для совместимости с фронтендом
+		return c.JSON(fiber.Map{
+			"delivery_sum": out.DeliverySum,
+			"total_sum":    out.TotalSum,
+			"period_min":   out.PeriodMin,
+			"period_max":   out.PeriodMax,
+			"weight_calc":  out.WeightCalc,
+			"currency":     out.Currency,
+			"services":     out.Services,
+		})
 	})
 
 	g.Post("/tariffs", func(c *fiber.Ctx) error {
