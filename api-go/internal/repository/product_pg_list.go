@@ -11,39 +11,39 @@ import (
 )
 
 type ProductListRow struct {
-	ID              int32
-	Images          []string
-	Name            string
-	Address         string
-	CreatedAt       time.Time
-	ExpiresAt       *time.Time // pointer to handle NULL
-	IsHide          bool
-	Price           int32
-	Quantity        int32
-	UserID          int32
-	VideoURL        *string
-	CategoryID      int32
-	CategoryName    string
-	CategorySlug    string
-	SubCategoryID   int32
-	SubCategoryName string
-	SubCategorySlug string
-	TypeID          *int32
-	TypeName        *string
-	TypeSlug        *string
-	PromotionLevel  int32
-	PromotionName   *string
-	SellerRating    *int32
-	SellerVerified  bool
-	ViewsCount      int32
-	TodayViewsCount int32
-	PopularityScore float64
+	ID                        int32
+	Images                    []string
+	Name                      string
+	Address                   string
+	CreatedAt                 time.Time
+	ExpiresAt                 *time.Time // pointer to handle NULL
+	IsHide                    bool
+	Price                     int32
+	Quantity                  int32
+	UserID                    int32
+	VideoURL                  *string
+	CategoryID                int32
+	CategoryName              string
+	CategorySlug              string
+	SubCategoryID             int32
+	SubCategoryName           string
+	SubCategorySlug           string
+	TypeID                    *int32
+	TypeName                  *string
+	TypeSlug                  *string
+	PromotionLevel            int32
+	PromotionName             *string
+	SellerRating              *int32
+	SellerVerified            bool
+	ViewsCount                int32
+	TodayViewsCount           int32
+	PopularityScore           float64
 	ModerateState             *string
 	ModerationRejectionReason *string
 	IsReserved                bool
-	IsPaid          bool   // added
-	DaysUntilExpiry int    // added
-	IsExpired       bool   // added
+	IsPaid                    bool // added
+	DaysUntilExpiry           int  // added
+	IsExpired                 bool // added
 }
 
 const productListSelect = `
