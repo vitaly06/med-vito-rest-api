@@ -2018,14 +2018,24 @@ func (s *AuthService) YandexAuthURL(state string) (string, error) {
 	return yandexAuthorizeURL + "?" + q.Encode(), nil
 }
 
-// SignInWithYandex обменивает code на токен, получает профиль и создаёт/находит пользователя.
-func (s *AuthService) SignInWithYandex(ctx context.Context, code, state string) (*signInResponse, string, error) {
+// YandexSignInResult — либо готовая сессия, либо требование подтвердить телефон по SMS
+// (аккаунт в этом случае ещё не создан).
+type YandexSignInResult struct {
+	RequirePhoneRegistration bool
+	RegistrationTicket       string
+	SignIn                   *signInResponse
+	SessionID                string
+}
+
+// SignInWithYandex обменивает code на токен и получает профиль. Если аккаунта ещё нет,
+// пользователь НЕ создаётся: возвращается тикет для регистрации с подтверждением телефона.
+func (s *AuthService) SignInWithYandex(ctx context.Context, code, state string) (*YandexSignInResult, error) {
 	code = strings.TrimSpace(code)
 	if code == "" {
-		return nil, "", &AppError{400, "Нужен code"}
+		return nil, &AppError{400, "Нужен code"}
 	}
 	if strings.TrimSpace(s.cfg.YandexClientID) == "" || strings.TrimSpace(s.cfg.YandexClientSecret) == "" {
-		return nil, "", &AppError{500, "Яндекс OAuth не настроен в .env"}
+		return nil, &AppError{500, "Яндекс OAuth не настроен в .env"}
 	}
 
 	// Проверяем state
@@ -2033,10 +2043,10 @@ func (s *AuthService) SignInWithYandex(ctx context.Context, code, state string) 
 	if state != "" {
 		val, err := s.rdb.Get(ctx, yandexPKCEPrefix+state).Result()
 		if err == redis.Nil || val == "" {
-			return nil, "", &AppError{401, "Яндекс OAuth: истекла сессия авторизации"}
+			return nil, &AppError{401, "Яндекс OAuth: истекла сессия авторизации"}
 		}
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
 		_ = s.rdb.Del(ctx, yandexPKCEPrefix+state)
 	}
@@ -2051,21 +2061,21 @@ func (s *AuthService) SignInWithYandex(ctx context.Context, code, state string) 
 
 	tokenReq, err := http.NewRequestWithContext(ctx, http.MethodPost, yandexTokenURL, strings.NewReader(form.Encode()))
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	tokenReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	tokenRes, err := s.client.Do(tokenReq)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	defer tokenRes.Body.Close()
 	tokenBody, err := io.ReadAll(tokenRes.Body)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	if tokenRes.StatusCode < 200 || tokenRes.StatusCode >= 300 {
-		return nil, "", &AppError{401, "Яндекс OAuth token error: " + truncateForErr(string(tokenBody))}
+		return nil, &AppError{401, "Яндекс OAuth token error: " + truncateForErr(string(tokenBody))}
 	}
 
 	var tokenData struct {
@@ -2075,24 +2085,32 @@ func (s *AuthService) SignInWithYandex(ctx context.Context, code, state string) 
 		ErrorDesc   string `json:"error_description"`
 	}
 	if err := json.Unmarshal(tokenBody, &tokenData); err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	if tokenData.Error != "" {
-		return nil, "", &AppError{401, "Яндекс OAuth: " + tokenData.ErrorDesc}
+		return nil, &AppError{401, "Яндекс OAuth: " + tokenData.ErrorDesc}
 	}
 	if tokenData.AccessToken == "" {
-		return nil, "", &AppError{401, "Яндекс OAuth: пустой access_token"}
+		return nil, &AppError{401, "Яндекс OAuth: пустой access_token"}
 	}
 
 	// Получаем профиль пользователя
 	profile, err := s.fetchYandexUserInfo(ctx, tokenData.AccessToken)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
-	user, err := s.findOrCreateTrustedOAuthUser(ctx, *profile)
+	user, err := s.findExistingYandexUser(ctx, *profile)
 	if err != nil {
-		return nil, "", err
+		return nil, err
+	}
+	if user == nil {
+		// Аккаунта ещё нет: регистрация завершится только после подтверждения телефона по SMS.
+		ticket, err := s.createYandexPendingRegistration(ctx, *profile)
+		if err != nil {
+			return nil, err
+		}
+		return &YandexSignInResult{RequirePhoneRegistration: true, RegistrationTicket: ticket}, nil
 	}
 	_ = s.users.UpsertOAuthIdentity(ctx, "yandex", profile.ExternalID, user.ID)
 
@@ -2107,7 +2125,7 @@ func (s *AuthService) SignInWithYandex(ctx context.Context, code, state string) 
 	}
 	b, _ := json.Marshal(sp)
 	if err := s.rdb.Set(ctx, sessionKeyPrefix+sid, b, sessionTTL).Err(); err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	var photo *string
@@ -2127,7 +2145,7 @@ func (s *AuthService) SignInWithYandex(ctx context.Context, code, state string) 
 	out.User.ProfileType = user.ProfileType
 	out.User.Photo = photo
 	out.User.RequireYandexOnboarding = requireYandexOnboarding
-	return out, sid, nil
+	return &YandexSignInResult{SignIn: out, SessionID: sid}, nil
 }
 
 // fetchYandexUserInfo запрашивает профиль пользователя у Яндекс.
@@ -2152,15 +2170,15 @@ func (s *AuthService) fetchYandexUserInfo(ctx context.Context, accessToken strin
 	}
 
 	var info struct {
-		ID          string `json:"id"`
-		Login       string `json:"login"`
-		FirstName   string `json:"first_name"`
-		LastName    string `json:"last_name"`
-		DisplayName string `json:"display_name"`
-		RealName    string `json:"real_name"`
-		DefaultEmail string `json:"default_email"`
-		Emails      []string `json:"emails"`
-		DefaultAvatarID string `json:"default_avatar_id"`
+		ID              string   `json:"id"`
+		Login           string   `json:"login"`
+		FirstName       string   `json:"first_name"`
+		LastName        string   `json:"last_name"`
+		DisplayName     string   `json:"display_name"`
+		RealName        string   `json:"real_name"`
+		DefaultEmail    string   `json:"default_email"`
+		Emails          []string `json:"emails"`
+		DefaultAvatarID string   `json:"default_avatar_id"`
 	}
 	if err := json.Unmarshal(body, &info); err != nil {
 		return nil, err
@@ -2201,4 +2219,3 @@ func (s *AuthService) fetchYandexUserInfo(ctx context.Context, accessToken strin
 		Avatar:     avatar,
 	}, nil
 }
-

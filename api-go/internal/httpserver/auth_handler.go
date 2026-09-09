@@ -168,7 +168,60 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 		if err := c.BodyParser(&body); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректное тело"})
 		}
-		out, sid, err := auth.SignInWithYandex(c.UserContext(), body.Code, body.State)
+		res, err := auth.SignInWithYandex(c.UserContext(), body.Code, body.State)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		// Нового пользователя ещё нет: сессия не выдаётся, пока телефон не подтверждён по SMS.
+		if res.RequirePhoneRegistration {
+			return c.JSON(fiber.Map{
+				"message":                  "Для завершения регистрации подтвердите номер телефона по SMS",
+				"requirePhoneRegistration": true,
+				"registrationTicket":       res.RegistrationTicket,
+			})
+		}
+		c.Cookie(sessionCookie(cfg, res.SessionID, 30*24*60*60))
+		c.Cookie(wsSessionCookie(cfg, res.SessionID, 30*24*60*60))
+		return c.JSON(res.SignIn)
+	})
+
+	// Регистрация через Яндекс: шаги ниже идут без сессии — по тикету из /yandex/sign-in.
+	g.Get("/yandex/register/status", func(c *fiber.Ctx) error {
+		out, err := auth.YandexRegistrationStatus(c.UserContext(), c.Query("ticket"))
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
+	g.Post("/yandex/register/send-code", func(c *fiber.Ctx) error {
+		var body struct {
+			RegistrationTicket string `json:"registrationTicket"`
+			PhoneNumber        string `json:"phoneNumber"`
+		}
+		if err := c.BodyParser(&body); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректное тело"})
+		}
+		phone, err := auth.YandexRegistrationSendCode(c.UserContext(), body.RegistrationTicket, body.PhoneNumber)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(fiber.Map{"message": "Код подтверждения отправлен по SMS", "phoneNumber": phone})
+	})
+
+	g.Post("/yandex/register/verify-code", func(c *fiber.Ctx) error {
+		var body struct {
+			RegistrationTicket string `json:"registrationTicket"`
+			Code               string `json:"code"`
+		}
+		if err := c.BodyParser(&body); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректное тело"})
+		}
+		code := body.Code
+		if code == "" {
+			code = c.Query("code")
+		}
+		out, sid, err := auth.YandexRegistrationVerifyCode(c.UserContext(), body.RegistrationTicket, code)
 		if err != nil {
 			return writeAppError(c, err)
 		}
