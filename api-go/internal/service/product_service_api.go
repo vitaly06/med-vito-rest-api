@@ -534,15 +534,16 @@ func (s *ProductService) GetProductCard(ctx context.Context, productID int32, vi
 			}
 			return map[string]any{"id": *card.TypeID, "name": card.TypeName, "slug": card.TypeSlug}
 		}(),
-		"fieldValues":    fvArr,
-		"isFavorited":    fav,
-		"seller":         seller,
-		"hasPromotion":   hasPromo,
-		"isPaid":         hasPromo,
-		"promotionLevel": card.PromotionLevel,
-		"promotionName":  card.PromotionName,
-		"viewsCount":     card.ViewsCount,
+		"fieldValues":     fvArr,
+		"isFavorited":     fav,
+		"seller":          seller,
+		"hasPromotion":    hasPromo,
+		"isPaid":          hasPromo,
+		"promotionLevel":  card.PromotionLevel,
+		"promotionName":   card.PromotionName,
+		"viewsCount":      card.ViewsCount,
 		"todayViewsCount": card.TodayViewsCount,
+		"createdAt":       formatProductDate(card.CreatedAt),
 	}, nil
 }
 

@@ -531,12 +531,13 @@ type ProductCardDB struct {
 	ViewsCount      int32
 	TodayViewsCount int32
 	FieldPairs      []struct{ FieldName, Value string }
+	CreatedAt       time.Time
 }
 
 func (r *ProductPG) GetProductCard(ctx context.Context, productID int32) (*ProductCardDB, error) {
 	const q = `
 		SELECT p.id, p.name, p.description, p.price, p.quantity, p."isHide", p.images, p.address, p."userId", p."videoUrl", p."moderateState"::text, p.state::text,
-			c.id, c.name, c.slug, sc.id, sc.name, sc.slug, t.id, t.name, t.slug,
+			c.id, c.name, c.slug, sc.id, sc.name, sc.slug, t.id, t.name, t.slug, p."createdAt",
 			COALESCE((
 				SELECT pr."pricePerDay" FROM "ProductPromotion" pp
 				JOIN "Promotion" pr ON pr.id = pp."promotionId"
@@ -563,7 +564,7 @@ func (r *ProductPG) GetProductCard(ctx context.Context, productID int32) (*Produ
 		&card.ID, &card.Name, &card.Description, &card.Price, &card.Quantity, &card.IsHide, &card.Images, &card.Address, &card.UserID, &card.VideoURL, &card.ModerateState, &card.State,
 		&card.CategoryID, &card.CategoryName, &card.CategorySlug,
 		&card.SubCatID, &card.SubCatName, &card.SubCatSlug,
-		&typeID, &typeName, &typeSlug,
+		&typeID, &typeName, &typeSlug, &card.CreatedAt,
 		&card.PromotionLevel, &card.PromotionName, &card.ViewsCount, &card.TodayViewsCount,
 	)
 	card.TypeID, card.TypeName, card.TypeSlug = typeID, typeName, typeSlug
