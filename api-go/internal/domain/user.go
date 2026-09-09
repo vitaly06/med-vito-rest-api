@@ -21,13 +21,14 @@ type UserEntity struct {
 
 // MeResponse — как getCurrentUser в Nest.
 type MeResponse struct {
-	ID            int32   `json:"id"`
-	Email         string  `json:"email"`
-	FullName      string  `json:"fullName"`
-	PhoneNumber   string  `json:"phoneNumber"`
-	ProfileType   string  `json:"profileType"`
-	Photo         *string `json:"photo"`
-	Rating        *int32  `json:"rating,omitempty"`
-	IsAnswersCall *bool   `json:"isAnswersCall,omitempty"`
-	Role          *string `json:"role"`
+	ID                      int32   `json:"id"`
+	Email                   string  `json:"email"`
+	FullName                string  `json:"fullName"`
+	PhoneNumber             string  `json:"phoneNumber"`
+	ProfileType             string  `json:"profileType"`
+	Photo                   *string `json:"photo"`
+	Rating                  *int32  `json:"rating,omitempty"`
+	IsAnswersCall           *bool   `json:"isAnswersCall,omitempty"`
+	Role                    *string `json:"role"`
+	RequireYandexOnboarding bool    `json:"requireYandexOnboarding,omitempty"`
 }

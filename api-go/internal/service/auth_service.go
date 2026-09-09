@@ -1021,10 +1021,17 @@ func (s *AuthService) Me(ctx context.Context, userID int32) (*domain.MeResponse,
 		p := s.cfg.BaseURL + *u.Photo
 		photo = &p
 	}
+
+	// Проверяем, нужен ли онбординг Яндекса (нет/не подтверждён телефон у Яндекс-пользователя)
+	isYandexUser, _ := s.users.HasOAuthProviderForUser(ctx, userID, "yandex")
+	isYandexPhone := strings.HasPrefix(strings.ToUpper(u.PhoneNumber), "YANDEX_")
+	requireYandexOnboarding := IsYandexOnboardingRequired(u, isYandexUser || isYandexPhone)
+
 	return &domain.MeResponse{
 		ID: u.ID, Email: u.Email, FullName: u.FullName, PhoneNumber: u.PhoneNumber,
 		ProfileType: u.ProfileType, Photo: photo, Rating: u.Rating, IsAnswersCall: u.IsAnswersCall,
-		Role: u.RoleName,
+		Role:                    u.RoleName,
+		RequireYandexOnboarding: requireYandexOnboarding,
 	}, nil
 }
 
