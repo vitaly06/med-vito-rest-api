@@ -942,19 +942,15 @@ func (s *AuthService) YandexOnboardingVerifyPhoneCode(ctx context.Context, userI
 		return &AppError{400, "Неверный код подтверждения"}
 	}
 
-	targetUserID := userID
+	// Если такой телефон уже привязан к другому аккаунту — отказываем.
 	if otherID, err := s.users.FindUserIDByPhone(ctx, cached.Phone); err == nil && otherID != nil && *otherID != userID {
-		targetUserID = *otherID
-		current, errCur := s.users.FindUserByID(ctx, userID)
-		if errCur == nil && current != nil {
-			_ = s.users.UpsertOAuthIdentity(ctx, "yandex", fmt.Sprintf("%d", current.ID), targetUserID)
-		}
+		return &AppError{409, "Пользователь с таким номером телефона уже существует"}
 	}
 
-	if err := s.users.SetPhone(ctx, targetUserID, cached.Phone); err != nil {
+	if err := s.users.SetPhone(ctx, userID, cached.Phone); err != nil {
 		return err
 	}
-	if err := s.users.SetPhoneVerified(ctx, targetUserID, true); err != nil {
+	if err := s.users.SetPhoneVerified(ctx, userID, true); err != nil {
 		return err
 	}
 	_ = s.rdb.Del(ctx, "yandex:verify:phone:"+code).Err()
