@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"strings"
 	"time"
 
@@ -49,7 +50,7 @@ func NewDealService(cfg config.Config, repo *repository.DealPG, logs *repository
 
 type CreateDealRequest struct {
 	ProductID         int32   `json:"productId"`
-	DeliveryCost      int32   `json:"deliveryCost"`
+	DeliveryCost      float64 `json:"deliveryCost"`
 	CDEKTariffCode    *int32  `json:"cdekTariffCode"`
 	CDEKTariffName    *string `json:"cdekTariffName"`
 	CDEKFromCity      *int32  `json:"cdekFromCityCode"`
@@ -349,7 +350,8 @@ func (s *DealService) CreateDeal(ctx context.Context, buyerID int32, req CreateD
 	if !product.Approved || product.IsHide {
 		return nil, &AppError{400, "Товар недоступен для безопасной сделки"}
 	}
-	if req.DeliveryCost < 0 {
+	deliveryCostInt := int32(math.Round(req.DeliveryCost))
+	if deliveryCostInt < 0 {
 		return nil, &AppError{400, "Стоимость доставки не может быть отрицательной"}
 	}
 
@@ -394,7 +396,7 @@ func (s *DealService) CreateDeal(ctx context.Context, buyerID int32, req CreateD
 
 	platformFee := int32(int(product.Price) * feePercent / 100)
 	sellerAmount := product.Price - platformFee
-	totalAmount := product.Price + req.DeliveryCost
+	totalAmount := product.Price + deliveryCostInt
 	recipientModePtr := recipientMode
 
 	deal, err := s.repo.Create(ctx, repository.CreateDealParams{
@@ -402,7 +404,7 @@ func (s *DealService) CreateDeal(ctx context.Context, buyerID int32, req CreateD
 		BuyerID:           buyerID,
 		SellerID:          product.UserID,
 		ProductAmount:     product.Price,
-		DeliveryCost:      req.DeliveryCost,
+		DeliveryCost:      deliveryCostInt,
 		PlatformFee:       platformFee,
 		SellerAmount:      sellerAmount,
 		TotalAmount:       totalAmount,
