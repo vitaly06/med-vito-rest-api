@@ -64,12 +64,13 @@ func (r *ReservationPG) GetProductReserveSettings(ctx context.Context, productID
 }
 
 func (r *ReservationPG) IsUserVerified(ctx context.Context, userID int32) (bool, string, error) {
-	var verified bool
+	var emailVerified, phoneVerified bool
 	var name string
-	err := r.pool.QueryRow(ctx, `SELECT "isEmailVerified", "fullName" FROM "User" WHERE id = $1`, userID).Scan(&verified, &name)
+	err := r.pool.QueryRow(ctx, `SELECT "isEmailVerified", "isPhoneVerified", "fullName" FROM "User" WHERE id = $1`, userID).Scan(&emailVerified, &phoneVerified, &name)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, "", ErrNotFound
 	}
+	verified := emailVerified || phoneVerified
 	return verified, name, err
 }
 
