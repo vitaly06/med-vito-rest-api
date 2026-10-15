@@ -19,6 +19,20 @@ const FreeAdsMonthlyLimit = 6
 // ErrInsufficientFunds — не хватает денег на платное объявление.
 var ErrInsufficientFunds = errors.New("INSUFFICIENT_FUNDS")
 
+// ErrForbidden — доступ запрещен (не свой товар).
+var ErrForbidden = errors.New("FORBIDDEN")
+
+type ToggleProductResult struct {
+	IsHide          bool
+	Renewed         bool
+	Paid            bool
+	Cost            int32
+	BonusDeducted   float64
+	BalanceDeducted float64
+	ExpiresAt       *time.Time
+	Message         string
+}
+
 type ProductPG struct {
 	pool *pgxpool.Pool
 }
@@ -717,12 +731,175 @@ func (r *ProductPG) UpsertProductView(ctx context.Context, viewerID, productID i
 		viewerID, productID)
 }
 
+func (r *ProductPG) ToggleProductTx(ctx context.Context, productID, userID int32) (*ToggleProductResult, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	var ownerID int32
+	var isHide bool
+	var expiresAt *time.Time
+	var createdAt time.Time
+	err = tx.QueryRow(ctx, `
+		SELECT "userId", "isHide", "expiresAt", "createdAt"
+		FROM "Product"
+		WHERE id = $1 FOR UPDATE`, productID).Scan(&ownerID, &isHide, &expiresAt, &createdAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if ownerID != userID {
+		return nil, ErrForbidden
+	}
+
+	now := time.Now().UTC()
+
+	// 1. Если товар сейчас активен (isHide == false), действие — "Снять с продажи" (скрыть).
+	// Это бесплатно, не меняет срок действия и не расходует месячный лимит.
+	if !isHide {
+		_, err = tx.Exec(ctx, `UPDATE "Product" SET "isHide" = true, "updatedAt" = NOW() WHERE id = $1`, productID)
+		if err != nil {
+			return nil, err
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return nil, err
+		}
+		return &ToggleProductResult{
+			IsHide:    true,
+			Renewed:   false,
+			Paid:      false,
+			ExpiresAt: expiresAt,
+			Message:   "Объявление снято с продажи",
+		}, nil
+	}
+
+	// 2. Товар сейчас скрыт (isHide == true), действие — "Вернуть в продажу".
+	// Проверяем, истёк ли срок действия объявления (30 дней).
+	isExpired := expiresAt == nil || !expiresAt.After(now)
+
+	// Если срок ещё НЕ истёк (например, продавец скрыл активный товар пару дней назад),
+	// восстанавливаем показ в рамках текущего срока без списания лимита и денег.
+	if !isExpired {
+		_, err = tx.Exec(ctx, `UPDATE "Product" SET "isHide" = false, "updatedAt" = NOW() WHERE id = $1`, productID)
+		if err != nil {
+			return nil, err
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return nil, err
+		}
+		return &ToggleProductResult{
+			IsHide:    false,
+			Renewed:   false,
+			Paid:      false,
+			ExpiresAt: expiresAt,
+			Message:   "Объявление возвращено в продажу",
+		}, nil
+	}
+
+	// 3. Срок истёк — товар продлевается на 30 дней.
+	// Учитываем месячный лимит 6 бесплатных объявлений.
+	var freeLimit, usedAds int32
+	var lastReset time.Time
+	var balance, bonus float64
+	err = tx.QueryRow(ctx, `
+		SELECT "freeAdsLimit", "usedFreeAds", "lastAdLimitReset", "balance", "bonusBalance"
+		FROM "User" WHERE id = $1 FOR UPDATE`, userID).Scan(&freeLimit, &usedAds, &lastReset, &balance, &bonus)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	lr := lastReset.UTC()
+	if now.Month() != lr.Month() || now.Year() != lr.Year() {
+		usedAds = 0
+		_, err = tx.Exec(ctx, `UPDATE "User" SET "usedFreeAds" = 0, "lastAdLimitReset" = $2, "updatedAt" = NOW() WHERE id = $1`, userID, now)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if freeLimit <= 0 {
+		freeLimit = FreeAdsMonthlyLimit
+	}
+
+	wasPaid := false
+	var bonusDeduct, balDeduct float64
+
+	if usedAds >= freeLimit {
+		total := balance + bonus
+		if total < float64(AdListingCost) {
+			return nil, ErrInsufficientFunds
+		}
+		rem := float64(AdListingCost)
+		bonusDeduct = bonus
+		if bonusDeduct > rem {
+			bonusDeduct = rem
+		}
+		rem -= bonusDeduct
+		balDeduct = rem
+		_, err = tx.Exec(ctx, `
+			UPDATE "User" SET "bonusBalance" = "bonusBalance" - $2, "balance" = "balance" - $3, "updatedAt" = NOW() WHERE id = $1`,
+			userID, bonusDeduct, balDeduct)
+		if err != nil {
+			return nil, err
+		}
+		wasPaid = true
+	} else {
+		_, err = tx.Exec(ctx, `UPDATE "User" SET "usedFreeAds" = "usedFreeAds" + 1, "updatedAt" = NOW() WHERE id = $1`, userID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	newExpiresAt := now.Add(30 * 24 * time.Hour)
+	_, err = tx.Exec(ctx, `
+		UPDATE "Product" 
+		SET "isHide" = false, 
+		    "expiresAt" = NOW() + INTERVAL '30 days', 
+		    "updatedAt" = NOW() 
+		WHERE id = $1`, productID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	msg := "Объявление продлено на 30 дней"
+	if wasPaid {
+		msg = fmt.Sprintf("Объявление продлено на 30 дней. Списано %d ₽.", AdListingCost)
+	} else {
+		remaining := freeLimit - (usedAds + 1)
+		if remaining < 0 {
+			remaining = 0
+		}
+		msg = fmt.Sprintf("Объявление продлено на 30 дней. Использовано бесплатное объявление (осталось: %d).", remaining)
+	}
+
+	return &ToggleProductResult{
+		IsHide:          false,
+		Renewed:         true,
+		Paid:            wasPaid,
+		Cost:            AdListingCost,
+		BonusDeducted:   bonusDeduct,
+		BalanceDeducted: balDeduct,
+		ExpiresAt:       &newExpiresAt,
+		Message:         msg,
+	}, nil
+}
+
 func (r *ProductPG) ToggleProductHide(ctx context.Context, productID int32) error {
 	const q = `
 		UPDATE "Product" 
 		SET "isHide" = NOT "isHide", 
-		    "updatedAt" = NOW(),
-		    "expiresAt" = CASE WHEN "isHide" = true THEN NOW() + INTERVAL '30 days' ELSE "expiresAt" END
+		    "updatedAt" = NOW()
 		WHERE id = $1`
 	tag, err := r.pool.Exec(ctx, q, productID)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"med-vito/api-go/internal/repository"
 )
@@ -548,20 +549,34 @@ func (s *ProductService) GetProductCard(ctx context.Context, productID int32, vi
 }
 
 func (s *ProductService) ToggleProduct(ctx context.Context, productID, userID int32) (map[string]any, error) {
-	uid, _, err := s.prod.GetProductOwnerAndImages(ctx, productID)
+	res, err := s.prod.ToggleProductTx(ctx, productID, userID)
 	if errors.Is(err, repository.ErrNotFound) {
 		return nil, &AppError{404, "Товар не найден"}
+	}
+	if errors.Is(err, repository.ErrForbidden) {
+		return nil, &AppError{403, "Вы не можете редактировать не свой товар"}
+	}
+	if errors.Is(err, repository.ErrInsufficientFunds) {
+		return nil, &AppError{400, fmt.Sprintf("Лимит бесплатных объявлений исчерпан. Для продления объявления требуется %d ₽. Пополните баланс в профиле.", repository.AdListingCost)}
 	}
 	if err != nil {
 		return nil, err
 	}
-	if uid != userID {
-		return nil, &AppError{403, "Вы не можете редактировать не свой товар"}
+	out := map[string]any{
+		"message": res.Message,
+		"isHide":  res.IsHide,
+		"renewed": res.Renewed,
+		"paid":    res.Paid,
 	}
-	if err := s.prod.ToggleProductHide(ctx, productID); err != nil {
-		return nil, err
+	if res.ExpiresAt != nil {
+		out["expiresAt"] = res.ExpiresAt.Format(time.RFC3339)
 	}
-	return map[string]any{"message": "Статус активности товара сменён"}, nil
+	if res.Paid {
+		out["cost"] = res.Cost
+		out["bonusDeducted"] = res.BonusDeducted
+		out["balanceDeducted"] = res.BalanceDeducted
+	}
+	return out, nil
 }
 
 func (s *ProductService) ModerateProduct(ctx context.Context, productID int32, status, reason string) error {
