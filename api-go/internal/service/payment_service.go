@@ -32,7 +32,7 @@ func NewPaymentService(cfg config.Config, repo *repository.PaymentPG, deals *rep
 		cfg:    cfg,
 		repo:   repo,
 		deals:  deals,
-		client: &http.Client{Timeout: 45 * time.Second},
+		client: tinkoff.NewHTTPClient(45 * time.Second),
 	}
 }
 

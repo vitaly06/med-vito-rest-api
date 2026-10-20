@@ -9,17 +9,13 @@ import (
 )
 
 func sessionCookie(cfg config.Config, value string, maxAgeSec int) *fiber.Cookie {
-	ss := "Lax"
-	if cfg.Production {
-		ss = "Strict"
-	}
 	return &fiber.Cookie{
 		Name:     "session_id",
 		Value:    value,
 		Path:     "/",
 		HTTPOnly: true,
 		Secure:   cfg.Production,
-		SameSite: ss,
+		SameSite: "Lax",
 		MaxAge:   maxAgeSec,
 	}
 }
@@ -31,17 +27,13 @@ func clearSessionCookie(cfg config.Config) *fiber.Cookie {
 }
 
 func wsSessionCookie(cfg config.Config, value string, maxAgeSec int) *fiber.Cookie {
-	ss := "Lax"
-	if cfg.Production {
-		ss = "Strict"
-	}
 	return &fiber.Cookie{
 		Name:     "ws_session_id",
 		Value:    value,
 		Path:     "/",
 		HTTPOnly: false,
 		Secure:   cfg.Production,
-		SameSite: ss,
+		SameSite: "Lax",
 		MaxAge:   maxAgeSec,
 	}
 }

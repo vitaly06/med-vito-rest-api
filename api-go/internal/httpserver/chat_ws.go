@@ -252,11 +252,15 @@ func handleWSChatEvent(ctx context.Context, c *wsClient, chat *service.ChatServi
 		if err := chat.MarkMessagesAsRead(ctx, d.ChatID, c.userID); err != nil {
 			return err
 		}
+		readEvt := wsOutgoing{
+			Event: "messagesRead",
+			Data:  map[string]any{"chatId": d.ChatID, "readBy": c.userID},
+		}
 		for _, other := range chatNativeHub.roomClients(d.ChatID) {
-			_ = other.conn.WriteJSON(wsOutgoing{
-				Event: "messagesRead",
-				Data:  map[string]any{"chatId": d.ChatID, "readBy": c.userID},
-			})
+			_ = other.conn.WriteJSON(readEvt)
+		}
+		for _, uc := range chatNativeHub.userClients(c.userID) {
+			_ = uc.conn.WriteJSON(readEvt)
 		}
 		return nil
 	case "sendMessage":

@@ -293,18 +293,21 @@ func (r *BannerPG) ViewsByDay(ctx context.Context, bannerID int32, since time.Ti
 	return out, rows.Err()
 }
 
-// UserBannerStat — как getUserBannersStats map в Nest.
+// UserBannerStat — баннер пользователя со статистикой и статусом модерации.
 type UserBannerStat struct {
-	ID         int32     `json:"id"`
-	Name       string    `json:"name"`
-	Place      string    `json:"place"`
-	TotalViews int64     `json:"totalViews"`
-	CreatedAt  time.Time `json:"createdAt"`
+	ID            int32     `json:"id"`
+	Name          string    `json:"name"`
+	Place         string    `json:"place"`
+	PhotoURL      string    `json:"photoUrl"`
+	NavigateToURL string    `json:"navigateToUrl"`
+	ModerateState string    `json:"moderateState"`
+	TotalViews    int64     `json:"totalViews"`
+	CreatedAt     time.Time `json:"createdAt"`
 }
 
 func (r *BannerPG) UserBannersStats(ctx context.Context, userID int32) ([]UserBannerStat, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT b.id, b.name, b.place::text, b."createdAt",
+		SELECT b.id, b.name, b.place::text, b."photoUrl", b."navigateToUrl", COALESCE(b."moderateState"::text, 'MODERATE'), b."createdAt",
 			(SELECT COUNT(*)::bigint FROM "BannerView" v WHERE v."bannerId" = b.id) AS vc
 		FROM "Banner" b
 		WHERE b."userId" = $1
@@ -316,7 +319,7 @@ func (r *BannerPG) UserBannersStats(ctx context.Context, userID int32) ([]UserBa
 	var out []UserBannerStat
 	for rows.Next() {
 		var s UserBannerStat
-		if err := rows.Scan(&s.ID, &s.Name, &s.Place, &s.CreatedAt, &s.TotalViews); err != nil {
+		if err := rows.Scan(&s.ID, &s.Name, &s.Place, &s.PhotoURL, &s.NavigateToURL, &s.ModerateState, &s.CreatedAt, &s.TotalViews); err != nil {
 			return nil, err
 		}
 		out = append(out, s)

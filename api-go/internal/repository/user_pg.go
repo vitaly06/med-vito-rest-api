@@ -369,6 +369,7 @@ type UserSettingsPatch struct {
 	IsAnswersCall *bool
 	ProfileType   *string
 	Photo         *string
+	Email         *string
 }
 
 func (r *UserPG) UpdateUserSettings(ctx context.Context, userID int32, p UserSettingsPatch) error {
@@ -384,6 +385,11 @@ func (r *UserPG) UpdateUserSettings(ctx context.Context, userID int32, p UserSet
 	if p.PhoneNumber != nil {
 		sets = append(sets, fmt.Sprintf(`"phoneNumber" = $%d`, n))
 		args = append(args, *p.PhoneNumber)
+		n++
+	}
+	if p.Email != nil {
+		sets = append(sets, fmt.Sprintf(`"email" = $%d`, n))
+		args = append(args, *p.Email)
 		n++
 	}
 	if p.IsAnswersCall != nil {

@@ -11,6 +11,8 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o
 
 FROM alpine:3.20
 RUN apk add --no-cache ca-certificates tzdata wget
+COPY certs/*.crt /usr/local/share/ca-certificates/
+RUN update-ca-certificates
 WORKDIR /app
 COPY --from=builder /out/server ./server
 RUN chown nobody:nobody /app/server && chmod 555 /app/server

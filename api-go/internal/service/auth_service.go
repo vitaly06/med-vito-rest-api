@@ -855,6 +855,8 @@ func (s *AuthService) UserFromSession(ctx context.Context, sessionID string) (*d
 		}
 		return nil, err
 	}
+	// Продлеваем жизнь активной сессии
+	_ = s.rdb.Expire(ctx, sessionKeyPrefix+sessionID, sessionTTL).Err()
 	return u, nil
 }
 

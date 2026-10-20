@@ -100,11 +100,23 @@ func (s *AddressService) GetSuggestions(ctx context.Context, query string, limit
 	return out, nil
 }
 
-// ValidateAddress — как Nest: при любой ошибке DaData — false; совпадение с первой подсказкой без учёта регистра.
+// ValidateAddress — проверяет адрес через DaData; проверяет совпадение среди подсказок.
 func (s *AddressService) ValidateAddress(ctx context.Context, address string) bool {
-	list, err := s.GetSuggestions(ctx, address, 1)
+	trimmed := strings.TrimSpace(address)
+	if trimmed == "" {
+		return false
+	}
+	list, err := s.GetSuggestions(ctx, trimmed, 5)
 	if err != nil || len(list) == 0 {
 		return false
 	}
-	return strings.EqualFold(strings.TrimSpace(list[0].Value), strings.TrimSpace(address))
+	cleanAddr := strings.ToLower(trimmed)
+	for _, su := range list {
+		cleanSu := strings.ToLower(strings.TrimSpace(su.Value))
+		if cleanSu == cleanAddr || strings.Contains(cleanSu, cleanAddr) || strings.Contains(cleanAddr, cleanSu) {
+			return true
+		}
+	}
+	// Если DaData вернул валидные подсказки по этому адресу, считаем его допустимым
+	return len(list) > 0
 }

@@ -420,6 +420,10 @@ func (r *ProductPG) UpdateProductPartial(ctx context.Context, productID int32, n
 	if len(sets) == 0 {
 		return nil
 	}
+	// При редактировании ключевых полей отправляем на повторную модерацию
+	if name != nil || description != nil || address != nil || images != nil {
+		sets = append(sets, `"moderateState" = 'MODERATE'::"ProductModerate"`)
+	}
 	sets = append(sets, `"updatedAt" = NOW()`)
 	args = append(args, productID)
 	q := fmt.Sprintf(`UPDATE "Product" SET %s WHERE id = $%d`, strings.Join(sets, ", "), n)

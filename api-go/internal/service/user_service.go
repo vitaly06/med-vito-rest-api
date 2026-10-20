@@ -228,13 +228,17 @@ func (s *UserService) GetPhoneNumber(ctx context.Context, sellerID, viewerID int
 }
 
 // UpdateSettingsMultipart — поля из multipart + опциональный файл photo.
-func (s *UserService) UpdateSettingsMultipart(ctx context.Context, userID int32, fullName, phone, isAnswersRaw, profileType string, photoName, photoCT string, photoBody []byte) (fiberMap, error) {
+func (s *UserService) UpdateSettingsMultipart(ctx context.Context, userID int32, fullName, phone, email, isAnswersRaw, profileType string, photoName, photoCT string, photoBody []byte) (fiberMap, error) {
 	patch := repository.UserSettingsPatch{}
 	if fullName != "" {
 		patch.FullName = &fullName
 	}
 	if phone != "" {
 		patch.PhoneNumber = &phone
+	}
+	if strings.TrimSpace(email) != "" {
+		cleanEmail := strings.ToLower(strings.TrimSpace(email))
+		patch.Email = &cleanEmail
 	}
 	if isAnswersRaw != "" {
 		v := isAnswersRaw == "true" || isAnswersRaw == "1"
@@ -274,6 +278,9 @@ func (s *UserService) UpdateSettingsMultipart(ctx context.Context, userID int32,
 	}
 	if patch.PhoneNumber != nil {
 		out["phoneNumber"] = *patch.PhoneNumber
+	}
+	if patch.Email != nil {
+		out["email"] = *patch.Email
 	}
 	if patch.IsAnswersCall != nil {
 		out["isAnswersCall"] = *patch.IsAnswersCall

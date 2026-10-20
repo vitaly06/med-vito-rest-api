@@ -207,7 +207,7 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"message": "Товар успешно обновлён", "product": prod}, nil
+	return map[string]any{"message": "Товар успешно обновлён и отправлен на повторную модерацию", "product": prod}, nil
 }
 
 func (s *ProductService) AvailableFilters(ctx context.Context, catSlug, subSlug, typeSlug *string) (map[string]any, error) {

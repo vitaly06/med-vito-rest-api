@@ -67,11 +67,26 @@ func RegisterChatRoutes(app fiber.Router, chat *service.ChatService, auth *servi
 			}
 		}
 		me := authmw.UserFromLocals(c)
+		// Автоматически помечаем сообщения как прочитанные при открытии истории сообщений
+		_ = chat.MarkMessagesAsRead(c.UserContext(), int32(chatID), me.ID)
+
 		out, err := chat.GetChatMessages(c.UserContext(), int32(chatID), me.ID, page, limit)
 		if err != nil {
 			return writeAppError(c, err)
 		}
 		return c.JSON(out)
+	})
+
+	g.Post("/:id/read", sess, func(c *fiber.Ctx) error {
+		chatID, err := c.ParamsInt("id")
+		if err != nil || chatID <= 0 {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id чата"})
+		}
+		me := authmw.UserFromLocals(c)
+		if err := chat.MarkMessagesAsRead(c.UserContext(), int32(chatID), me.ID); err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(fiber.Map{"success": true, "chatId": chatID})
 	})
 
 	g.Get("/:id", sess, func(c *fiber.Ctx) error {
