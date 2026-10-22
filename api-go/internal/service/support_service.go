@@ -61,6 +61,26 @@ func NewSupportService(repo *repository.SupportPG) *SupportService {
 	return &SupportService{repo: repo}
 }
 
+func validateSupportMessageText(text string) error {
+	trimmed := strings.TrimSpace(text)
+	if trimmed == "" {
+		return &AppError{400, "Сообщение обязательно"}
+	}
+	if strings.HasPrefix(trimmed, "data:image/") ||
+		strings.HasPrefix(trimmed, "http://") ||
+		strings.HasPrefix(trimmed, "https://") ||
+		strings.HasPrefix(trimmed, "/uploads/") {
+		if len(trimmed) > 10*1024*1024 {
+			return &AppError{400, "Изображение не должно превышать 10 МБ"}
+		}
+		return nil
+	}
+	if utf8.RuneCountInString(trimmed) > 2000 {
+		return &AppError{400, "Сообщение не должно превышать 2000 символов"}
+	}
+	return nil
+}
+
 func (s *SupportService) CreateTicket(ctx context.Context, userID int32, theme, subject, message, priority string) (*repository.SupportTicketFull, error) {
 	theme = strings.TrimSpace(theme)
 	if !validTicketThemes[theme] {
@@ -74,11 +94,8 @@ func (s *SupportService) CreateTicket(ctx context.Context, userID int32, theme, 
 		return nil, &AppError{400, "Заголовок не должен превышать 200 символов"}
 	}
 	message = strings.TrimSpace(message)
-	if message == "" {
-		return nil, &AppError{400, "Сообщение обязательно"}
-	}
-	if utf8.RuneCountInString(message) > 2000 {
-		return nil, &AppError{400, "Сообщение не должно превышать 2000 символов"}
+	if err := validateSupportMessageText(message); err != nil {
+		return nil, err
 	}
 	priority = strings.TrimSpace(priority)
 	if priority == "" {
@@ -179,11 +196,8 @@ func listTicketsResponse(list []repository.SupportTicketListItem, total, page, l
 
 func (s *SupportService) SendMessage(ctx context.Context, ticketID, userID int32, text string, isModerator bool) (*repository.SupportMessageOut, error) {
 	text = strings.TrimSpace(text)
-	if text == "" {
-		return nil, &AppError{400, "Сообщение обязательно"}
-	}
-	if utf8.RuneCountInString(text) > 2000 {
-		return nil, &AppError{400, "Сообщение не должно превышать 2000 символов"}
+	if err := validateSupportMessageText(text); err != nil {
+		return nil, err
 	}
 	ownerID, st, err := s.repo.GetTicketOwnerID(ctx, ticketID)
 	if errors.Is(err, repository.ErrSupportTicketNotFound) {
