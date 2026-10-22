@@ -116,10 +116,17 @@ func (s *ReviewService) GetUserReviews(ctx context.Context, userID int32) (map[s
 	for _, r := range rows {
 		lt := r.CreatedAt.In(time.Local)
 		list = append(list, map[string]any{
-			"rating":   r.Rating,
-			"text":     r.Text,
-			"date":     fmt.Sprintf("%02d.%02d.%02d", lt.Day(), int(lt.Month()), lt.Year()%100),
-			"fullName": r.FullName,
+			"id":        r.ID,
+			"rating":    r.Rating,
+			"text":      valueOrEmpty(r.Text),
+			"createdAt": r.CreatedAt,
+			"date":      fmt.Sprintf("%02d.%02d.%02d", lt.Day(), int(lt.Month()), lt.Year()%100),
+			"fullName":  r.FullName,
+			"reviewer": map[string]any{
+				"id":       r.AuthorID,
+				"fullName": r.FullName,
+				"photo":    r.Photo,
+			},
 		})
 	}
 	return map[string]any{

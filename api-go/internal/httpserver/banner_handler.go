@@ -99,21 +99,33 @@ func RegisterBannerRoutes(app fiber.Router, ban *service.BannerService, auth *se
 		return c.JSON(out)
 	})
 
-	g.Put("/moderate/:id", adm, func(c *fiber.Ctx) error {
+	mod := authmw.RequireModerator(auth)
+
+	modHandler := func(c *fiber.Ctx) error {
 		id, err := c.ParamsInt("id")
 		if err != nil || id < 1 {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
 		}
 		st := strings.TrimSpace(c.Query("status"))
 		if st == "" {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Нужен query status"})
+			var body struct {
+				Status string `json:"status"`
+			}
+			_ = c.BodyParser(&body)
+			st = strings.TrimSpace(body.Status)
+		}
+		if st == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Нужен status"})
 		}
 		out, err := ban.ModerateBanner(c.UserContext(), int32(id), st)
 		if err != nil {
 			return writeAppError(c, err)
 		}
 		return c.JSON(out)
-	})
+	}
+
+	g.Put("/moderate/:id", mod, modHandler)
+	g.Patch("/moderate/:id", mod, modHandler)
 
 	g.Post("/:id/view", opt, func(c *fiber.Ctx) error {
 		bid, err := c.ParamsInt("id")

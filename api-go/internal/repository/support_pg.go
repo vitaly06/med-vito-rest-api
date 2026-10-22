@@ -60,6 +60,7 @@ type SupportLastMessage struct {
 type SupportTicketListItem struct {
 	SupportTicketFull
 	LastMessage *SupportLastMessage `json:"lastMessage"`
+	UnreadCount int                 `json:"unreadCount"`
 }
 
 // SupportMessageOut — сообщение с автором и role.name.
@@ -200,7 +201,8 @@ func (r *SupportPG) ListTickets(ctx context.Context, onlyUserID *int32, status, 
 			u.id, u."fullName", u.email,
 			modu.id, modu."fullName", modu.email,
 			lm.id, lm.text, lm."sentAt", lm."authorId",
-			lma.id, lma."fullName", lma.email
+			lma.id, lma."fullName", lma.email,
+			COALESCE(unread.cnt, 0)
 		FROM "SupportTicket" t
 		JOIN "User" u ON u.id = t."userId"
 		LEFT JOIN "User" modu ON modu.id = t."moderatorId"
@@ -212,6 +214,16 @@ func (r *SupportPG) ListTickets(ctx context.Context, onlyUserID *int32, status, 
 			LIMIT 1
 		) lm ON true
 		LEFT JOIN "User" lma ON lma.id = lm."authorId"
+		LEFT JOIN LATERAL (
+			SELECT COUNT(*)::int AS cnt
+			FROM "SupportMessage" sm
+			WHERE sm."ticketId" = t.id
+			  AND sm."authorId" = t."userId"
+			  AND sm."sentAt" > COALESCE(
+				(SELECT MAX(sm2."sentAt") FROM "SupportMessage" sm2 WHERE sm2."ticketId" = t.id AND sm2."authorId" != t."userId"),
+				'1970-01-01'::timestamptz
+			  )
+		) unread ON true
 	` + where.String() + fmt.Sprintf(` ORDER BY t."updatedAt" DESC LIMIT $%d OFFSET $%d`, n, n+1)
 	args = append(args, limit, offset)
 
@@ -239,6 +251,7 @@ func (r *SupportPG) ListTickets(ctx context.Context, onlyUserID *int32, status, 
 			&mID, &mFn, &mEm,
 			&lmID, &lmText, &lmAt, &lmAuth,
 			&lmaID, &lmaFN, &lmaEm,
+			&item.UnreadCount,
 		)
 		if err != nil {
 			return nil, 0, err

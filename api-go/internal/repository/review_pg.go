@@ -208,16 +208,18 @@ func (r *ReviewPG) UserEmailAndName(ctx context.Context, userID int32) (name, em
 }
 
 type ApprovedReviewRow struct {
+	ID        int32
 	Rating    float64
 	Text      *string
 	CreatedAt time.Time
 	AuthorID  int32
 	FullName  string
+	Photo     *string
 }
 
 func (r *ReviewPG) ListApprovedForUser(ctx context.Context, userID int32) ([]ApprovedReviewRow, error) {
 	const q = `
-		SELECT r.rating, r.text, r."createdAt", u.id, u."fullName"
+		SELECT r.id, r.rating, r.text, r."createdAt", u.id, u."fullName", u.photo
 		FROM "Review" r
 		JOIN "User" u ON u.id = r."reviewedById"
 		WHERE r."reviewedUserId" = $1 AND r."moderateState" = 'APPROVED'::"ReviewModerate"
@@ -230,7 +232,7 @@ func (r *ReviewPG) ListApprovedForUser(ctx context.Context, userID int32) ([]App
 	var out []ApprovedReviewRow
 	for rows.Next() {
 		var row ApprovedReviewRow
-		if err := rows.Scan(&row.Rating, &row.Text, &row.CreatedAt, &row.AuthorID, &row.FullName); err != nil {
+		if err := rows.Scan(&row.ID, &row.Rating, &row.Text, &row.CreatedAt, &row.AuthorID, &row.FullName, &row.Photo); err != nil {
 			return nil, err
 		}
 		out = append(out, row)
