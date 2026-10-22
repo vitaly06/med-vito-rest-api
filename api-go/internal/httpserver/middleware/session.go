@@ -12,14 +12,31 @@ import (
 
 const UserLocalsKey = "user"
 
+func GetSessionID(c *fiber.Ctx) string {
+	sid := strings.TrimSpace(c.Cookies("session_id"))
+	if sid == "" {
+		sid = strings.TrimSpace(c.Cookies("ws_session_id"))
+	}
+	if sid == "" {
+		authHdr := strings.TrimSpace(c.Get("Authorization"))
+		if strings.HasPrefix(strings.ToLower(authHdr), "bearer ") {
+			sid = strings.TrimSpace(authHdr[7:])
+		}
+	}
+	return sid
+}
+
 func RequireSession(auth *service.AuthService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		sid := c.Cookies("session_id")
+		sid := GetSessionID(c)
 		if sid == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия не найдена"})
 		}
 		u, err := auth.UserFromSession(c.UserContext(), sid)
 		if err != nil {
+			if strings.Contains(err.Error(), "expired") || strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "no session") {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия недействительна или истекла"})
+			}
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"statusCode": fiber.StatusInternalServerError, "message": err.Error()})
 		}
 		if u == nil {
@@ -71,12 +88,15 @@ func allowDuringYandexOnboarding(path string) bool {
 
 func RequireRoleLevel(auth *service.AuthService, minLevel int, denyMessage string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		sid := c.Cookies("session_id")
+		sid := GetSessionID(c)
 		if sid == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия не найдена"})
 		}
 		u, err := auth.UserFromSession(c.UserContext(), sid)
 		if err != nil {
+			if strings.Contains(err.Error(), "expired") || strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "no session") {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия недействительна или истекла"})
+			}
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"statusCode": fiber.StatusInternalServerError, "message": err.Error()})
 		}
 		if u == nil {
@@ -106,12 +126,15 @@ func RequireModerator(auth *service.AuthService) fiber.Handler {
 
 func RequirePermission(auth *service.AuthService, permission, denyMessage string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		sid := c.Cookies("session_id")
+		sid := GetSessionID(c)
 		if sid == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия не найдена"})
 		}
 		u, err := auth.UserFromSession(c.UserContext(), sid)
 		if err != nil {
+			if strings.Contains(err.Error(), "expired") || strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "no session") {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия недействительна или истекла"})
+			}
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"statusCode": fiber.StatusInternalServerError, "message": err.Error()})
 		}
 		if u == nil {
@@ -133,7 +156,7 @@ func RequirePermission(auth *service.AuthService, permission, denyMessage string
 
 func OptionalSession(auth *service.AuthService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		sid := c.Cookies("session_id")
+		sid := GetSessionID(c)
 		if sid == "" {
 			return c.Next()
 		}

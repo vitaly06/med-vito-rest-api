@@ -320,7 +320,9 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 
 	g.Get("/me", middleware.RequireSession(auth), func(c *fiber.Ctx) error {
 		u := middleware.UserFromLocals(c)
-		if sid := c.Cookies("session_id"); sid != "" {
+		sid := middleware.GetSessionID(c)
+		if sid != "" {
+			c.Cookie(sessionCookie(cfg, sid, 30*24*60*60))
 			c.Cookie(wsSessionCookie(cfg, sid, 30*24*60*60))
 		}
 		me, err := auth.Me(c.UserContext(), u.ID)

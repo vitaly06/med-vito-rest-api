@@ -45,7 +45,7 @@ services:
     ports:
       - "${REDIS_PUBLISH_PORT:-6379}:6379"
     command: >
-      sh -c 'if [ -n "$$REDIS_PASSWORD" ]; then exec redis-server --requirepass "$$REDIS_PASSWORD"; else exec redis-server; fi'
+      sh -c 'if [ -n "$$REDIS_PASSWORD" ]; then exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD"; else exec redis-server --appendonly yes; fi'
     volumes:
       - redis_data:/data
     networks:
