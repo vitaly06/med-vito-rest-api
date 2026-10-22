@@ -135,6 +135,9 @@ func (r *PromotionPG) AddProductPromotion(ctx context.Context, userID, productID
 	}
 
 	balanceUsed := bal
+	if balanceUsed < 0 {
+		balanceUsed = 0
+	}
 	if balanceUsed > totalF {
 		balanceUsed = totalF
 	}

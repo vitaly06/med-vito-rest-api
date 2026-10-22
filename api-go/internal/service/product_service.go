@@ -254,7 +254,8 @@ func (s *ProductService) CreateProduct(ctx context.Context, userID int32, name, 
 	if strings.TrimSpace(state) == "" {
 		return nil, &AppError{400, "Состояние обязательно (NEW или USED)"}
 	}
-	if err := validateProductContentLimits(len(files), description, false); err != nil {
+	isPaidContent := len(files) > freeMaxImages || len([]rune(strings.TrimSpace(description))) > freeDescMaxLen
+	if err := validateProductContentLimits(len(files), description, isPaidContent); err != nil {
 		return nil, err
 	}
 	price, err := strconv.Atoi(strings.TrimSpace(priceStr))

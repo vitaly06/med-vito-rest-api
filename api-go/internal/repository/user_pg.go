@@ -26,7 +26,8 @@ func (r *UserPG) FindUserByLogin(ctx context.Context, login string) (*domain.Use
 	const q = `
 		SELECT u."id", u."fullName", u."email", u."phoneNumber", u."password", u."profileType"::text,
 		       u."photo", u."rating", u."isAnswersCall", u."roleId", r."name",
-		       u."isBanned", u."isEmailVerified", u."isPhoneVerified", u."isResetVerified"
+		       u."isBanned", u."isEmailVerified", u."isPhoneVerified", u."isResetVerified",
+		       u."balance", u."bonusBalance"
 		FROM "User" u
 		LEFT JOIN "Role" r ON u."roleId" = r."id"
 		WHERE u."email" = $1 OR u."phoneNumber" = $1
@@ -51,7 +52,8 @@ func (r *UserPG) FindUserByEmail(ctx context.Context, email string) (*domain.Use
 	const q = `
 		SELECT u."id", u."fullName", u."email", u."phoneNumber", u."password", u."profileType"::text,
 		       u."photo", u."rating", u."isAnswersCall", u."roleId", r."name",
-		       u."isBanned", u."isEmailVerified", u."isPhoneVerified", u."isResetVerified"
+		       u."isBanned", u."isEmailVerified", u."isPhoneVerified", u."isResetVerified",
+		       u."balance", u."bonusBalance"
 		FROM "User" u
 		LEFT JOIN "Role" r ON u."roleId" = r."id"
 		WHERE u."email" = $1`
@@ -62,7 +64,8 @@ func (r *UserPG) FindUserByID(ctx context.Context, id int32) (*domain.UserEntity
 	const q = `
 		SELECT u."id", u."fullName", u."email", u."phoneNumber", u."password", u."profileType"::text,
 		       u."photo", u."rating", u."isAnswersCall", u."roleId", r."name",
-		       u."isBanned", u."isEmailVerified", u."isPhoneVerified", u."isResetVerified"
+		       u."isBanned", u."isEmailVerified", u."isPhoneVerified", u."isResetVerified",
+		       u."balance", u."bonusBalance"
 		FROM "User" u
 		LEFT JOIN "Role" r ON u."roleId" = r."id"
 		WHERE u."id" = $1`
@@ -76,6 +79,7 @@ func (r *UserPG) scanUser(ctx context.Context, row pgx.Row) (*domain.UserEntity,
 		&u.ID, &u.FullName, &u.Email, &u.PhoneNumber, &u.PasswordHash, &u.ProfileType,
 		&u.Photo, &u.Rating, &u.IsAnswersCall, &u.RoleID, &roleName,
 		&u.IsBanned, &u.IsEmailVerified, &u.IsPhoneVerified, &u.IsResetVerified,
+		&u.Balance, &u.BonusBalance,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

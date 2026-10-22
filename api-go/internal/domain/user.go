@@ -17,6 +17,8 @@ type UserEntity struct {
 	IsEmailVerified bool    `json:"isEmailVerified"`
 	IsPhoneVerified bool    `json:"isPhoneVerified"`
 	IsResetVerified bool    `json:"isResetVerified"`
+	Balance         float64 `json:"balance"`
+	BonusBalance    float64 `json:"bonusBalance"`
 }
 
 // MeResponse — как getCurrentUser в Nest.
@@ -30,5 +32,7 @@ type MeResponse struct {
 	Rating                  *int32  `json:"rating,omitempty"`
 	IsAnswersCall           *bool   `json:"isAnswersCall,omitempty"`
 	Role                    *string `json:"role"`
+	Balance                 float64 `json:"balance"`
+	BonusBalance            float64 `json:"bonusBalance"`
 	RequireYandexOnboarding bool    `json:"requireYandexOnboarding,omitempty"`
 }

@@ -168,7 +168,8 @@ func (r *ProductPG) CreateProductTx(ctx context.Context, productID, userID int32
 	}
 
 	freeLimit = FreeAdsMonthlyLimit
-	if usedAds >= freeLimit {
+	isPaidAd := (usedAds >= freeLimit) || (len(images) > 8) || (len([]rune(description)) > 2000)
+	if isPaidAd {
 		total := balance + bonus
 		if total < float64(AdListingCost) {
 			return ErrInsufficientFunds
@@ -257,8 +258,9 @@ func (r *ProductPG) PublishDraftTx(ctx context.Context, productID, userID int32)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	var one int
-	err = tx.QueryRow(ctx, `SELECT 1 FROM "Product" WHERE id = $1 AND "userId" = $2 AND "moderateState" = 'DRAFT'::"ProductModerate" FOR UPDATE`, productID, userID).Scan(&one)
+	var draftImgs []string
+	var draftDesc *string
+	err = tx.QueryRow(ctx, `SELECT images, description FROM "Product" WHERE id = $1 AND "userId" = $2 AND "moderateState" = 'DRAFT'::"ProductModerate" FOR UPDATE`, productID, userID).Scan(&draftImgs, &draftDesc)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotFound
 	}
@@ -289,7 +291,12 @@ func (r *ProductPG) PublishDraftTx(ctx context.Context, productID, userID int32)
 		}
 	}
 	freeLimit = FreeAdsMonthlyLimit
-	if usedAds >= freeLimit {
+	draftDescStr := ""
+	if draftDesc != nil {
+		draftDescStr = *draftDesc
+	}
+	isPaidDraft := (usedAds >= freeLimit) || (len(draftImgs) > 8) || (len([]rune(draftDescStr)) > 2000)
+	if isPaidDraft {
 		total := balance + bonus
 		if total < float64(AdListingCost) {
 			return ErrInsufficientFunds
