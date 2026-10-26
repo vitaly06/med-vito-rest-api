@@ -32,6 +32,26 @@ func RegisterReviewRoutes(app fiber.Router, rev *service.ReviewService, auth *se
 		return c.JSON(out)
 	})
 
+	g.Put("/:id", sess, func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 32)
+		if err != nil || id <= 0 {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
+		}
+		var body struct {
+			Text   *string `json:"text"`
+			Rating float64 `json:"rating"`
+		}
+		if err := c.BodyParser(&body); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректное тело"})
+		}
+		me := authmw.UserFromLocals(c)
+		out, err := rev.UpdateReview(c.UserContext(), me.ID, int32(id), body.Rating, body.Text)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
 	g.Get("/all-reviews-to-moderate", mod, func(c *fiber.Ctx) error {
 		out, err := rev.AllReviewsToModerate(c.UserContext())
 		if err != nil {

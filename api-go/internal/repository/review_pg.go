@@ -63,7 +63,7 @@ func (r *ReviewPG) HasDealOrReservation(ctx context.Context, authorID, sellerID 
 		FROM "ProductReservation" r
 		WHERE r."buyerId" = $1
 		  AND r."sellerId" = $2
-		  AND r.status IN ('DEAL_CREATED'::"ReservationStatus",'COMPLETED'::"ReservationStatus",'ACTIVE'::"ReservationStatus")
+		  AND r.status IN ('DEAL_CREATED','COMPLETED','ACTIVE')
 		LIMIT 1`, authorID, sellerID).Scan(&one)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, nil
@@ -289,3 +289,41 @@ func (r *ReviewPG) SetReviewModeration(ctx context.Context, reviewID int32, stat
 	}
 	return nil
 }
+
+type ReviewDetails struct {
+	ID             int32
+	ReviewedByID   int32
+	ReviewedUserID int32
+	Rating         float64
+	Text           *string
+	ModerateState  string
+	CreatedAt      time.Time
+}
+
+func (r *ReviewPG) GetReviewByID(ctx context.Context, id int32) (*ReviewDetails, error) {
+	var row ReviewDetails
+	err := r.pool.QueryRow(ctx, `
+		SELECT id, "reviewedById", "reviewedUserId", rating, text, "moderateState"::text, "createdAt"
+		FROM "Review"
+		WHERE id = $1`, id).
+		Scan(&row.ID, &row.ReviewedByID, &row.ReviewedUserID, &row.Rating, &row.Text, &row.ModerateState, &row.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	return &row, err
+}
+
+func (r *ReviewPG) UpdateReview(ctx context.Context, id int32, rating float64, text *string) error {
+	tag, err := r.pool.Exec(ctx, `
+		UPDATE "Review"
+		SET rating = $1, text = $2, "moderateState" = 'MODERATE'::"ReviewModerate", "updatedAt" = NOW()
+		WHERE id = $3`, rating, text, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+

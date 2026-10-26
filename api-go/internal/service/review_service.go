@@ -99,6 +99,33 @@ func (s *ReviewService) SendReview(ctx context.Context, authorID int32, reviewed
 	return map[string]any{"message": "Отзыв успешно оставлен и отправлен на модерацию"}, nil
 }
 
+func (s *ReviewService) UpdateReview(ctx context.Context, authorID int32, reviewID int32, rating float64, text *string) (map[string]any, error) {
+	if reviewID <= 0 {
+		return nil, &AppError{400, "Некорректный id отзыва"}
+	}
+	if !isAllowedReviewRating(rating) {
+		return nil, &AppError{400, "Рейтинг должен быть одним из: 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5"}
+	}
+	rev, err := s.repo.GetReviewByID(ctx, reviewID)
+	if errors.Is(err, repository.ErrNotFound) {
+		return nil, &AppError{404, "Отзыв не найден"}
+	}
+	if err != nil {
+		return nil, err
+	}
+	if rev.ReviewedByID != authorID {
+		return nil, &AppError{403, "Вы можете редактировать только свой отзыв"}
+	}
+	if time.Since(rev.CreatedAt) > 30*24*time.Hour {
+		return nil, &AppError{400, "Редактирование отзыва возможно только в течение 30 дней с момента создания"}
+	}
+	if err := s.repo.UpdateReview(ctx, reviewID, rating, text); err != nil {
+		return nil, err
+	}
+	s.notifyReviewStatusAsync(ctx, reviewID, "MODERATE")
+	return map[string]any{"message": "Отзыв успешно обновлен и отправлен на повторную модерацию"}, nil
+}
+
 func (s *ReviewService) GetUserReviews(ctx context.Context, userID int32) (map[string]any, error) {
 	rows, err := s.repo.ListApprovedForUser(ctx, userID)
 	if err != nil {

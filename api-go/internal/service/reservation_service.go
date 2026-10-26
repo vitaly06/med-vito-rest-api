@@ -1,4 +1,4 @@
-﻿package service
+package service
 
 import (
 	"bytes"
@@ -117,6 +117,7 @@ func (s *ReservationService) Create(ctx context.Context, buyerID int32, req Crea
 }
 
 func (s *ReservationService) MyList(ctx context.Context, userID int32) ([]map[string]any, error) {
+	_, _ = s.repo.ExpireDue(ctx, time.Now())
 	rows, err := s.repo.ListForUser(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -129,6 +130,7 @@ func (s *ReservationService) MyList(ctx context.Context, userID int32) ([]map[st
 }
 
 func (s *ReservationService) ProductReservationInfo(ctx context.Context, productID int32) (map[string]any, error) {
+	_, _ = s.repo.ExpireDue(ctx, time.Now())
 	row, err := s.repo.PublicActiveReservationByProduct(ctx, productID)
 	if err != nil {
 		return nil, err
