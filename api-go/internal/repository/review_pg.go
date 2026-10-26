@@ -316,7 +316,7 @@ func (r *ReviewPG) GetReviewByID(ctx context.Context, id int32) (*ReviewDetails,
 func (r *ReviewPG) UpdateReview(ctx context.Context, id int32, rating float64, text *string) error {
 	tag, err := r.pool.Exec(ctx, `
 		UPDATE "Review"
-		SET rating = $1, text = $2, "moderateState" = 'MODERATE'::"ReviewModerate", "updatedAt" = NOW()
+		SET rating = $1, text = $2, "moderateState" = 'MODERATE'::"ReviewModerate"
 		WHERE id = $3`, rating, text, id)
 	if err != nil {
 		return err
