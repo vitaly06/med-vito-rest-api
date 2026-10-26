@@ -928,20 +928,22 @@ func (r *ProductPG) ToggleProductTx(ctx context.Context, productID, userID int32
 	}, nil
 }
 
-func (r *ProductPG) ToggleProductHide(ctx context.Context, productID int32) error {
+func (r *ProductPG) ToggleProductHide(ctx context.Context, productID int32) (bool, error) {
 	const q = `
 		UPDATE "Product" 
 		SET "isHide" = NOT "isHide", 
 		    "updatedAt" = NOW()
-		WHERE id = $1`
-	tag, err := r.pool.Exec(ctx, q, productID)
+		WHERE id = $1
+		RETURNING "isHide"`
+	var isHide bool
+	err := r.pool.QueryRow(ctx, q, productID).Scan(&isHide)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, ErrNotFound
+	}
 	if err != nil {
-		return err
+		return false, err
 	}
-	if tag.RowsAffected() == 0 {
-		return ErrNotFound
-	}
-	return nil
+	return isHide, nil
 }
 
 func (r *ProductPG) SetModerationState(ctx context.Context, productID int32, state string, reason *string) error {

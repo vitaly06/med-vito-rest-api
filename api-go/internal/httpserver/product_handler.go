@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	authmw "med-vito/api-go/internal/httpserver/middleware"
+	"med-vito/api-go/internal/rbac"
 	"med-vito/api-go/internal/service"
 )
 
@@ -575,7 +576,8 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
 		}
 		me := authmw.UserFromLocals(c)
-		out, err := p.ToggleProduct(c.UserContext(), int32(id), me.ID)
+		isAdmin := rbac.HasMinRole(me.RoleName, 90)
+		out, err := p.ToggleProduct(c.UserContext(), int32(id), me.ID, isAdmin)
 		if err != nil {
 			return writeAppError(c, err)
 		}
@@ -623,18 +625,22 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 		return c.JSON(out)
 	})
 
-	g.Delete("/:id", sess, func(c *fiber.Ctx) error {
+	deleteProductHandler := func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 32)
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
 		}
 		me := authmw.UserFromLocals(c)
-		out, err := p.DeleteProduct(c.UserContext(), int32(id), me.ID)
+		isAdmin := rbac.HasMinRole(me.RoleName, 90)
+		out, err := p.DeleteProduct(c.UserContext(), int32(id), me.ID, isAdmin)
 		if err != nil {
 			return writeAppError(c, err)
 		}
 		return c.JSON(out)
-	})
+	}
+
+	g.Delete("/:id", sess, deleteProductHandler)
+	g.Delete("/delete-product/:id", sess, deleteProductHandler)
 
 	g.Patch("/:id", sess, func(c *fiber.Ctx) error {
 		id, err := strconv.ParseInt(c.Params("id"), 10, 32)

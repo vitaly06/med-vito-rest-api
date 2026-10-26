@@ -11,7 +11,7 @@ import (
 	"med-vito/api-go/internal/repository"
 )
 
-func (s *ProductService) DeleteProduct(ctx context.Context, productID, userID int32) (map[string]any, error) {
+func (s *ProductService) DeleteProduct(ctx context.Context, productID, userID int32, isAdmin bool) (map[string]any, error) {
 	uid, imgs, err := s.prod.GetProductOwnerAndImages(ctx, productID)
 	if errors.Is(err, repository.ErrNotFound) {
 		return nil, &AppError{400, "Товар для удаления не найден"}
@@ -19,7 +19,7 @@ func (s *ProductService) DeleteProduct(ctx context.Context, productID, userID in
 	if err != nil {
 		return nil, err
 	}
-	if uid != userID {
+	if !isAdmin && uid != userID {
 		return nil, &AppError{403, "Вы не можете удалить чужой товар"}
 	}
 	if s.s3 != nil {
@@ -548,7 +548,27 @@ func (s *ProductService) GetProductCard(ctx context.Context, productID int32, vi
 	}, nil
 }
 
-func (s *ProductService) ToggleProduct(ctx context.Context, productID, userID int32) (map[string]any, error) {
+func (s *ProductService) ToggleProduct(ctx context.Context, productID, userID int32, isAdmin bool) (map[string]any, error) {
+	if isAdmin {
+		isHide, err := s.prod.ToggleProductHide(ctx, productID)
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, &AppError{404, "Товар не найден"}
+		}
+		if err != nil {
+			return nil, err
+		}
+		msg := "Объявление возвращено в продажу"
+		if isHide {
+			msg = "Объявление снято с продажи"
+		}
+		return map[string]any{
+			"message": msg,
+			"isHide":  isHide,
+			"renewed": false,
+			"paid":    false,
+		}, nil
+	}
+
 	res, err := s.prod.ToggleProductTx(ctx, productID, userID)
 	if errors.Is(err, repository.ErrNotFound) {
 		return nil, &AppError{404, "Товар не найден"}
