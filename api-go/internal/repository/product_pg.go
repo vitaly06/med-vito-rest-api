@@ -168,13 +168,23 @@ func (r *ProductPG) CreateProductTx(ctx context.Context, productID, userID int32
 	}
 
 	freeLimit = FreeAdsMonthlyLimit
-	isPaidAd := (usedAds >= freeLimit) || (len(images) > 8) || (len([]rune(description)) > 2000)
-	if isPaidAd {
+	adCost := 0
+	if usedAds >= freeLimit {
+		adCost += AdListingCost
+	}
+	if len(images) > 8 {
+		adCost += AdListingCost
+	}
+	if len([]rune(description)) > 2000 {
+		adCost += AdListingCost
+	}
+
+	if adCost > 0 {
 		total := balance + bonus
-		if total < float64(AdListingCost) {
+		if total < float64(adCost) {
 			return ErrInsufficientFunds
 		}
-		rem := float64(AdListingCost)
+		rem := float64(adCost)
 		bonusDeduct := bonus
 		if bonusDeduct > rem {
 			bonusDeduct = rem
@@ -187,7 +197,8 @@ func (r *ProductPG) CreateProductTx(ctx context.Context, productID, userID int32
 		if err != nil {
 			return err
 		}
-	} else {
+	}
+	if usedAds < freeLimit {
 		_, err = tx.Exec(ctx, `UPDATE "User" SET "usedFreeAds" = "usedFreeAds" + 1, "updatedAt" = NOW() WHERE id = $1`, userID)
 		if err != nil {
 			return err
@@ -295,13 +306,23 @@ func (r *ProductPG) PublishDraftTx(ctx context.Context, productID, userID int32)
 	if draftDesc != nil {
 		draftDescStr = *draftDesc
 	}
-	isPaidDraft := (usedAds >= freeLimit) || (len(draftImgs) > 8) || (len([]rune(draftDescStr)) > 2000)
-	if isPaidDraft {
+	adCost := 0
+	if usedAds >= freeLimit {
+		adCost += AdListingCost
+	}
+	if len(draftImgs) > 8 {
+		adCost += AdListingCost
+	}
+	if len([]rune(draftDescStr)) > 2000 {
+		adCost += AdListingCost
+	}
+
+	if adCost > 0 {
 		total := balance + bonus
-		if total < float64(AdListingCost) {
+		if total < float64(adCost) {
 			return ErrInsufficientFunds
 		}
-		rem := float64(AdListingCost)
+		rem := float64(adCost)
 		bonusDeduct := bonus
 		if bonusDeduct > rem {
 			bonusDeduct = rem
@@ -314,7 +335,8 @@ func (r *ProductPG) PublishDraftTx(ctx context.Context, productID, userID int32)
 		if err != nil {
 			return err
 		}
-	} else {
+	}
+	if usedAds < freeLimit {
 		_, err = tx.Exec(ctx, `UPDATE "User" SET "usedFreeAds" = "usedFreeAds" + 1, "updatedAt" = NOW() WHERE id = $1`, userID)
 		if err != nil {
 			return err

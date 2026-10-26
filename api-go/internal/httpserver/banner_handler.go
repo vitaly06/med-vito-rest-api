@@ -157,7 +157,7 @@ func RegisterBannerRoutes(app fiber.Router, ban *service.BannerService, auth *se
 		return c.JSON(out)
 	})
 
-	g.Put("/:id", adm, func(c *fiber.Ctx) error {
+	g.Put("/:id", sess, func(c *fiber.Ctx) error {
 		id, err := c.ParamsInt("id")
 		if err != nil || id < 1 {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
@@ -192,19 +192,37 @@ func RegisterBannerRoutes(app fiber.Router, ban *service.BannerService, auth *se
 		if v := firstFormValue(form.Value, "name"); v != "" {
 			name = &v
 		}
-		out, err := ban.Update(c.UserContext(), int32(id), file, place, nav, name)
+		me := authmw.UserFromLocals(c)
+		isAdmin := rbac.HasMinRole(me.RoleName, 90)
+		out, err := ban.Update(c.UserContext(), int32(id), me.ID, isAdmin, file, place, nav, name)
 		if err != nil {
 			return writeAppError(c, err)
 		}
 		return c.JSON(out)
 	})
 
-	g.Delete("/:id", adm, func(c *fiber.Ctx) error {
+	g.Patch("/:id/toggle", sess, func(c *fiber.Ctx) error {
 		id, err := c.ParamsInt("id")
 		if err != nil || id < 1 {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
 		}
-		out, err := ban.Remove(c.UserContext(), int32(id))
+		me := authmw.UserFromLocals(c)
+		isAdmin := rbac.HasMinRole(me.RoleName, 90)
+		out, err := ban.Toggle(c.UserContext(), int32(id), me.ID, isAdmin)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
+	g.Delete("/:id", sess, func(c *fiber.Ctx) error {
+		id, err := c.ParamsInt("id")
+		if err != nil || id < 1 {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
+		}
+		me := authmw.UserFromLocals(c)
+		isAdmin := rbac.HasMinRole(me.RoleName, 90)
+		out, err := ban.Remove(c.UserContext(), int32(id), me.ID, isAdmin)
 		if err != nil {
 			return writeAppError(c, err)
 		}

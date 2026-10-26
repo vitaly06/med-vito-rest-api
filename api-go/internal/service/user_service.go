@@ -84,9 +84,9 @@ func (s *UserService) FindAllAdmin(ctx context.Context) ([]fiberMap, error) {
 				"free":       r.FreeCount,
 			},
 			"adsLimit": fiberMap{
-				"total":     r.FreeAdsLimit,
+				"total":     int32(repository.FreeAdsMonthlyLimit),
 				"used":      r.UsedFreeAds,
-				"remaining": maxInt32(0, r.FreeAdsLimit-r.UsedFreeAds),
+				"remaining": maxInt32(0, int32(repository.FreeAdsMonthlyLimit)-r.UsedFreeAds),
 				"costPerAd": repository.AdListingCost,
 			},
 		})
@@ -150,7 +150,8 @@ func (s *UserService) GetUserInfo(ctx context.Context, id int32) (fiberMap, erro
 	if label == "" {
 		label = row.ProfileType
 	}
-	remaining := row.FreeAdsLimit - used
+	totalLimit := int32(repository.FreeAdsMonthlyLimit)
+	remaining := totalLimit - used
 	if remaining < 0 {
 		remaining = 0
 	}
@@ -165,7 +166,7 @@ func (s *UserService) GetUserInfo(ctx context.Context, id int32) (fiberMap, erro
 		"rating":       rating,
 		"reviewsCount": count,
 		"adsLimit": fiberMap{
-			"total":     row.FreeAdsLimit,
+			"total":     totalLimit,
 			"used":      used,
 			"remaining": remaining,
 			"costPerAd": 50,
@@ -190,13 +191,14 @@ func (s *UserService) GetRemainingFreeAds(ctx context.Context, userID int32) (fi
 		}
 		used = 0
 	}
-	rem := st.FreeAdsLimit - used
+	totalLimit := int32(repository.FreeAdsMonthlyLimit)
+	rem := totalLimit - used
 	if rem < 0 {
 		rem = 0
 	}
 	next := time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, time.UTC)
 	return fiberMap{
-		"total":     st.FreeAdsLimit,
+		"total":     totalLimit,
 		"used":      used,
 		"remaining": rem,
 		"costPerAd": 50,

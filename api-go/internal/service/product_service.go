@@ -346,17 +346,35 @@ func (s *ProductService) CreateProduct(ctx context.Context, userID int32, name, 
 			}
 		}
 	}
+	expectedCost := 0
+	if beforeRemaining <= 0 {
+		expectedCost += repository.AdListingCost
+	}
+	if len(files) > freeMaxImages {
+		expectedCost += repository.AdListingCost
+	}
+	if len([]rune(strings.TrimSpace(description))) > freeDescMaxLen {
+		expectedCost += repository.AdListingCost
+	}
+	if expectedCost == 0 && beforeRemaining <= 0 {
+		expectedCost = repository.AdListingCost
+	}
+
 	err = s.prod.CreateProductTx(ctx, pid, userID, name, int32(price), quantity, state, description, address, vptr, urls, int32(catID), int32(subID), typePtr, intMap)
 	if errors.Is(err, repository.ErrNotFound) {
 		return nil, &AppError{400, "Пользователь не найден"}
 	}
 	if errors.Is(err, repository.ErrInsufficientFunds) {
-		return nil, &AppError{400, fmt.Sprintf("Недостаточно средств для размещения объявления. Пополните баланс или бонусы — требуется %d ₽.", repository.AdListingCost)}
+		reqCost := expectedCost
+		if reqCost <= 0 {
+			reqCost = repository.AdListingCost
+		}
+		return nil, &AppError{400, fmt.Sprintf("Недостаточно средств для размещения объявления. Пополните баланс или бонусы — требуется %d ₽.", reqCost)}
 	}
 	if err != nil {
 		return nil, &AppError{400, "Ошибка при создании продукта: " + err.Error()}
 	}
-	s.notifyAdListingBilling(ctx, userID, beforeRemaining)
+	s.notifyAdListingBilling(ctx, userID, beforeRemaining, expectedCost)
 	prod, err := s.prod.LoadProductWithRelations(ctx, pid)
 	if err != nil {
 		return nil, err
@@ -499,7 +517,7 @@ func parseFieldValuesMap(raw string) (map[string]string, error) {
 	return m, nil
 }
 
-func (s *ProductService) notifyAdListingBilling(ctx context.Context, userID int32, beforeRemaining int32) {
+func (s *ProductService) notifyAdListingBilling(ctx context.Context, userID int32, beforeRemaining int32, paidCost int) {
 	if s.support == nil || s.user == nil {
 		return
 	}
@@ -510,6 +528,9 @@ func (s *ProductService) notifyAdListingBilling(ctx context.Context, userID int3
 	remaining := int32(0)
 	total := int32(repository.FreeAdsMonthlyLimit)
 	cost := int32(repository.AdListingCost)
+	if paidCost > 0 {
+		cost = int32(paidCost)
+	}
 	if v, ok := after["remaining"].(int32); ok {
 		remaining = v
 	} else if v, ok := after["remaining"].(int); ok {
@@ -520,17 +541,12 @@ func (s *ProductService) notifyAdListingBilling(ctx context.Context, userID int3
 	} else if v, ok := after["total"].(int); ok {
 		total = int32(v)
 	}
-	if v, ok := after["costPerAd"].(int32); ok {
-		cost = v
-	} else if v, ok := after["costPerAd"].(int); ok {
-		cost = int32(v)
-	}
 
 	var text string
-	if beforeRemaining <= 0 {
-		text = fmt.Sprintf("Списано %d ₽ за размещение объявления (сначала бонусы, затем баланс). Бесплатный лимит (%d шт./мес.) исчерпан.", cost, total)
+	if paidCost > 0 || beforeRemaining <= 0 {
+		text = fmt.Sprintf("Списано %d ₽ за размещение объявления (сначала бонусы, затем баланс). Бесплатный лимит (%d шт./мес.).", cost, total)
 	} else if remaining == 0 && beforeRemaining == 1 {
-		text = fmt.Sprintf("Использовано последнее бесплатное объявление в этом месяце (%d из %d). Следующие размещения — %d ₽.", total, total, cost)
+		text = fmt.Sprintf("Использовано последнее бесплатное объявление в этом месяце (%d из %d). Следующие размещения — %d ₽.", total, total, repository.AdListingCost)
 	} else if beforeRemaining > remaining {
 		text = fmt.Sprintf("Размещено бесплатное объявление. Осталось %d из %d бесплатных в этом месяце.", remaining, total)
 	} else {

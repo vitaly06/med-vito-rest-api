@@ -107,7 +107,7 @@ func (r *BannerPG) GetByID(ctx context.Context, id int32) (*BannerRow, error) {
 	return &b, err
 }
 
-func (r *BannerPG) Update(ctx context.Context, id int32, photoURL *string, place, navigateToURL, name *string) (*BannerRow, error) {
+func (r *BannerPG) Update(ctx context.Context, id int32, photoURL *string, place, navigateToURL, name, moderateState *string) (*BannerRow, error) {
 	sets := []string{`"updatedAt" = NOW()`}
 	args := []any{id}
 	n := 2
@@ -129,6 +129,11 @@ func (r *BannerPG) Update(ctx context.Context, id int32, photoURL *string, place
 	if name != nil && *name != "" {
 		sets = append(sets, fmt.Sprintf(`name = $%d`, n))
 		args = append(args, *name)
+		n++
+	}
+	if moderateState != nil && *moderateState != "" {
+		sets = append(sets, fmt.Sprintf(`"moderateState" = $%d::"BannerModerate"`, n))
+		args = append(args, *moderateState)
 		n++
 	}
 	if len(sets) == 1 {

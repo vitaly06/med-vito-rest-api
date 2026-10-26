@@ -80,7 +80,7 @@ func (s *BannerService) FindOne(ctx context.Context, id int32) (*repository.Bann
 	return b, err
 }
 
-func (s *BannerService) Update(ctx context.Context, id int32, file *UploadedFile, place, navigateToURL, name *string) (*repository.BannerRow, error) {
+func (s *BannerService) Update(ctx context.Context, id int32, requesterID int32, isAdmin bool, file *UploadedFile, place, navigateToURL, name *string) (*repository.BannerRow, error) {
 	if s.s3 == nil {
 		return nil, &AppError{500, "S3 не настроен"}
 	}
@@ -90,6 +90,9 @@ func (s *BannerService) Update(ctx context.Context, id int32, file *UploadedFile
 	}
 	if err != nil {
 		return nil, err
+	}
+	if !isAdmin && existing.UserID != requesterID {
+		return nil, &AppError{403, "Нет прав на редактирование баннера"}
 	}
 	if place != nil && *place != "" && !validBannerPlaces[*place] {
 		return nil, &AppError{400, "Некорректное значение места размещения"}
@@ -116,10 +119,39 @@ func (s *BannerService) Update(ctx context.Context, id int32, file *UploadedFile
 		x := strings.TrimSpace(*name)
 		nm = &x
 	}
-	return s.repo.Update(ctx, id, photoURL, pl, nav, nm)
+	var moderateState *string
+	if !isAdmin {
+		mod := "MODERATE"
+		moderateState = &mod
+	}
+	return s.repo.Update(ctx, id, photoURL, pl, nav, nm, moderateState)
 }
 
-func (s *BannerService) Remove(ctx context.Context, id int32) (map[string]string, error) {
+func (s *BannerService) Toggle(ctx context.Context, id int32, requesterID int32, isAdmin bool) (*repository.BannerRow, error) {
+	existing, err := s.repo.GetByID(ctx, id)
+	if errors.Is(err, repository.ErrBannerNotFound) {
+		return nil, &AppError{404, "Баннер с ID " + strconv.Itoa(int(id)) + " не найден"}
+	}
+	if err != nil {
+		return nil, err
+	}
+	if !isAdmin && existing.UserID != requesterID {
+		return nil, &AppError{403, "Нет прав на изменение баннера"}
+	}
+	newStatus := "DENIDED"
+	if existing.ModerateState == "DENIDED" {
+		if isAdmin {
+			newStatus = "APPROVED"
+		} else {
+			newStatus = "MODERATE"
+		}
+	} else if existing.ModerateState == "APPROVED" || existing.ModerateState == "MODERATE" {
+		newStatus = "DENIDED"
+	}
+	return s.repo.Update(ctx, id, nil, nil, nil, nil, &newStatus)
+}
+
+func (s *BannerService) Remove(ctx context.Context, id int32, requesterID int32, isAdmin bool) (map[string]string, error) {
 	if s.s3 == nil {
 		return nil, &AppError{500, "S3 не настроен"}
 	}
@@ -129,6 +161,9 @@ func (s *BannerService) Remove(ctx context.Context, id int32) (map[string]string
 	}
 	if err != nil {
 		return nil, err
+	}
+	if !isAdmin && b.UserID != requesterID {
+		return nil, &AppError{403, "Нет прав на удаление баннера"}
 	}
 	_ = s.s3.DeleteByURL(ctx, b.PhotoURL)
 	if err := s.repo.Delete(ctx, id); err != nil {
