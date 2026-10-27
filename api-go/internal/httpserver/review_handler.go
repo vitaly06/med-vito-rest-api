@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	authmw "med-vito/api-go/internal/httpserver/middleware"
+	"med-vito/api-go/internal/rbac"
 	"med-vito/api-go/internal/service"
 )
 
@@ -45,7 +46,39 @@ func RegisterReviewRoutes(app fiber.Router, rev *service.ReviewService, auth *se
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректное тело"})
 		}
 		me := authmw.UserFromLocals(c)
-		out, err := rev.UpdateReview(c.UserContext(), me.ID, int32(id), body.Rating, body.Text)
+		isAdmin := rbac.HasMinRole(me.RoleName, 70)
+		out, err := rev.UpdateReview(c.UserContext(), me.ID, int32(id), body.Rating, body.Text, isAdmin)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
+	g.Delete("/:id", sess, func(c *fiber.Ctx) error {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 32)
+		if err != nil || id <= 0 {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
+		}
+		me := authmw.UserFromLocals(c)
+		isAdmin := rbac.HasMinRole(me.RoleName, 70)
+		out, err := rev.DeleteReview(c.UserContext(), int32(id), me.ID, isAdmin)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
+	g.Get("/all-reviews", mod, func(c *fiber.Ctx) error {
+		var userID *int32
+		if uStr := c.Query("userId"); uStr != "" {
+			if u, err := strconv.ParseInt(uStr, 10, 32); err == nil && u > 0 {
+				uid := int32(u)
+				userID = &uid
+			}
+		}
+		page, _ := strconv.Atoi(c.Query("page", "1"))
+		limit, _ := strconv.Atoi(c.Query("limit", "50"))
+		out, err := rev.AllReviews(c.UserContext(), userID, page, limit)
 		if err != nil {
 			return writeAppError(c, err)
 		}

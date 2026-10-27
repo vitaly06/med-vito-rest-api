@@ -327,3 +327,109 @@ func (r *ReviewPG) UpdateReview(ctx context.Context, id int32, rating float64, t
 	return nil
 }
 
+func (r *ReviewPG) AdminUpdateReview(ctx context.Context, id int32, rating float64, text *string) error {
+	tag, err := r.pool.Exec(ctx, `
+		UPDATE "Review"
+		SET rating = $1, text = $2
+		WHERE id = $3`, rating, text, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *ReviewPG) DeleteReview(ctx context.Context, id int32) error {
+	tag, err := r.pool.Exec(ctx, `DELETE FROM "Review" WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+type AdminReviewRow struct {
+	ID              int32
+	Rating          float64
+	Text            *string
+	ModerateState   string
+	CreatedAt       time.Time
+	ReviewedByID    int32
+	ReviewedByName  string
+	ReviewedByPhone string
+	ReviewedUserID  int32
+	ReviewedName    string
+	ReviewedPhone   string
+}
+
+func (r *ReviewPG) ListAllReviews(ctx context.Context, userID *int32, limit, offset int) ([]AdminReviewRow, int, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	whereClause := ""
+	var args []any
+	if userID != nil && *userID > 0 {
+		whereClause = `WHERE (r."reviewedUserId" = $1 OR r."reviewedById" = $1)`
+		args = append(args, *userID)
+	}
+
+	var count int
+	countQ := `SELECT COUNT(*) FROM "Review" r ` + whereClause
+	if err := r.pool.QueryRow(ctx, countQ, args...).Scan(&count); err != nil {
+		return nil, 0, err
+	}
+
+	argsCount := len(args)
+	var q string
+	if whereClause != "" {
+		q = `
+			SELECT r.id, r.rating, r.text, r."moderateState"::text, r."createdAt",
+			       b.id, COALESCE(b."fullName", ''), COALESCE(b."phoneNumber", ''),
+			       s.id, COALESCE(s."fullName", ''), COALESCE(s."phoneNumber", '')
+			FROM "Review" r
+			JOIN "User" b ON b.id = r."reviewedById"
+			JOIN "User" s ON s.id = r."reviewedUserId"
+			` + whereClause + `
+			ORDER BY r."createdAt" DESC
+			LIMIT $2 OFFSET $3`
+	} else {
+		q = `
+			SELECT r.id, r.rating, r.text, r."moderateState"::text, r."createdAt",
+			       b.id, COALESCE(b."fullName", ''), COALESCE(b."phoneNumber", ''),
+			       s.id, COALESCE(s."fullName", ''), COALESCE(s."phoneNumber", '')
+			FROM "Review" r
+			JOIN "User" b ON b.id = r."reviewedById"
+			JOIN "User" s ON s.id = r."reviewedUserId"
+			ORDER BY r."createdAt" DESC
+			LIMIT $1 OFFSET $2`
+	}
+
+	args = append(args, limit, offset)
+	rows, err := r.pool.Query(ctx, q, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var out []AdminReviewRow
+	for rows.Next() {
+		var x AdminReviewRow
+		if err := rows.Scan(&x.ID, &x.Rating, &x.Text, &x.ModerateState, &x.CreatedAt,
+			&x.ReviewedByID, &x.ReviewedByName, &x.ReviewedByPhone,
+			&x.ReviewedUserID, &x.ReviewedName, &x.ReviewedPhone); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, x)
+	}
+	_ = argsCount
+	return out, count, rows.Err()
+}
+
+

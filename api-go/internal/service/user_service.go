@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -12,8 +13,9 @@ import (
 
 	"med-vito/api-go/internal/config"
 	mailpkg "med-vito/api-go/internal/pkg/mail"
-	"med-vito/api-go/internal/rbac"
 	"med-vito/api-go/internal/pkg/s3client"
+	"med-vito/api-go/internal/pkg/sms"
+	"med-vito/api-go/internal/rbac"
 	"med-vito/api-go/internal/repository"
 )
 
@@ -33,10 +35,17 @@ type UserService struct {
 	users *repository.UserPG
 	rdb   *redis.Client
 	s3    *s3client.Client // nil — без загрузки фото
+	sms   *sms.Sender
 }
 
 func NewUserService(cfg config.Config, users *repository.UserPG, rdb *redis.Client, s3 *s3client.Client) *UserService {
-	return &UserService{cfg: cfg, users: users, rdb: rdb, s3: s3}
+	return &UserService{
+		cfg:   cfg,
+		users: users,
+		rdb:   rdb,
+		s3:    s3,
+		sms:   sms.NewSender(cfg.MTSBearer, cfg.NotisendAPIKey, cfg.NotisendProject),
+	}
 }
 
 func (s *UserService) FindAllAdmin(ctx context.Context) ([]fiberMap, error) {
@@ -112,11 +121,15 @@ func (s *UserService) ToggleBanned(ctx context.Context, id int32) (fiberMap, err
 }
 
 func (s *UserService) DeleteUser(ctx context.Context, id int32) (fiberMap, error) {
+	_, phone, _ := s.users.GetUserEmailPhone(ctx, id)
 	if err := s.users.DeleteUserByID(ctx, id); err != nil {
 		if err == repository.ErrNotFound {
 			return nil, &AppError{404, "Пользователь не найден"}
 		}
 		return nil, err
+	}
+	if s.sms != nil && phone != "" {
+		s.sms.SendAsync(phone, "TorguiSam.ru: Ваш аккаунт был удален администратором.")
 	}
 	return fiberMap{"message": "Пользователь успешно удалён"}, nil
 }
@@ -420,6 +433,19 @@ func (s *UserService) AdminUpdateUser(ctx context.Context, userID int32, fullNam
 	if phone != nil && !isDealPhoneSynthetic(*phone) {
 		_ = s.users.SetPhoneVerified(ctx, userID, true)
 	}
+	if s.sms != nil {
+		targetPhone := curPhone
+		if phone != nil && *phone != "" {
+			targetPhone = *phone
+		}
+		if targetPhone != "" {
+			if bonus != nil {
+				s.sms.SendAsync(targetPhone, fmt.Sprintf("TorguiSam.ru: Администратор обновил ваш профиль. Бонусный баланс: %.0f ₽.", *bonus))
+			} else {
+				s.sms.SendAsync(targetPhone, "TorguiSam.ru: Администратор обновил данные вашего профиля.")
+			}
+		}
+	}
 	return fiberMap{"message": "Данные пользователя успешно обновлены"}, nil
 }
 
@@ -435,6 +461,10 @@ func (s *UserService) AdminSetUserRole(ctx context.Context, userID int32, role s
 			return nil, &AppError{404, "Пользователь или роль не найдены"}
 		}
 		return nil, err
+	}
+	_, phone, _ := s.users.GetUserEmailPhone(ctx, userID)
+	if s.sms != nil && phone != "" {
+		s.sms.SendAsync(phone, fmt.Sprintf("TorguiSam.ru: Администратор изменил вашу роль в системе на «%s».", role))
 	}
 	return fiberMap{"message": "Роль пользователя обновлена", "role": role}, nil
 }

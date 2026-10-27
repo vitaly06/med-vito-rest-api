@@ -15,6 +15,7 @@ import (
 
 	"med-vito/api-go/internal/config"
 	mailpkg "med-vito/api-go/internal/pkg/mail"
+	"med-vito/api-go/internal/pkg/sms"
 	"med-vito/api-go/internal/repository"
 )
 
@@ -51,6 +52,7 @@ type ReviewService struct {
 	chat       *repository.ChatPG
 	cfg        config.Config
 	httpClient *http.Client
+	smsSender  *sms.Sender
 }
 
 func NewReviewService(repo *repository.ReviewPG, chat *repository.ChatPG, cfg config.Config) *ReviewService {
@@ -59,6 +61,7 @@ func NewReviewService(repo *repository.ReviewPG, chat *repository.ChatPG, cfg co
 		chat:       chat,
 		cfg:        cfg,
 		httpClient: &http.Client{Timeout: 20 * time.Second},
+		smsSender:  sms.NewSender(cfg.MTSBearer, cfg.NotisendAPIKey, cfg.NotisendProject),
 	}
 }
 
@@ -99,7 +102,7 @@ func (s *ReviewService) SendReview(ctx context.Context, authorID int32, reviewed
 	return map[string]any{"message": "Отзыв успешно оставлен и отправлен на модерацию"}, nil
 }
 
-func (s *ReviewService) UpdateReview(ctx context.Context, authorID int32, reviewID int32, rating float64, text *string) (map[string]any, error) {
+func (s *ReviewService) UpdateReview(ctx context.Context, callerID int32, reviewID int32, rating float64, text *string, isAdmin bool) (map[string]any, error) {
 	if reviewID <= 0 {
 		return nil, &AppError{400, "Некорректный id отзыва"}
 	}
@@ -113,17 +116,105 @@ func (s *ReviewService) UpdateReview(ctx context.Context, authorID int32, review
 	if err != nil {
 		return nil, err
 	}
-	if rev.ReviewedByID != authorID {
-		return nil, &AppError{403, "Вы можете редактировать только свой отзыв"}
+	if !isAdmin {
+		if rev.ReviewedByID != callerID {
+			return nil, &AppError{403, "Вы можете редактировать только свой отзыв"}
+		}
+		if time.Since(rev.CreatedAt) > 30*24*time.Hour {
+			return nil, &AppError{400, "Редактирование отзыва возможно только в течение 30 дней с момента создания"}
+		}
+		if err := s.repo.UpdateReview(ctx, reviewID, rating, text); err != nil {
+			return nil, err
+		}
+		s.notifyReviewStatusAsync(ctx, reviewID, "MODERATE")
+		return map[string]any{"message": "Отзыв успешно обновлен и отправлен на повторную модерацию"}, nil
 	}
-	if time.Since(rev.CreatedAt) > 30*24*time.Hour {
-		return nil, &AppError{400, "Редактирование отзыва возможно только в течение 30 дней с момента создания"}
-	}
-	if err := s.repo.UpdateReview(ctx, reviewID, rating, text); err != nil {
+
+	// Редактирование администратором без ограничений по времени
+	if err := s.repo.AdminUpdateReview(ctx, reviewID, rating, text); err != nil {
 		return nil, err
 	}
-	s.notifyReviewStatusAsync(ctx, reviewID, "MODERATE")
-	return map[string]any{"message": "Отзыв успешно обновлен и отправлен на повторную модерацию"}, nil
+	// Уведомление на телефон о действии администратора
+	_, _, authorPhone, _, _, sellerPhone, _ := s.repo.GetReviewParties(ctx, reviewID)
+	s.sendSMS(sellerPhone, "TorguiSam.ru: Администратор отредактировал отзыв по вашему профилю.")
+	if callerID != rev.ReviewedByID {
+		s.sendSMS(authorPhone, "TorguiSam.ru: Оставленный вами отзыв был отредактирован администратором.")
+	}
+	return map[string]any{"message": "Отзыв успешно отредактирован администратором"}, nil
+}
+
+func (s *ReviewService) DeleteReview(ctx context.Context, reviewID int32, callerID int32, isAdmin bool) (map[string]any, error) {
+	if reviewID <= 0 {
+		return nil, &AppError{400, "Некорректный id отзыва"}
+	}
+	rev, err := s.repo.GetReviewByID(ctx, reviewID)
+	if errors.Is(err, repository.ErrNotFound) {
+		return nil, &AppError{404, "Отзыв не найден"}
+	}
+	if err != nil {
+		return nil, err
+	}
+	if !isAdmin && rev.ReviewedByID != callerID {
+		return nil, &AppError{403, "Вы можете удалять только свои отзывы"}
+	}
+
+	_, _, authorPhone, _, _, sellerPhone, _ := s.repo.GetReviewParties(ctx, reviewID)
+
+	if err := s.repo.DeleteReview(ctx, reviewID); err != nil {
+		return nil, err
+	}
+
+	// Уведомление пользователю на телефон при удалении администратором
+	if isAdmin {
+		s.sendSMS(sellerPhone, "TorguiSam.ru: Администратор удалил отзыв по вашему профилю.")
+		if callerID != rev.ReviewedByID {
+			s.sendSMS(authorPhone, "TorguiSam.ru: Оставленный вами отзыв был удален администратором.")
+		}
+	}
+
+	return map[string]any{"message": "Отзыв успешно удален"}, nil
+}
+
+func (s *ReviewService) AllReviews(ctx context.Context, userID *int32, page, limit int) (map[string]any, error) {
+	if page < 1 {
+		page = 1
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	offset := (page - 1) * limit
+	rows, total, err := s.repo.ListAllReviews(ctx, userID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	list := make([]map[string]any, 0, len(rows))
+	for _, r := range rows {
+		lt := r.CreatedAt.In(time.Local)
+		list = append(list, map[string]any{
+			"id":            r.ID,
+			"rating":        r.Rating,
+			"text":          valueOrEmpty(r.Text),
+			"moderateState": r.ModerateState,
+			"createdAt":     r.CreatedAt,
+			"date":          fmt.Sprintf("%02d.%02d.%02d", lt.Day(), int(lt.Month()), lt.Year()%100),
+			"reviewer": map[string]any{
+				"id":          r.ReviewedByID,
+				"fullName":    r.ReviewedByName,
+				"phoneNumber": r.ReviewedByPhone,
+			},
+			"reviewedUser": map[string]any{
+				"id":          r.ReviewedUserID,
+				"fullName":    r.ReviewedName,
+				"phoneNumber": r.ReviewedPhone,
+			},
+		})
+	}
+	return map[string]any{
+		"reviews": list,
+		"total":   total,
+		"page":    page,
+		"limit":   limit,
+	}, nil
 }
 
 func (s *ReviewService) GetUserReviews(ctx context.Context, userID int32) (map[string]any, error) {
@@ -318,15 +409,21 @@ func (s *ReviewService) notifyReviewStatusAsync(ctx context.Context, reviewID in
 	subjectSeller := "Новый/обновленный отзыв"
 	bodyAuthor := fmt.Sprintf("<p>Здравствуйте, %s.</p><p>Статус отзыва: <b>%s</b>.</p>", authorName, status)
 	bodySeller := fmt.Sprintf("<p>По вашему профилю обновился статус отзыва: <b>%s</b>.</p>", status)
-	authorSMS := "Статус вашего отзыва: " + status
-	sellerSMS := "По вашему профилю обновился статус отзыва: " + status
+	authorSMS := "TorguiSam.ru: Статус вашего отзыва: " + status
+	sellerSMS := "TorguiSam.ru: По вашему профилю обновился статус отзыва: " + status
 	if status == "MODERATE" {
 		subjectAuthor = "Ваш отзыв отправлен на модерацию"
 		bodyAuthor = fmt.Sprintf("<p>Здравствуйте, %s.</p><p>Ваш отзыв принят и отправлен на модерацию.</p>", authorName)
 		subjectSeller = "Новый отзыв ожидает модерацию"
 		bodySeller = fmt.Sprintf("<p>Здравствуйте, %s.</p><p>По вашему профилю оставили новый отзыв. После модерации он появится публично.</p>", sellerName)
-		authorSMS = "Ваш отзыв отправлен на модерацию."
-		sellerSMS = "Новый отзыв о вас ожидает модерацию."
+		authorSMS = "TorguiSam.ru: Ваш отзыв отправлен на модерацию."
+		sellerSMS = "TorguiSam.ru: Новый отзыв о вас ожидает модерацию."
+	} else if status == "APPROVED" {
+		authorSMS = "TorguiSam.ru: Ваш отзыв успешно одобрен и опубликован."
+		sellerSMS = "TorguiSam.ru: Новый отзыв о вас опубликован в вашем профиле."
+	} else if status == "DENIDED" {
+		authorSMS = "TorguiSam.ru: Ваш отзыв отклонён модератором."
+		sellerSMS = "TorguiSam.ru: Отзыв о вас был отклонён модератором."
 	}
 	go func() {
 		if strings.TrimSpace(s.cfg.SMTPHost) != "" {
@@ -449,6 +546,10 @@ func (s *ReviewService) notifyAppealInChatAsync(ctx context.Context, userID, rev
 }
 
 func (s *ReviewService) sendSMS(phone, message string) {
+	if s.smsSender != nil {
+		s.smsSender.SendAsync(phone, message)
+		return
+	}
 	phone = strings.TrimSpace(phone)
 	message = strings.TrimSpace(message)
 	if phone == "" || message == "" {

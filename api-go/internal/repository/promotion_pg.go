@@ -221,3 +221,138 @@ func (r *PromotionPG) AddProductPromotion(ctx context.Context, userID, productID
 		EndDate:     end,
 	}, nil
 }
+
+type ExpiringPromotionRow struct {
+	ID          int32
+	ProductID   int32
+	UserID      int32
+	Days        int32
+	EndDate     time.Time
+	ProductName string
+	Phone       string
+	Email       string
+	DaysLeft    int
+}
+
+func (r *PromotionPG) EnsureNotificationTable(ctx context.Context) error {
+	_, err := r.pool.Exec(ctx, `
+		CREATE TABLE IF NOT EXISTS "ProductPromotionNotification" (
+			"promotionId" INT NOT NULL,
+			"daysInterval" INT NOT NULL,
+			"notifiedAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+			PRIMARY KEY ("promotionId", "daysInterval")
+		)`)
+	return err
+}
+
+func (r *PromotionPG) FindPromotionsExpiringInDays(ctx context.Context, daysLeft int) ([]ExpiringPromotionRow, error) {
+	var q string
+	switch daysLeft {
+	case 7:
+		q = `
+			SELECT pp.id, pp."productId", pp."userId", pp.days, pp."endDate",
+			       COALESCE(p.name, ''), COALESCE(u."phoneNumber", ''), COALESCE(u.email, '')
+			FROM "ProductPromotion" pp
+			JOIN "Product" p ON p.id = pp."productId"
+			JOIN "User" u ON u.id = pp."userId"
+			WHERE pp."isActive" = true
+			  AND pp."isPaid" = true
+			  AND pp.days >= 7
+			  AND pp."endDate" <= NOW() + INTERVAL '7 days'
+			  AND pp."endDate" > NOW() + INTERVAL '3 days'
+			  AND NOT EXISTS (
+			      SELECT 1 FROM "ProductPromotionNotification" n
+			      WHERE n."promotionId" = pp.id AND n."daysInterval" = 7
+			  )`
+	case 3:
+		q = `
+			SELECT pp.id, pp."productId", pp."userId", pp.days, pp."endDate",
+			       COALESCE(p.name, ''), COALESCE(u."phoneNumber", ''), COALESCE(u.email, '')
+			FROM "ProductPromotion" pp
+			JOIN "Product" p ON p.id = pp."productId"
+			JOIN "User" u ON u.id = pp."userId"
+			WHERE pp."isActive" = true
+			  AND pp."isPaid" = true
+			  AND pp.days >= 3
+			  AND pp."endDate" <= NOW() + INTERVAL '3 days'
+			  AND pp."endDate" > NOW() + INTERVAL '1 day'
+			  AND NOT EXISTS (
+			      SELECT 1 FROM "ProductPromotionNotification" n
+			      WHERE n."promotionId" = pp.id AND n."daysInterval" = 3
+			  )`
+	case 1:
+		q = `
+			SELECT pp.id, pp."productId", pp."userId", pp.days, pp."endDate",
+			       COALESCE(p.name, ''), COALESCE(u."phoneNumber", ''), COALESCE(u.email, '')
+			FROM "ProductPromotion" pp
+			JOIN "Product" p ON p.id = pp."productId"
+			JOIN "User" u ON u.id = pp."userId"
+			WHERE pp."isActive" = true
+			  AND pp."isPaid" = true
+			  AND pp."endDate" <= NOW() + INTERVAL '1 day'
+			  AND pp."endDate" > NOW()
+			  AND NOT EXISTS (
+			      SELECT 1 FROM "ProductPromotionNotification" n
+			      WHERE n."promotionId" = pp.id AND n."daysInterval" = 1
+			  )`
+	default:
+		return nil, fmt.Errorf("unsupported daysLeft %d", daysLeft)
+	}
+
+	rows, err := r.pool.Query(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []ExpiringPromotionRow
+	for rows.Next() {
+		var x ExpiringPromotionRow
+		x.DaysLeft = daysLeft
+		if err := rows.Scan(&x.ID, &x.ProductID, &x.UserID, &x.Days, &x.EndDate, &x.ProductName, &x.Phone, &x.Email); err != nil {
+			continue
+		}
+		out = append(out, x)
+	}
+	return out, rows.Err()
+}
+
+func (r *PromotionPG) RecordPromotionNotified(ctx context.Context, promotionID, daysInterval int) error {
+	_, err := r.pool.Exec(ctx, `
+		INSERT INTO "ProductPromotionNotification" ("promotionId", "daysInterval", "notifiedAt")
+		VALUES ($1, $2, NOW())
+		ON CONFLICT ("promotionId", "daysInterval") DO NOTHING`, promotionID, daysInterval)
+	return err
+}
+
+func (r *PromotionPG) DeactivateExpiredPromotions(ctx context.Context) ([]ExpiringPromotionRow, error) {
+	const q = `
+		WITH expired AS (
+		    UPDATE "ProductPromotion" pp
+		    SET "isActive" = false, "updatedAt" = NOW()
+		    WHERE pp."isActive" = true AND pp."isPaid" = true AND pp."endDate" < NOW()
+		    RETURNING pp.id, pp."productId", pp."userId", pp.days, pp."endDate"
+		)
+		SELECT e.id, e."productId", e."userId", e.days, e."endDate",
+		       COALESCE(p.name, ''), COALESCE(u."phoneNumber", ''), COALESCE(u.email, '')
+		FROM expired e
+		JOIN "Product" p ON p.id = e."productId"
+		JOIN "User" u ON u.id = e."userId"`
+
+	rows, err := r.pool.Query(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []ExpiringPromotionRow
+	for rows.Next() {
+		var x ExpiringPromotionRow
+		if err := rows.Scan(&x.ID, &x.ProductID, &x.UserID, &x.Days, &x.EndDate, &x.ProductName, &x.Phone, &x.Email); err != nil {
+			continue
+		}
+		out = append(out, x)
+	}
+	return out, rows.Err()
+}
+

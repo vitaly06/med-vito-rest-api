@@ -9,7 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"med-vito/api-go/internal/config"
 	"med-vito/api-go/internal/pkg/s3client"
+	"med-vito/api-go/internal/pkg/sms"
 	"med-vito/api-go/internal/repository"
 )
 
@@ -20,11 +22,22 @@ type ProductService struct {
 	user    *UserService
 	stat    *StatisticsService
 	support *SupportService
+	cfg     config.Config
+	sms     *sms.Sender
 }
 
-func NewProductService(prod *repository.ProductPG, s3 *s3client.Client, user *UserService, stat *StatisticsService, support *SupportService) *ProductService {
-	return &ProductService{prod: prod, s3: s3, user: user, stat: stat, support: support}
+func NewProductService(prod *repository.ProductPG, s3 *s3client.Client, user *UserService, stat *StatisticsService, support *SupportService, cfg config.Config) *ProductService {
+	return &ProductService{
+		prod:    prod,
+		s3:      s3,
+		user:    user,
+		stat:    stat,
+		support: support,
+		cfg:     cfg,
+		sms:     sms.NewSender(cfg.MTSBearer, cfg.NotisendAPIKey, cfg.NotisendProject),
+	}
 }
+
 
 func formatProductDate(t time.Time) string {
 	lt := t.In(time.Local)

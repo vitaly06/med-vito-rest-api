@@ -975,6 +975,20 @@ func (r *ProductPG) GetProductNameAndSeller(ctx context.Context, productID int32
 	return name, sellerID, err
 }
 
+func (r *ProductPG) GetProductOwnerInfo(ctx context.Context, productID int32) (name string, userID int32, phone string, email string, err error) {
+	const q = `
+		SELECT p.name, p."userId", COALESCE(u."phoneNumber", ''), COALESCE(u.email, '')
+		FROM "Product" p
+		JOIN "User" u ON u.id = p."userId"
+		WHERE p.id = $1`
+	err = r.pool.QueryRow(ctx, q, productID).Scan(&name, &userID, &phone, &email)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", 0, "", "", ErrNotFound
+	}
+	return name, userID, phone, email, err
+}
+
+
 func (r *ProductPG) FirstAdminUserID(ctx context.Context) (*int32, error) {
 	var id int32
 	err := r.pool.QueryRow(ctx, `

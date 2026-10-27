@@ -12,7 +12,7 @@ import (
 )
 
 func (s *ProductService) DeleteProduct(ctx context.Context, productID, userID int32, isAdmin bool) (map[string]any, error) {
-	uid, imgs, err := s.prod.GetProductOwnerAndImages(ctx, productID)
+	prodName, uid, ownerPhone, _, err := s.prod.GetProductOwnerInfo(ctx, productID)
 	if errors.Is(err, repository.ErrNotFound) {
 		return nil, &AppError{400, "Товар для удаления не найден"}
 	}
@@ -22,6 +22,7 @@ func (s *ProductService) DeleteProduct(ctx context.Context, productID, userID in
 	if !isAdmin && uid != userID {
 		return nil, &AppError{403, "Вы не можете удалить чужой товар"}
 	}
+	_, imgs, _ := s.prod.GetProductOwnerAndImages(ctx, productID)
 	if s.s3 != nil {
 		for _, u := range imgs {
 			_ = s.s3.DeleteByURL(ctx, u)
@@ -29,6 +30,15 @@ func (s *ProductService) DeleteProduct(ctx context.Context, productID, userID in
 	}
 	if err := s.prod.DeleteProductByID(ctx, productID); err != nil {
 		return nil, err
+	}
+	// Уведомление на телефон при действии администратора
+	if isAdmin && uid != userID {
+		if s.sms != nil && ownerPhone != "" {
+			s.sms.SendAsync(ownerPhone, fmt.Sprintf("TorguiSam.ru: Ваше объявление «%s» (ID %d) удалено администратором.", prodName, productID))
+		}
+		if s.support != nil && uid > 0 {
+			go s.support.NotifyUserBilling(context.Background(), uid, fmt.Sprintf("⚠️ Ваше объявление «%s» (ID %d) было удалено администратором.", prodName, productID))
+		}
 	}
 	return map[string]any{"message": "Товар успешно удалён"}, nil
 }
@@ -550,6 +560,7 @@ func (s *ProductService) GetProductCard(ctx context.Context, productID int32, vi
 
 func (s *ProductService) ToggleProduct(ctx context.Context, productID, userID int32, isAdmin bool) (map[string]any, error) {
 	if isAdmin {
+		prodName, uid, ownerPhone, _, _ := s.prod.GetProductOwnerInfo(ctx, productID)
 		isHide, err := s.prod.ToggleProductHide(ctx, productID)
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, &AppError{404, "Товар не найден"}
@@ -560,6 +571,19 @@ func (s *ProductService) ToggleProduct(ctx context.Context, productID, userID in
 		msg := "Объявление возвращено в продажу"
 		if isHide {
 			msg = "Объявление снято с продажи"
+			if s.sms != nil && ownerPhone != "" {
+				s.sms.SendAsync(ownerPhone, fmt.Sprintf("TorguiSam.ru: Ваше объявление «%s» (ID %d) снято с публикации администратором.", prodName, productID))
+			}
+			if s.support != nil && uid > 0 {
+				go s.support.NotifyUserBilling(context.Background(), uid, fmt.Sprintf("Ваше объявление «%s» (ID %d) снято с публикации администратором.", prodName, productID))
+			}
+		} else {
+			if s.sms != nil && ownerPhone != "" {
+				s.sms.SendAsync(ownerPhone, fmt.Sprintf("TorguiSam.ru: Ваше объявление «%s» (ID %d) возвращено в публикацию администратором.", prodName, productID))
+			}
+			if s.support != nil && uid > 0 {
+				go s.support.NotifyUserBilling(context.Background(), uid, fmt.Sprintf("Ваше объявление «%s» (ID %d) возвращено в публикацию администратором.", prodName, productID))
+			}
 		}
 		return map[string]any{
 			"message": msg,
@@ -604,7 +628,7 @@ func (s *ProductService) ModerateProduct(ctx context.Context, productID int32, s
 	if st != "APPROVED" && st != "DENIDED" {
 		return &AppError{400, "Неверный статус модерации. Доступные статусы: APPROVED, DENIDED"}
 	}
-	name, sellerID, err := s.prod.GetProductNameAndSeller(ctx, productID)
+	name, sellerID, ownerPhone, _, err := s.prod.GetProductOwnerInfo(ctx, productID)
 	if errors.Is(err, repository.ErrNotFound) {
 		return &AppError{404, "Товар для модерации не найден"}
 	}
@@ -624,7 +648,19 @@ func (s *ProductService) ModerateProduct(ctx context.Context, productID int32, s
 	}
 	if st == "DENIDED" && rptr != nil {
 		supportMsg := fmt.Sprintf("❌ Ваш товар «%s» был отклонён модерацией.\n\nПричина: %s\n\nЕсли вы считаете, что произошла ошибка, напишите нам в этот чат.", name, *rptr)
-		s.support.NotifyUserBilling(ctx, sellerID, supportMsg)
+		if s.support != nil {
+			go s.support.NotifyUserBilling(context.Background(), sellerID, supportMsg)
+		}
+		if s.sms != nil && ownerPhone != "" {
+			s.sms.SendAsync(ownerPhone, fmt.Sprintf("TorguiSam.ru: Ваше объявление «%s» отклонено модерацией. Причина: %s", name, *rptr))
+		}
+	} else if st == "APPROVED" {
+		if s.sms != nil && ownerPhone != "" {
+			s.sms.SendAsync(ownerPhone, fmt.Sprintf("TorguiSam.ru: Ваше объявление «%s» успешно прошло модерацию и опубликовано.", name))
+		}
+		if s.support != nil {
+			go s.support.NotifyUserBilling(context.Background(), sellerID, fmt.Sprintf("✅ Ваш товар «%s» успешно прошёл модерацию и опубликован.", name))
+		}
 	}
 	return nil
 }
