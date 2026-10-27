@@ -98,6 +98,7 @@ func (s *UserService) FindAllAdmin(ctx context.Context) ([]fiberMap, error) {
 				"remaining": maxInt32(0, int32(repository.FreeAdsMonthlyLimit)-r.UsedFreeAds),
 				"costPerAd": repository.AdListingCost,
 			},
+			"reviewsCount": r.ReviewsCount,
 		})
 	}
 	return out, nil
