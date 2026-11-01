@@ -271,10 +271,11 @@ func (s *ProductService) CreateProduct(ctx context.Context, userID int32, name, 
 	if err := validateProductContentLimits(len(files), description, isPaidContent); err != nil {
 		return nil, err
 	}
-	price, err := strconv.Atoi(strings.TrimSpace(priceStr))
-	if err != nil || price < 1 {
-		return nil, &AppError{400, "Цена должна быть числом больше 0"}
+	price64, err := strconv.ParseInt(strings.TrimSpace(priceStr), 10, 64)
+	if err != nil || price64 < 1 || price64 > 1_000_000_000 {
+		return nil, &AppError{400, "Цена должна быть числом от 1 до 1 000 000 000 ₽"}
 	}
+	price := int32(price64)
 	catID, err := strconv.ParseInt(strings.TrimSpace(categoryStr), 10, 32)
 	if err != nil {
 		return nil, &AppError{400, "Некорректный categoryId"}
@@ -420,10 +421,10 @@ func (s *ProductService) CreateDraft(ctx context.Context, userID int32, name, pr
 		state = "NEW"
 	}
 
-	price := 1
+	price := int32(1)
 	if p := strings.TrimSpace(priceStr); p != "" {
-		if n, err := strconv.Atoi(p); err == nil && n >= 1 {
-			price = n
+		if n, err := strconv.ParseInt(p, 10, 64); err == nil && n >= 1 && n <= 1_000_000_000 {
+			price = int32(n)
 		}
 	}
 

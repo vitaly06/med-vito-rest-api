@@ -141,13 +141,13 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 		namePtr = &v
 	}
 	if strings.TrimSpace(priceStr) != "" {
-		p, err := strconv.Atoi(strings.TrimSpace(priceStr))
-		if err != nil || p < 1 {
+		p64, err := strconv.ParseInt(strings.TrimSpace(priceStr), 10, 64)
+		if err != nil || p64 < 1 || p64 > 1_000_000_000 {
 			if !isDraft {
-				return nil, &AppError{400, "Некорректная цена"}
+				return nil, &AppError{400, "Цена должна быть от 1 до 1 000 000 000 ₽"}
 			}
 		} else {
-			pp := int32(p)
+			pp := int32(p64)
 			pricePtr = &pp
 		}
 	}

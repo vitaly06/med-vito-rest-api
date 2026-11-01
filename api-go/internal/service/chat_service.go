@@ -24,13 +24,21 @@ func NewChatService(repo *repository.ChatPG, users *repository.UserPG, cfg confi
 	return &ChatService{repo: repo, users: users, cfg: cfg}
 }
 
+var mskLocation = func() *time.Location {
+	loc, err := time.LoadLocation("Europe/Moscow")
+	if err == nil {
+		return loc
+	}
+	return time.FixedZone("MSK", 3*60*60)
+}()
+
 func formatChatShortDate(t time.Time) string {
-	lt := t.In(time.Local)
+	lt := t.In(mskLocation)
 	return fmt.Sprintf("%02d.%02d.%02d", lt.Day(), int(lt.Month()), lt.Year()%100)
 }
 
 func messageTimeString(t time.Time) string {
-	return t.In(time.Local).Format("15:04")
+	return t.In(mskLocation).Format("15:04")
 }
 
 func (s *ChatService) formatStartChat(c *repository.ChatFullRow) map[string]any {
