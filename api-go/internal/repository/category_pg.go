@@ -541,6 +541,13 @@ func (r *CategoryPG) AdminInsertSubcategory(ctx context.Context, name string, ca
 		`INSERT INTO "SubCategory" ("name", "slug", "categoryId") VALUES ($1, '', $2)`,
 		name, categoryID,
 	)
+	if err != nil && (strings.Contains(err.Error(), "SubCategory_pkey") || strings.Contains(err.Error(), "23505")) {
+		_, _ = r.pool.Exec(ctx, `SELECT setval(pg_get_serial_sequence('"SubCategory"', 'id'), GREATEST(COALESCE((SELECT MAX(id) FROM "SubCategory"), 1), 1))`)
+		_, err = r.pool.Exec(ctx,
+			`INSERT INTO "SubCategory" ("name", "slug", "categoryId") VALUES ($1, '', $2)`,
+			name, categoryID,
+		)
+	}
 	return err
 }
 
@@ -620,6 +627,13 @@ func (r *CategoryPG) AdminInsertSubcategoryType(ctx context.Context, name string
 		`INSERT INTO "SubcategotyType" ("name", "slug", "subcategoryId") VALUES ($1, '', $2)`,
 		name, subcategoryID,
 	)
+	if err != nil && (strings.Contains(err.Error(), "SubcategotyType_pkey") || strings.Contains(err.Error(), "23505")) {
+		_, _ = r.pool.Exec(ctx, `SELECT setval(pg_get_serial_sequence('"SubcategotyType"', 'id'), GREATEST(COALESCE((SELECT MAX(id) FROM "SubcategotyType"), 1), 1))`)
+		_, err = r.pool.Exec(ctx,
+			`INSERT INTO "SubcategotyType" ("name", "slug", "subcategoryId") VALUES ($1, '', $2)`,
+			name, subcategoryID,
+		)
+	}
 	return err
 }
 
@@ -699,6 +713,13 @@ func (r *CategoryPG) AdminInsertTypeField(ctx context.Context, name string, type
 		`INSERT INTO "TypeField" ("name", "isRequired", "typeId") VALUES ($1, $2, $3)`,
 		name, isRequired, typeID,
 	)
+	if err != nil && (strings.Contains(err.Error(), "TypeField_pkey") || strings.Contains(err.Error(), "23505")) {
+		_, _ = r.pool.Exec(ctx, `SELECT setval(pg_get_serial_sequence('"TypeField"', 'id'), GREATEST(COALESCE((SELECT MAX(id) FROM "TypeField"), 1), 1))`)
+		_, err = r.pool.Exec(ctx,
+			`INSERT INTO "TypeField" ("name", "isRequired", "typeId") VALUES ($1, $2, $3)`,
+			name, isRequired, typeID,
+		)
+	}
 	return err
 }
 

@@ -65,6 +65,19 @@ func (r *ReviewPG) HasDealOrReservation(ctx context.Context, authorID, sellerID 
 		  AND r."sellerId" = $2
 		  AND r.status IN ('DEAL_CREATED','COMPLETED','ACTIVE')
 		LIMIT 1`, authorID, sellerID).Scan(&one)
+	if err == nil {
+		return true, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return false, err
+	}
+	// Также разрешаем оставить отзыв, если покупатель и продавец общались в чате
+	err = r.pool.QueryRow(ctx, `
+		SELECT 1
+		FROM "Chat" c
+		JOIN "Message" m ON m."chatId" = c.id
+		WHERE ((c."buyerId" = $1 AND c."sellerId" = $2) OR (c."buyerId" = $2 AND c."sellerId" = $1))
+		LIMIT 1`, authorID, sellerID).Scan(&one)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, nil
 	}

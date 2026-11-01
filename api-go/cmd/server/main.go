@@ -123,7 +123,7 @@ func main() {
 	promoSvc.StartExpiryWorker(ctx)
 	addrSvc := service.NewAddressService(cfg.DadataAPIKey)
 	banRepo := repository.NewBannerPG(pool)
-	banSvc := service.NewBannerService(banRepo, s3c)
+	banSvc := service.NewBannerService(banRepo, s3c, supSvc, cfg)
 
 	raw := os.Getenv("CORS_ORIGIN")
 	var origins string

@@ -87,7 +87,7 @@ func (s *ReviewService) SendReview(ctx context.Context, authorID int32, reviewed
 		return nil, err
 	}
 	if !eligible {
-		return nil, &AppError{403, "Оставить отзыв можно только после покупки или резерва"}
+		return nil, &AppError{403, "Оставить отзыв можно только после покупки, резерва или общения в чате с продавцом"}
 	}
 	reviewID, err := s.repo.InsertReview(ctx, authorID, reviewedUserID, rating, text)
 	if err != nil {
@@ -134,12 +134,18 @@ func (s *ReviewService) UpdateReview(ctx context.Context, callerID int32, review
 	if err := s.repo.AdminUpdateReview(ctx, reviewID, rating, text); err != nil {
 		return nil, err
 	}
-	// Уведомление на телефон о действии администратора
-	_, _, authorPhone, _, _, sellerPhone, _ := s.repo.GetReviewParties(ctx, reviewID)
-	s.sendSMS(sellerPhone, "TorguiSam.ru: Администратор отредактировал отзыв по вашему профилю.")
-	if callerID != rev.ReviewedByID {
-		s.sendSMS(authorPhone, "TorguiSam.ru: Оставленный вами отзыв был отредактирован администратором.")
-	}
+	// Уведомление на почту о действии администратора
+	_, authorEmail, _, _, sellerEmail, _, _ := s.repo.GetReviewParties(ctx, reviewID)
+	go func() {
+		if strings.TrimSpace(s.cfg.SMTPHost) != "" {
+			if sellerEmail != "" {
+				_ = mailpkg.SendHTMLSmart(s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword, s.cfg.SMTPFrom, sellerEmail, "Отзыв отредактирован администратором", "<p>Администратор отредактировал отзыв по вашему профилю на TorguiSam.ru.</p>", s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure)
+			}
+			if callerID != rev.ReviewedByID && authorEmail != "" {
+				_ = mailpkg.SendHTMLSmart(s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword, s.cfg.SMTPFrom, authorEmail, "Отзыв отредактирован администратором", "<p>Оставленный вами отзыв на TorguiSam.ru был отредактирован администратором.</p>", s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure)
+			}
+		}
+	}()
 	return map[string]any{"message": "Отзыв успешно отредактирован администратором"}, nil
 }
 
@@ -158,18 +164,24 @@ func (s *ReviewService) DeleteReview(ctx context.Context, reviewID int32, caller
 		return nil, &AppError{403, "Вы можете удалять только свои отзывы"}
 	}
 
-	_, _, authorPhone, _, _, sellerPhone, _ := s.repo.GetReviewParties(ctx, reviewID)
+	_, authorEmail, _, _, sellerEmail, _, _ := s.repo.GetReviewParties(ctx, reviewID)
 
 	if err := s.repo.DeleteReview(ctx, reviewID); err != nil {
 		return nil, err
 	}
 
-	// Уведомление пользователю на телефон при удалении администратором
+	// Уведомление пользователю на почту при удалении администратором
 	if isAdmin {
-		s.sendSMS(sellerPhone, "TorguiSam.ru: Администратор удалил отзыв по вашему профилю.")
-		if callerID != rev.ReviewedByID {
-			s.sendSMS(authorPhone, "TorguiSam.ru: Оставленный вами отзыв был удален администратором.")
-		}
+		go func() {
+			if strings.TrimSpace(s.cfg.SMTPHost) != "" {
+				if sellerEmail != "" {
+					_ = mailpkg.SendHTMLSmart(s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword, s.cfg.SMTPFrom, sellerEmail, "Отзыв удален администратором", "<p>Администратор удалил отзыв по вашему профилю на TorguiSam.ru.</p>", s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure)
+				}
+				if callerID != rev.ReviewedByID && authorEmail != "" {
+					_ = mailpkg.SendHTMLSmart(s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword, s.cfg.SMTPFrom, authorEmail, "Отзыв удален администратором", "<p>Оставленный вами отзыв на TorguiSam.ru был удален администратором.</p>", s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure)
+				}
+			}
+		}()
 	}
 
 	return map[string]any{"message": "Отзыв успешно удален"}, nil
@@ -401,7 +413,7 @@ func (s *ReviewService) aiReviewDecision(ctx context.Context, text *string) (str
 }
 
 func (s *ReviewService) notifyReviewStatusAsync(ctx context.Context, reviewID int32, status string) {
-	authorName, authorEmail, authorPhone, sellerName, sellerEmail, sellerPhone, err := s.repo.GetReviewParties(ctx, reviewID)
+	authorName, authorEmail, _, sellerName, sellerEmail, _, err := s.repo.GetReviewParties(ctx, reviewID)
 	if err != nil {
 		return
 	}
@@ -409,29 +421,17 @@ func (s *ReviewService) notifyReviewStatusAsync(ctx context.Context, reviewID in
 	subjectSeller := "Новый/обновленный отзыв"
 	bodyAuthor := fmt.Sprintf("<p>Здравствуйте, %s.</p><p>Статус отзыва: <b>%s</b>.</p>", authorName, status)
 	bodySeller := fmt.Sprintf("<p>По вашему профилю обновился статус отзыва: <b>%s</b>.</p>", status)
-	authorSMS := "TorguiSam.ru: Статус вашего отзыва: " + status
-	sellerSMS := "TorguiSam.ru: По вашему профилю обновился статус отзыва: " + status
 	if status == "MODERATE" {
 		subjectAuthor = "Ваш отзыв отправлен на модерацию"
 		bodyAuthor = fmt.Sprintf("<p>Здравствуйте, %s.</p><p>Ваш отзыв принят и отправлен на модерацию.</p>", authorName)
 		subjectSeller = "Новый отзыв ожидает модерацию"
 		bodySeller = fmt.Sprintf("<p>Здравствуйте, %s.</p><p>По вашему профилю оставили новый отзыв. После модерации он появится публично.</p>", sellerName)
-		authorSMS = "TorguiSam.ru: Ваш отзыв отправлен на модерацию."
-		sellerSMS = "TorguiSam.ru: Новый отзыв о вас ожидает модерацию."
-	} else if status == "APPROVED" {
-		authorSMS = "TorguiSam.ru: Ваш отзыв успешно одобрен и опубликован."
-		sellerSMS = "TorguiSam.ru: Новый отзыв о вас опубликован в вашем профиле."
-	} else if status == "DENIDED" {
-		authorSMS = "TorguiSam.ru: Ваш отзыв отклонён модератором."
-		sellerSMS = "TorguiSam.ru: Отзыв о вас был отклонён модератором."
 	}
 	go func() {
 		if strings.TrimSpace(s.cfg.SMTPHost) != "" {
 			_ = mailpkg.SendHTMLSmart(s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword, s.cfg.SMTPFrom, authorEmail, subjectAuthor, bodyAuthor, s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure)
 			_ = mailpkg.SendHTMLSmart(s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword, s.cfg.SMTPFrom, sellerEmail, subjectSeller, bodySeller, s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure)
 		}
-		s.sendSMS(authorPhone, authorSMS)
-		s.sendSMS(sellerPhone, sellerSMS)
 	}()
 }
 

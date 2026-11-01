@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -46,6 +47,13 @@ func NewUserService(cfg config.Config, users *repository.UserPG, rdb *redis.Clie
 		s3:    s3,
 		sms:   sms.NewSender(cfg.MTSBearer, cfg.NotisendAPIKey, cfg.NotisendProject),
 	}
+}
+
+func (s *UserService) sendMail(to, subject, html string) {
+	if strings.TrimSpace(s.cfg.SMTPHost) == "" || strings.TrimSpace(to) == "" {
+		return
+	}
+	_ = mailpkg.SendHTMLSmart(s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword, s.cfg.SMTPFrom, to, subject, html, s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure)
 }
 
 func (s *UserService) FindAllAdmin(ctx context.Context) ([]fiberMap, error) {
@@ -122,15 +130,15 @@ func (s *UserService) ToggleBanned(ctx context.Context, id int32) (fiberMap, err
 }
 
 func (s *UserService) DeleteUser(ctx context.Context, id int32) (fiberMap, error) {
-	_, phone, _ := s.users.GetUserEmailPhone(ctx, id)
+	email, _, _ := s.users.GetUserEmailPhone(ctx, id)
 	if err := s.users.DeleteUserByID(ctx, id); err != nil {
 		if err == repository.ErrNotFound {
 			return nil, &AppError{404, "Пользователь не найден"}
 		}
 		return nil, err
 	}
-	if s.sms != nil && phone != "" {
-		s.sms.SendAsync(phone, "TorguiSam.ru: Ваш аккаунт был удален администратором.")
+	if email != "" {
+		go s.sendMail(email, "Удаление аккаунта - Торгуй Сам", "<p>Ваш аккаунт был удален администратором.</p>")
 	}
 	return fiberMap{"message": "Пользователь успешно удалён"}, nil
 }
@@ -250,7 +258,21 @@ func (s *UserService) UpdateSettingsMultipart(ctx context.Context, userID int32,
 		patch.FullName = &fullName
 	}
 	if phone != "" {
-		patch.PhoneNumber = &phone
+		_, curPhone, err := s.users.GetUserEmailPhone(ctx, userID)
+		if err == nil {
+			normNew, errNew := normalizePhone(phone)
+			normCur, _ := normalizePhone(curPhone)
+			if errNew == nil && normNew != normCur {
+				// Изменение номера телефона требует отдельного подтверждения через SMS!
+				// Напрямую через обычные настройки не перезаписываем.
+			} else if errNew == nil {
+				patch.PhoneNumber = &normNew
+			} else {
+				patch.PhoneNumber = &phone
+			}
+		} else {
+			patch.PhoneNumber = &phone
+		}
 	}
 	if strings.TrimSpace(email) != "" {
 		cleanEmail := strings.ToLower(strings.TrimSpace(email))
@@ -434,17 +456,15 @@ func (s *UserService) AdminUpdateUser(ctx context.Context, userID int32, fullNam
 	if phone != nil && !isDealPhoneSynthetic(*phone) {
 		_ = s.users.SetPhoneVerified(ctx, userID, true)
 	}
-	if s.sms != nil {
-		targetPhone := curPhone
-		if phone != nil && *phone != "" {
-			targetPhone = *phone
-		}
-		if targetPhone != "" {
-			if bonus != nil {
-				s.sms.SendAsync(targetPhone, fmt.Sprintf("TorguiSam.ru: Администратор обновил ваш профиль. Бонусный баланс: %.0f ₽.", *bonus))
-			} else {
-				s.sms.SendAsync(targetPhone, "TorguiSam.ru: Администратор обновил данные вашего профиля.")
-			}
+	targetEmail := curEmail
+	if email != nil && strings.TrimSpace(*email) != "" {
+		targetEmail = strings.TrimSpace(*email)
+	}
+	if targetEmail != "" {
+		if bonus != nil {
+			go s.sendMail(targetEmail, "Обновление профиля - Торгуй Сам", fmt.Sprintf("<p>Администратор обновил ваш профиль. Бонусный баланс: <b>%.0f ₽</b>.</p>", *bonus))
+		} else {
+			go s.sendMail(targetEmail, "Обновление профиля - Торгуй Сам", "<p>Администратор обновил данные вашего профиля.</p>")
 		}
 	}
 	return fiberMap{"message": "Данные пользователя успешно обновлены"}, nil
@@ -463,9 +483,9 @@ func (s *UserService) AdminSetUserRole(ctx context.Context, userID int32, role s
 		}
 		return nil, err
 	}
-	_, phone, _ := s.users.GetUserEmailPhone(ctx, userID)
-	if s.sms != nil && phone != "" {
-		s.sms.SendAsync(phone, fmt.Sprintf("TorguiSam.ru: Администратор изменил вашу роль в системе на «%s».", role))
+	email, _, _ := s.users.GetUserEmailPhone(ctx, userID)
+	if email != "" {
+		go s.sendMail(email, "Изменение роли - Торгуй Сам", fmt.Sprintf("<p>Администратор изменил вашу роль в системе на «<b>%s</b>».</p>", role))
 	}
 	return fiberMap{"message": "Роль пользователя обновлена", "role": role}, nil
 }
@@ -480,4 +500,114 @@ func maxInt32(a, b int32) int32 {
 		return a
 	}
 	return b
+}
+
+const changePhoneKeyPrefix = "change-phone:"
+
+type changePhoneCache struct {
+	UserID int32  `json:"userId"`
+	Phone  string `json:"phone"`
+	Code   string `json:"code"`
+}
+
+func normalizePhone(raw string) (string, error) {
+	digits := ""
+	for _, r := range raw {
+		if r >= '0' && r <= '9' {
+			digits += string(r)
+		}
+	}
+	if len(digits) == 10 {
+		digits = "7" + digits
+	} else if len(digits) == 11 {
+		if digits[0] == '8' {
+			digits = "7" + digits[1:]
+		}
+	}
+	if len(digits) != 11 || digits[0] != '7' {
+		return "", errors.New("некорректный номер телефона (требуется 11 цифр, формат РФ +7)")
+	}
+	return "+" + digits, nil
+}
+
+func (s *UserService) RequestPhoneChange(ctx context.Context, userID int32, rawPhone string) (fiberMap, error) {
+	newPhone, err := normalizePhone(rawPhone)
+	if err != nil {
+		return nil, &AppError{400, err.Error()}
+	}
+
+	_, curPhone, err := s.users.GetUserEmailPhone(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	normCur, _ := normalizePhone(curPhone)
+	if newPhone == normCur {
+		return nil, &AppError{400, "Новый номер совпадает с текущим"}
+	}
+
+	existingUser, err := s.users.FindUserByPhone(ctx, newPhone)
+	if err == nil && existingUser != nil && existingUser.ID != userID {
+		return nil, &AppError{400, "Этот номер телефона уже привязан к другому аккаунту"}
+	}
+
+	code := generateVerifyCode6()
+	cache := changePhoneCache{
+		UserID: userID,
+		Phone:  newPhone,
+		Code:   code,
+	}
+	b, _ := json.Marshal(cache)
+	if err := s.rdb.Set(ctx, changePhoneKeyPrefix+strconv.Itoa(int(userID)), b, 15*time.Minute).Err(); err != nil {
+		return nil, err
+	}
+
+	if s.sms != nil {
+		s.sms.SendAsync(newPhone, "TorguiSam.ru: Код подтверждения смены номера: "+code)
+	}
+
+	return fiberMap{
+		"message": "Код подтверждения отправлен по SMS на номер " + newPhone,
+		"phone":   newPhone,
+	}, nil
+}
+
+func (s *UserService) ConfirmPhoneChange(ctx context.Context, userID int32, code string) (fiberMap, error) {
+	code = strings.TrimSpace(code)
+	if code == "" {
+		return nil, &AppError{400, "Введите код подтверждения"}
+	}
+
+	key := changePhoneKeyPrefix + strconv.Itoa(int(userID))
+	raw, err := s.rdb.Get(ctx, key).Result()
+	if errors.Is(err, redis.Nil) || raw == "" {
+		return nil, &AppError{400, "Срок действия кода истёк или смена номера не запрашивалась"}
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var cached changePhoneCache
+	if err := json.Unmarshal([]byte(raw), &cached); err != nil {
+		return nil, &AppError{400, "Ошибка чтения данных кода"}
+	}
+
+	if cached.Code != code {
+		return nil, &AppError{400, "Неверный код подтверждения"}
+	}
+
+	if err := s.users.UpdatePhoneNumber(ctx, userID, cached.Phone); err != nil {
+		return nil, err
+	}
+
+	_ = s.rdb.Del(ctx, key).Err()
+
+	email, _, _ := s.users.GetUserEmailPhone(ctx, userID)
+	if email != "" {
+		go s.sendMail(email, "Смена номера телефона - Торгуй Сам", fmt.Sprintf("<p>Номер телефона вашего аккаунта успешно изменён на <b>%s</b>.</p>", cached.Phone))
+	}
+
+	return fiberMap{
+		"message":     "Номер телефона успешно подтверждён и обновлён",
+		"phoneNumber": cached.Phone,
+	}, nil
 }

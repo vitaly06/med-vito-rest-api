@@ -3,6 +3,7 @@ package httpserver
 import (
 	"io"
 	"strconv"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 
@@ -101,8 +102,45 @@ func RegisterUserRoutes(app fiber.Router, u *service.UserService, auth *service.
 	})
 
 	g.Post("/verify-code", func(c *fiber.Ctx) error {
-		code := c.Query("code")
+		code := strings.TrimSpace(c.Query("code"))
+		if code == "" {
+			var body struct {
+				Code string `json:"code"`
+			}
+			_ = c.BodyParser(&body)
+			code = strings.TrimSpace(body.Code)
+		}
 		out, err := u.VerifyEmailCode(c.UserContext(), code)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
+	g.Post("/request-phone-change", sess, func(c *fiber.Ctx) error {
+		me := authmw.UserFromLocals(c)
+		var body struct {
+			Phone string `json:"phone"`
+		}
+		if err := c.BodyParser(&body); err != nil || strings.TrimSpace(body.Phone) == "" {
+			body.Phone = c.FormValue("phone")
+		}
+		out, err := u.RequestPhoneChange(c.UserContext(), me.ID, body.Phone)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
+	g.Post("/confirm-phone-change", sess, func(c *fiber.Ctx) error {
+		me := authmw.UserFromLocals(c)
+		var body struct {
+			Code string `json:"code"`
+		}
+		if err := c.BodyParser(&body); err != nil || strings.TrimSpace(body.Code) == "" {
+			body.Code = c.FormValue("code")
+		}
+		out, err := u.ConfirmPhoneChange(c.UserContext(), me.ID, body.Code)
 		if err != nil {
 			return writeAppError(c, err)
 		}

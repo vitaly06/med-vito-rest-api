@@ -60,6 +60,23 @@ func (r *UserPG) FindUserByEmail(ctx context.Context, email string) (*domain.Use
 	return r.scanUser(ctx, r.pool.QueryRow(ctx, q, email))
 }
 
+func (r *UserPG) FindUserByPhone(ctx context.Context, phone string) (*domain.UserEntity, error) {
+	const q = `
+		SELECT u."id", u."fullName", u."email", u."phoneNumber", u."password", u."profileType"::text,
+		       u."photo", u."rating", u."isAnswersCall", u."roleId", r."name",
+		       u."isBanned", u."isEmailVerified", u."isPhoneVerified", u."isResetVerified",
+		       u."balance", u."bonusBalance"
+		FROM "User" u
+		LEFT JOIN "Role" r ON u."roleId" = r."id"
+		WHERE u."phoneNumber" = $1 LIMIT 1`
+	return r.scanUser(ctx, r.pool.QueryRow(ctx, q, phone))
+}
+
+func (r *UserPG) UpdatePhoneNumber(ctx context.Context, userID int32, phone string) error {
+	_, err := r.pool.Exec(ctx, `UPDATE "User" SET "phoneNumber" = $2, "isPhoneVerified" = true, "updatedAt" = NOW() WHERE id = $1`, userID, phone)
+	return err
+}
+
 func (r *UserPG) FindUserByID(ctx context.Context, id int32) (*domain.UserEntity, error) {
 	const q = `
 		SELECT u."id", u."fullName", u."email", u."phoneNumber", u."password", u."profileType"::text,

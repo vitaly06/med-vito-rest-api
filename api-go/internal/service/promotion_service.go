@@ -72,11 +72,6 @@ func (s *PromotionService) runExpiryCheck(ctx context.Context) {
 			if prodName == "" {
 				prodName = fmt.Sprintf("ID %d", promo.ProductID)
 			}
-			smsText := fmt.Sprintf("TorguiSam.ru: До окончания платной услуги продвижения объявления «%s» осталось: %s. Продлите в профиле.", prodName, item.text)
-
-			if promo.Phone != "" && s.sms != nil {
-				s.sms.SendAsync(promo.Phone, smsText)
-			}
 
 			if s.support != nil && promo.UserID > 0 {
 				chatMsg := fmt.Sprintf("⏳ До окончания платного продвижения для объявления «%s» осталось: %s (до %s).\nЧтобы продлить услугу, перейдите в профиль.",

@@ -460,6 +460,10 @@ func (s *ProductService) CreateDraft(ctx context.Context, userID int32, name, pr
 		fvMap = map[string]string{}
 	}
 
+	if len(files) > paidMaxImages {
+		return nil, &AppError{400, "Для черновика можно загрузить не более 15 фото"}
+	}
+
 	var urls []string
 	for _, f := range files {
 		u, err := s.s3.Upload(ctx, "products", f.Name, f.ContentType, f.Body)

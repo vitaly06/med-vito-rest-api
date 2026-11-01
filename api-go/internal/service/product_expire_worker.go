@@ -100,12 +100,6 @@ func (w *ProductExpiryWorker) notifyExpiringSoon(ctx context.Context) {
 		if w.support != nil {
 			go w.support.NotifyUserBilling(context.Background(), p.UserID, msg)
 		}
-		if phone := strings.TrimSpace(p.Phone); phone != "" {
-			go w.sendSMS(phone, fmt.Sprintf(
-				"TorguiSam.ru: Объявление «%s» будет снято через 3 дня. Продлите в личном кабинете.",
-				productExpiryTruncate(p.Name, 40),
-			))
-		}
 		if email := strings.TrimSpace(p.Email); email != "" && !strings.HasSuffix(email, "@oauth.local") {
 			go w.sendMail(email,
 				"Объявление будет снято через 3 дня — TorguiSam.ru",

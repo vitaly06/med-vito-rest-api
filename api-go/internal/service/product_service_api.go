@@ -8,11 +8,19 @@ import (
 	"strings"
 	"time"
 
+	mailpkg "med-vito/api-go/internal/pkg/mail"
 	"med-vito/api-go/internal/repository"
 )
 
+func (s *ProductService) sendProductEmail(to, subject, html string) {
+	if strings.TrimSpace(s.cfg.SMTPHost) == "" || strings.TrimSpace(to) == "" {
+		return
+	}
+	_ = mailpkg.SendHTMLSmart(s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword, s.cfg.SMTPFrom, to, subject, html, s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure)
+}
+
 func (s *ProductService) DeleteProduct(ctx context.Context, productID, userID int32, isAdmin bool) (map[string]any, error) {
-	prodName, uid, ownerPhone, _, err := s.prod.GetProductOwnerInfo(ctx, productID)
+	prodName, uid, _, ownerEmail, err := s.prod.GetProductOwnerInfo(ctx, productID)
 	if errors.Is(err, repository.ErrNotFound) {
 		return nil, &AppError{400, "Товар для удаления не найден"}
 	}
@@ -31,10 +39,10 @@ func (s *ProductService) DeleteProduct(ctx context.Context, productID, userID in
 	if err := s.prod.DeleteProductByID(ctx, productID); err != nil {
 		return nil, err
 	}
-	// Уведомление на телефон при действии администратора
+	// Уведомление при действии администратора
 	if isAdmin && uid != userID {
-		if s.sms != nil && ownerPhone != "" {
-			s.sms.SendAsync(ownerPhone, fmt.Sprintf("TorguiSam.ru: Ваше объявление «%s» (ID %d) удалено администратором.", prodName, productID))
+		if ownerEmail != "" {
+			go s.sendProductEmail(ownerEmail, fmt.Sprintf("Объявление «%s» удалено", prodName), fmt.Sprintf("<p>Ваше объявление «%s» (ID %d) удалено администратором.</p>", prodName, productID))
 		}
 		if s.support != nil && uid > 0 {
 			go s.support.NotifyUserBilling(context.Background(), uid, fmt.Sprintf("⚠️ Ваше объявление «%s» (ID %d) было удалено администратором.", prodName, productID))
@@ -181,8 +189,15 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 	if err != nil {
 		return nil, err
 	}
-	if err := validateProductContentLimits(len(existingImages)+len(files), description, hasPaid); err != nil {
-		return nil, err
+	if !isDraft {
+		if err := validateProductContentLimits(len(existingImages)+len(files), description, hasPaid); err != nil {
+			return nil, err
+		}
+	} else {
+		// В черновик разрешено сохранять более 8 фото (до 15 фото, оплата проверяется только при публикации)
+		if len(existingImages)+len(files) > paidMaxImages {
+			return nil, &AppError{400, "Для черновика можно загрузить не более 15 фото"}
+		}
 	}
 
 	var newImages []string
@@ -363,7 +378,7 @@ func (s *ProductService) RecommendedBySubcategory(ctx context.Context, viewer *i
 	return s.mapListWithFavorites(ctx, rows, viewer)
 }
 
-func (s *ProductService) ProductsByUserID(ctx context.Context, viewer *int32, userID int32) ([]map[string]any, error) {
+func (s *ProductService) ProductsByUserID(ctx context.Context, viewer *int32, userID int32, activeOnly bool) ([]map[string]any, error) {
 	ok, err := s.prod.UserExists(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -377,7 +392,12 @@ func (s *ProductService) ProductsByUserID(ctx context.Context, viewer *int32, us
 	}
 	out := make([]map[string]any, 0, len(rows))
 	for _, pr := range rows {
-		if pr.ModerateState != nil && *pr.ModerateState == "DRAFT" && (viewer == nil || *viewer != userID) {
+		isOwner := viewer != nil && *viewer == userID
+		if activeOnly || !isOwner {
+			if pr.ModerateState == nil || *pr.ModerateState != "APPROVED" || pr.IsHide {
+				continue
+			}
+		} else if pr.ModerateState != nil && *pr.ModerateState == "DRAFT" {
 			continue
 		}
 		var fav bool
@@ -386,7 +406,7 @@ func (s *ProductService) ProductsByUserID(ctx context.Context, viewer *int32, us
 		}
 		hasPromo := pr.PromotionLevel > 0
 		item := s.formatListItem(pr, fav, hasPromo, pr.PromotionLevel)
-		if viewer != nil && *viewer == userID && (pr.ModerateState == nil || *pr.ModerateState != "DRAFT") {
+		if isOwner && (pr.ModerateState == nil || *pr.ModerateState != "DRAFT") {
 			appendProductLifetime(item, pr.CreatedAt, pr.ExpiresAt)
 		}
 		out = append(out, item)
@@ -560,7 +580,7 @@ func (s *ProductService) GetProductCard(ctx context.Context, productID int32, vi
 
 func (s *ProductService) ToggleProduct(ctx context.Context, productID, userID int32, isAdmin bool) (map[string]any, error) {
 	if isAdmin {
-		prodName, uid, ownerPhone, _, _ := s.prod.GetProductOwnerInfo(ctx, productID)
+		prodName, uid, _, ownerEmail, _ := s.prod.GetProductOwnerInfo(ctx, productID)
 		isHide, err := s.prod.ToggleProductHide(ctx, productID)
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, &AppError{404, "Товар не найден"}
@@ -571,15 +591,15 @@ func (s *ProductService) ToggleProduct(ctx context.Context, productID, userID in
 		msg := "Объявление возвращено в продажу"
 		if isHide {
 			msg = "Объявление снято с продажи"
-			if s.sms != nil && ownerPhone != "" {
-				s.sms.SendAsync(ownerPhone, fmt.Sprintf("TorguiSam.ru: Ваше объявление «%s» (ID %d) снято с публикации администратором.", prodName, productID))
+			if ownerEmail != "" {
+				go s.sendProductEmail(ownerEmail, fmt.Sprintf("Объявление «%s» снято с публикации", prodName), fmt.Sprintf("<p>Ваше объявление «%s» (ID %d) снято с публикации администратором.</p>", prodName, productID))
 			}
 			if s.support != nil && uid > 0 {
 				go s.support.NotifyUserBilling(context.Background(), uid, fmt.Sprintf("Ваше объявление «%s» (ID %d) снято с публикации администратором.", prodName, productID))
 			}
 		} else {
-			if s.sms != nil && ownerPhone != "" {
-				s.sms.SendAsync(ownerPhone, fmt.Sprintf("TorguiSam.ru: Ваше объявление «%s» (ID %d) возвращено в публикацию администратором.", prodName, productID))
+			if ownerEmail != "" {
+				go s.sendProductEmail(ownerEmail, fmt.Sprintf("Объявление «%s» возвращено в публикацию", prodName), fmt.Sprintf("<p>Ваше объявление «%s» (ID %d) возвращено в публикацию администратором.</p>", prodName, productID))
 			}
 			if s.support != nil && uid > 0 {
 				go s.support.NotifyUserBilling(context.Background(), uid, fmt.Sprintf("Ваше объявление «%s» (ID %d) возвращено в публикацию администратором.", prodName, productID))
@@ -628,7 +648,7 @@ func (s *ProductService) ModerateProduct(ctx context.Context, productID int32, s
 	if st != "APPROVED" && st != "DENIDED" {
 		return &AppError{400, "Неверный статус модерации. Доступные статусы: APPROVED, DENIDED"}
 	}
-	name, sellerID, ownerPhone, _, err := s.prod.GetProductOwnerInfo(ctx, productID)
+	name, sellerID, _, ownerEmail, err := s.prod.GetProductOwnerInfo(ctx, productID)
 	if errors.Is(err, repository.ErrNotFound) {
 		return &AppError{404, "Товар для модерации не найден"}
 	}
@@ -651,12 +671,12 @@ func (s *ProductService) ModerateProduct(ctx context.Context, productID int32, s
 		if s.support != nil {
 			go s.support.NotifyUserBilling(context.Background(), sellerID, supportMsg)
 		}
-		if s.sms != nil && ownerPhone != "" {
-			s.sms.SendAsync(ownerPhone, fmt.Sprintf("TorguiSam.ru: Ваше объявление «%s» отклонено модерацией. Причина: %s", name, *rptr))
+		if ownerEmail != "" {
+			go s.sendProductEmail(ownerEmail, fmt.Sprintf("Объявление «%s» отклонено модерацией", name), fmt.Sprintf("<p>Ваше объявление «%s» (ID %d) отклонено модерацией.</p><p>Причина: <b>%s</b></p>", name, productID, *rptr))
 		}
 	} else if st == "APPROVED" {
-		if s.sms != nil && ownerPhone != "" {
-			s.sms.SendAsync(ownerPhone, fmt.Sprintf("TorguiSam.ru: Ваше объявление «%s» успешно прошло модерацию и опубликовано.", name))
+		if ownerEmail != "" {
+			go s.sendProductEmail(ownerEmail, fmt.Sprintf("Объявление «%s» успешно прошло модерацию", name), fmt.Sprintf("<p>Ваше объявление «%s» (ID %d) успешно прошло модерацию и опубликовано на сайте.</p>", name, productID))
 		}
 		if s.support != nil {
 			go s.support.NotifyUserBilling(context.Background(), sellerID, fmt.Sprintf("✅ Ваш товар «%s» успешно прошёл модерацию и опубликован.", name))

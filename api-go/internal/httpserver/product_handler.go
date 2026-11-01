@@ -490,7 +490,8 @@ func RegisterProductRoutes(app fiber.Router, p *service.ProductService, auth *se
 		if u := authmw.UserFromLocals(c); u != nil {
 			viewer = &u.ID
 		}
-		out, err := p.ProductsByUserID(c.UserContext(), viewer, int32(id))
+		activeOnly := c.Query("activeOnly") == "true" || c.Query("status") == "active"
+		out, err := p.ProductsByUserID(c.UserContext(), viewer, int32(id), activeOnly)
 		if err != nil {
 			return writeAppError(c, err)
 		}

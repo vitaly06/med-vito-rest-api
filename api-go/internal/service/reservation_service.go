@@ -92,7 +92,7 @@ func (s *ReservationService) Create(ctx context.Context, buyerID int32, req Crea
 	}
 	dailyLimit := s.cfg.ReservationDailyLimit
 	if dailyLimit <= 0 {
-		dailyLimit = 4
+		dailyLimit = 3
 	}
 	if dayCount >= dailyLimit {
 		return nil, &AppError{400, "Превышен суточный лимит резервирований"}
@@ -328,28 +328,33 @@ func (s *ReservationService) notifyReservationInChat(ctx context.Context, row *r
 		row.ExpiresAt.Format("02.01.2006 15:04"),
 		row.ID,
 	)
+	if row.Note != nil && strings.TrimSpace(*row.Note) != "" {
+		content += "\nКомментарий: " + strings.TrimSpace(*row.Note)
+	}
 	if _, _, _, _, _, err := s.chat.InsertChatMessage(ctx, chatID, row.BuyerID, content); err != nil {
 		log.Printf("reservation chat message failed reservation=%d chat=%d: %v", row.ID, chatID, err)
 	}
 }
 
 func (s *ReservationService) notifyReservationCreated(ctx context.Context, row *repository.ReservationRow, buyerName, sellerEmail string) {
-	buyerEmail, buyerPhone := s.userContacts(ctx, row.BuyerID)
-	_, sellerPhone := s.userContacts(ctx, row.SellerID)
+	buyerEmail, _ := s.userContacts(ctx, row.BuyerID)
 	expires := row.ExpiresAt.Format("2006-01-02 15:04")
 
-	sellerText := "Товар \"" + row.ProductName + "\" зарезервирован покупателем " + buyerName + " до " + expires + "."
-	buyerText := "Вы зарезервировали товар \"" + row.ProductName + "\" до " + expires + "."
+	noteText := ""
+	if row.Note != nil && strings.TrimSpace(*row.Note) != "" {
+		noteText = "<br/><b>Комментарий:</b> " + strings.TrimSpace(*row.Note)
+	}
+
+	sellerText := "Товар \"" + row.ProductName + "\" зарезервирован покупателем " + buyerName + " до " + expires + "." + noteText
+	buyerText := "Вы зарезервировали товар \"" + row.ProductName + "\" до " + expires + "." + noteText
 
 	go s.sendMail(sellerEmail, "Новый резерв товара", "<p>"+sellerText+"</p>")
 	go s.sendMail(buyerEmail, "Резерв подтвержден", "<p>"+buyerText+"</p>")
-	go s.sendSMS(sellerPhone, sellerText)
-	go s.sendSMS(buyerPhone, buyerText)
 }
 
 func (s *ReservationService) notifyReservationCancelled(ctx context.Context, row *repository.ReservationRow, byBuyer bool) {
-	buyerEmail, buyerPhone := s.userContacts(ctx, row.BuyerID)
-	sellerEmail, sellerPhone := s.userContacts(ctx, row.SellerID)
+	buyerEmail, _ := s.userContacts(ctx, row.BuyerID)
+	sellerEmail, _ := s.userContacts(ctx, row.SellerID)
 
 	reason := ""
 	if row.CancelReason != nil && strings.TrimSpace(*row.CancelReason) != "" {
@@ -367,21 +372,56 @@ func (s *ReservationService) notifyReservationCancelled(ctx context.Context, row
 
 	go s.sendMail(sellerEmail, "Резерв отменен", "<p>"+sellerText+"</p>")
 	go s.sendMail(buyerEmail, "Резерв отменен", "<p>"+buyerText+"</p>")
-	go s.sendSMS(sellerPhone, sellerText)
-	go s.sendSMS(buyerPhone, buyerText)
+	go s.notifyReservationCancelledInChat(context.Background(), row, byBuyer)
+}
+
+func (s *ReservationService) notifyReservationCancelledInChat(ctx context.Context, row *repository.ReservationRow, byBuyer bool) {
+	if s.chat == nil || row == nil {
+		return
+	}
+	chat, err := s.chat.FindChatByProductParticipants(ctx, row.ProductID, row.BuyerID, row.SellerID)
+	if err != nil || chat == nil {
+		return
+	}
+	reason := ""
+	if row.CancelReason != nil && strings.TrimSpace(*row.CancelReason) != "" {
+		reason = "\nПричина: " + strings.TrimSpace(*row.CancelReason)
+	}
+	senderID := row.BuyerID
+	msg := fmt.Sprintf("❌ Резерв на товар «%s» (#%d) был отменён покупателем.", row.ProductName, row.ID)
+	if !byBuyer {
+		senderID = row.SellerID
+		msg = fmt.Sprintf("❌ Резерв на товар «%s» (#%d) был отменён продавцом.%s", row.ProductName, row.ID, reason)
+	}
+	if _, _, _, _, _, err := s.chat.InsertChatMessage(ctx, chat.ID, senderID, msg); err != nil {
+		log.Printf("reservation cancel chat message failed reservation=%d chat=%d: %v", row.ID, chat.ID, err)
+	}
 }
 
 func (s *ReservationService) notifyReservationExpired(ctx context.Context, row *repository.ReservationRow) {
-	buyerEmail, buyerPhone := s.userContacts(ctx, row.BuyerID)
-	sellerEmail, sellerPhone := s.userContacts(ctx, row.SellerID)
+	buyerEmail, _ := s.userContacts(ctx, row.BuyerID)
+	sellerEmail, _ := s.userContacts(ctx, row.SellerID)
 
 	sellerText := "Срок резерва товара \"" + row.ProductName + "\" истек."
 	buyerText := "Срок вашего резерва товара \"" + row.ProductName + "\" истек."
 
 	go s.sendMail(sellerEmail, "Срок резерва истек", "<p>"+sellerText+"</p>")
 	go s.sendMail(buyerEmail, "Срок резерва истек", "<p>"+buyerText+"</p>")
-	go s.sendSMS(sellerPhone, sellerText)
-	go s.sendSMS(buyerPhone, buyerText)
+	go s.notifyReservationExpiredInChat(context.Background(), row)
+}
+
+func (s *ReservationService) notifyReservationExpiredInChat(ctx context.Context, row *repository.ReservationRow) {
+	if s.chat == nil || row == nil {
+		return
+	}
+	chat, err := s.chat.FindChatByProductParticipants(ctx, row.ProductID, row.BuyerID, row.SellerID)
+	if err != nil || chat == nil {
+		return
+	}
+	msg := fmt.Sprintf("⏰ Срок резерва на товар «%s» (#%d) истёк.", row.ProductName, row.ID)
+	if _, _, _, _, _, err := s.chat.InsertChatMessage(ctx, chat.ID, row.SellerID, msg); err != nil {
+		log.Printf("reservation expire chat message failed reservation=%d chat=%d: %v", row.ID, chat.ID, err)
+	}
 }
 
 func (s *ReservationService) userContacts(ctx context.Context, userID int32) (email, phone string) {

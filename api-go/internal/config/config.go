@@ -166,7 +166,7 @@ func Load() Config {
 			resMaxActive = n
 		}
 	}
-	resDailyLimit := 4
+	resDailyLimit := 3
 	if v := strings.TrimSpace(os.Getenv("RESERVATION_DAILY_LIMIT")); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
 			resDailyLimit = n

@@ -172,6 +172,113 @@ func (r *BannerPG) SetModerateState(ctx context.Context, id int32, state string)
 	return nil
 }
 
+type BannerInsufficientError struct {
+	Required  float64
+	Available float64
+}
+
+func (e *BannerInsufficientError) Error() string {
+	return fmt.Sprintf("banner: insufficient funds: required %.0f, available %.0f", e.Required, e.Available)
+}
+
+type ApproveBannerResult struct {
+	UserID          int32
+	UserEmail       string
+	BannerName      string
+	Price           float64
+	BalanceUsed     float64
+	BonusUsed       float64
+	AlreadyApproved bool
+}
+
+func (r *BannerPG) ApproveAndDeduct(ctx context.Context, id int32, price float64) (*ApproveBannerResult, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	var userID int32
+	var name, place, moderateState string
+	err = tx.QueryRow(ctx, `
+		SELECT "userId", name, place::text, COALESCE("moderateState"::text, 'MODERATE')
+		FROM "Banner"
+		WHERE id = $1 FOR UPDATE`, id,
+	).Scan(&userID, &name, &place, &moderateState)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrBannerNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if moderateState == "APPROVED" {
+		return &ApproveBannerResult{
+			UserID:          userID,
+			BannerName:      name,
+			Price:           price,
+			AlreadyApproved: true,
+		}, nil
+	}
+
+	var bal, bonus float64
+	var email string
+	err = tx.QueryRow(ctx, `SELECT balance, "bonusBalance", email FROM "User" WHERE id = $1 FOR UPDATE`, userID).Scan(&bal, &bonus, &email)
+	if err != nil {
+		return nil, err
+	}
+
+	avail := bal + bonus
+	if avail < price {
+		return nil, &BannerInsufficientError{Required: price, Available: avail}
+	}
+
+	balanceUsed := bal
+	if balanceUsed < 0 {
+		balanceUsed = 0
+	}
+	if balanceUsed > price {
+		balanceUsed = price
+	}
+	bonusUsed := price - balanceUsed
+
+	newBal := bal - balanceUsed
+	newBonus := bonus - bonusUsed
+
+	if _, err := tx.Exec(ctx, `UPDATE "User" SET balance = $2, "bonusBalance" = $3, "updatedAt" = NOW() WHERE id = $1`, userID, newBal, newBonus); err != nil {
+		return nil, err
+	}
+
+	if _, err := tx.Exec(ctx, `UPDATE "Banner" SET "moderateState" = 'APPROVED'::"BannerModerate", "updatedAt" = NOW() WHERE id = $1`, id); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	return &ApproveBannerResult{
+		UserID:      userID,
+		UserEmail:   email,
+		BannerName:  name,
+		Price:       price,
+		BalanceUsed: balanceUsed,
+		BonusUsed:   bonusUsed,
+	}, nil
+}
+
+func (r *BannerPG) GetBannerOwnerInfo(ctx context.Context, id int32) (bannerName string, userID int32, email string, err error) {
+	err = r.pool.QueryRow(ctx, `
+		SELECT b.name, b."userId", u.email
+		FROM "Banner" b
+		JOIN "User" u ON u.id = b."userId"
+		WHERE b.id = $1`, id).Scan(&bannerName, &userID, &email)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", 0, "", ErrBannerNotFound
+	}
+	return bannerName, userID, email, err
+}
+
 // BannerModerateRow — очередь модерации с автором.
 type BannerModerateRow struct {
 	ID            int32     `json:"id"`
