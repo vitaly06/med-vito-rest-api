@@ -212,10 +212,12 @@ func (r *ProductPG) CreateProductTx(ctx context.Context, productID, userID int32
 		typeVal = nil
 	}
 	descPtr := nullIfEmpty(description)
+	hasPaidExtraPhotos := len(images) > 8
+	hasPaidExtraDesc := len([]rune(description)) > 2000
 	_, err = tx.Exec(ctx, `
-		INSERT INTO "Product" (id, name, price, quantity, state, description, address, "videoUrl", images, "isHide", "moderateState", "categoryId", "subCategoryId", "typeId", "userId", "createdAt", "updatedAt", "expiresAt")
-		VALUES ($1,$2,$3,$4,$5::"ProductState",$6,$7,$8,$9::text[], false, 'MODERATE'::"ProductModerate",$10,$11,$12,$13,NOW(),NOW(), NOW() + INTERVAL '30 days')`,
-		productID, name, price, quantity, state, descPtr, address, video, images, categoryID, subCategoryID, typeVal, userID)
+		INSERT INTO "Product" (id, name, price, quantity, state, description, address, "videoUrl", images, "isHide", "moderateState", "categoryId", "subCategoryId", "typeId", "userId", "hasPaidExtraPhotos", "hasPaidExtraDesc", "createdAt", "updatedAt", "expiresAt")
+		VALUES ($1,$2,$3,$4,$5::"ProductState",$6,$7,$8,$9::text[], false, 'MODERATE'::"ProductModerate",$10,$11,$12,$13,$14,$15,NOW(),NOW(), NOW() + INTERVAL '30 days')`,
+		productID, name, price, quantity, state, descPtr, address, video, images, categoryID, subCategoryID, typeVal, userID, hasPaidExtraPhotos, hasPaidExtraDesc)
 	if err != nil {
 		return err
 	}
@@ -343,7 +345,9 @@ func (r *ProductPG) PublishDraftTx(ctx context.Context, productID, userID int32)
 		}
 	}
 
-	_, err = tx.Exec(ctx, `UPDATE "Product" SET "moderateState" = 'MODERATE'::"ProductModerate", "isHide" = false, "updatedAt" = NOW(), "expiresAt" = NOW() + INTERVAL '30 days' WHERE id = $1`, productID)
+	hasPaidExtraPhotos := len(draftImgs) > 8
+	hasPaidExtraDesc := len([]rune(draftDescStr)) > 2000
+	_, err = tx.Exec(ctx, `UPDATE "Product" SET "moderateState" = 'MODERATE'::"ProductModerate", "isHide" = false, "hasPaidExtraPhotos" = $2, "hasPaidExtraDesc" = $3, "updatedAt" = NOW(), "expiresAt" = NOW() + INTERVAL '30 days' WHERE id = $1`, productID, hasPaidExtraPhotos, hasPaidExtraDesc)
 	if err != nil {
 		return err
 	}
@@ -377,14 +381,138 @@ func (r *ProductPG) DeleteProductByID(ctx context.Context, productID int32) erro
 	return nil
 }
 
-// ProductWithTypeForUpdate — для PATCH: typeId, images, userId, moderateState (черновик — мягкая валидация).
-func (r *ProductPG) ProductWithTypeForUpdate(ctx context.Context, productID int32) (userID int32, typeID *int32, images []string, moderateState string, err error) {
-	const q = `SELECT "userId", "typeId", images, COALESCE("moderateState"::text, '') FROM "Product" WHERE id = $1`
-	err = r.pool.QueryRow(ctx, q, productID).Scan(&userID, &typeID, &images, &moderateState)
+// ProductWithTypeForUpdate — для PATCH: typeId, images, userId, moderateState, desc, hasPaidExtraPhotos, hasPaidExtraDesc.
+func (r *ProductPG) ProductWithTypeForUpdate(ctx context.Context, productID int32) (userID int32, typeID *int32, images []string, desc string, hasPaidExtraPhotos bool, hasPaidExtraDesc bool, moderateState string, err error) {
+	const q = `SELECT "userId", "typeId", images, COALESCE(description, ''), "hasPaidExtraPhotos", "hasPaidExtraDesc", COALESCE("moderateState"::text, '') FROM "Product" WHERE id = $1`
+	err = r.pool.QueryRow(ctx, q, productID).Scan(&userID, &typeID, &images, &desc, &hasPaidExtraPhotos, &hasPaidExtraDesc, &moderateState)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return 0, nil, nil, "", ErrNotFound
+		return 0, nil, nil, "", false, false, "", ErrNotFound
 	}
-	return userID, typeID, images, moderateState, err
+	return userID, typeID, images, desc, hasPaidExtraPhotos, hasPaidExtraDesc, moderateState, err
+}
+
+func (r *ProductPG) UpdateProductTx(ctx context.Context, productID, userID int32, name *string, price *int32, quantity *int32, state *string, description *string, address *string, categoryID *int32, subCategoryID *int32, typeID *int32, video *string, images []string, setPaidExtraPhotos bool, setPaidExtraDesc bool, extraCost int) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	if extraCost > 0 {
+		var balance, bonus float64
+		err = tx.QueryRow(ctx, `SELECT "balance", "bonusBalance" FROM "User" WHERE id = $1 FOR UPDATE`, userID).Scan(&balance, &bonus)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+
+		total := balance + bonus
+		if total < float64(extraCost) {
+			return ErrInsufficientFunds
+		}
+
+		rem := float64(extraCost)
+		bonusDeduct := bonus
+		if bonusDeduct > rem {
+			bonusDeduct = rem
+		}
+		rem -= bonusDeduct
+		balDeduct := rem
+
+		_, err = tx.Exec(ctx, `
+			UPDATE "User" 
+			SET "bonusBalance" = "bonusBalance" - $2, 
+			    "balance" = "balance" - $3, 
+			    "updatedAt" = NOW() 
+			WHERE id = $1`, userID, bonusDeduct, balDeduct)
+		if err != nil {
+			return err
+		}
+	}
+
+	var sets []string
+	var args []any
+	n := 1
+	if name != nil {
+		sets = append(sets, fmt.Sprintf(`name = $%d`, n))
+		args = append(args, *name)
+		n++
+	}
+	if price != nil {
+		sets = append(sets, fmt.Sprintf(`price = $%d`, n))
+		args = append(args, *price)
+		n++
+	}
+	if quantity != nil {
+		sets = append(sets, fmt.Sprintf(`quantity = $%d`, n))
+		args = append(args, *quantity)
+		n++
+	}
+	if state != nil {
+		sets = append(sets, fmt.Sprintf(`state = $%d::"ProductState"`, n))
+		args = append(args, *state)
+		n++
+	}
+	if description != nil {
+		sets = append(sets, fmt.Sprintf(`description = $%d`, n))
+		args = append(args, *description)
+		n++
+	}
+	if address != nil {
+		sets = append(sets, fmt.Sprintf(`address = $%d`, n))
+		args = append(args, *address)
+		n++
+	}
+	if categoryID != nil {
+		sets = append(sets, fmt.Sprintf(`"categoryId" = $%d`, n))
+		args = append(args, *categoryID)
+		n++
+	}
+	if subCategoryID != nil {
+		sets = append(sets, fmt.Sprintf(`"subCategoryId" = $%d`, n))
+		args = append(args, *subCategoryID)
+		n++
+	}
+	if typeID != nil {
+		sets = append(sets, fmt.Sprintf(`"typeId" = $%d`, n))
+		args = append(args, *typeID)
+		n++
+	}
+	if video != nil {
+		sets = append(sets, fmt.Sprintf(`"videoUrl" = $%d`, n))
+		args = append(args, *video)
+		n++
+	}
+	if images != nil {
+		sets = append(sets, fmt.Sprintf(`images = $%d::text[]`, n))
+		args = append(args, images)
+		n++
+	}
+	if setPaidExtraPhotos {
+		sets = append(sets, `"hasPaidExtraPhotos" = TRUE`)
+	}
+	if setPaidExtraDesc {
+		sets = append(sets, `"hasPaidExtraDesc" = TRUE`)
+	}
+
+	if name != nil || description != nil || address != nil || images != nil {
+		sets = append(sets, `"moderateState" = 'MODERATE'::"ProductModerate"`)
+	}
+	sets = append(sets, `"updatedAt" = NOW()`)
+
+	args = append(args, productID)
+	q := fmt.Sprintf(`UPDATE "Product" SET %s WHERE id = $%d`, strings.Join(sets, ", "), n)
+	tag, err := tx.Exec(ctx, q, args...)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
+	return tx.Commit(ctx)
 }
 
 func (r *ProductPG) UpdateProductPartial(ctx context.Context, productID int32, name *string, price *int32, quantity *int32, state *string, description *string, address *string, categoryID *int32, subCategoryID *int32, typeID *int32, video *string, images []string) error {

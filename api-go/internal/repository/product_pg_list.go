@@ -528,15 +528,18 @@ type ProductCardDB struct {
 	State           string
 	PromotionLevel  int32
 	PromotionName   *string
-	ViewsCount      int32
-	TodayViewsCount int32
-	FieldPairs      []struct{ FieldName, Value string }
-	CreatedAt       time.Time
+	ViewsCount         int32
+	TodayViewsCount    int32
+	HasPaidExtraPhotos bool
+	HasPaidExtraDesc   bool
+	FieldPairs         []struct{ FieldName, Value string }
+	CreatedAt          time.Time
 }
 
 func (r *ProductPG) GetProductCard(ctx context.Context, productID int32) (*ProductCardDB, error) {
 	const q = `
 		SELECT p.id, p.name, p.description, p.price, p.quantity, p."isHide", p.images, p.address, p."userId", p."videoUrl", p."moderateState"::text, p.state::text,
+			p."hasPaidExtraPhotos", p."hasPaidExtraDesc",
 			c.id, c.name, c.slug, sc.id, sc.name, sc.slug, t.id, t.name, t.slug, p."createdAt",
 			COALESCE((
 				SELECT pr."pricePerDay" FROM "ProductPromotion" pp
@@ -562,6 +565,7 @@ func (r *ProductPG) GetProductCard(ctx context.Context, productID int32) (*Produ
 	var typeName, typeSlug *string
 	err := r.pool.QueryRow(ctx, q, productID).Scan(
 		&card.ID, &card.Name, &card.Description, &card.Price, &card.Quantity, &card.IsHide, &card.Images, &card.Address, &card.UserID, &card.VideoURL, &card.ModerateState, &card.State,
+		&card.HasPaidExtraPhotos, &card.HasPaidExtraDesc,
 		&card.CategoryID, &card.CategoryName, &card.CategorySlug,
 		&card.SubCatID, &card.SubCatName, &card.SubCatSlug,
 		&typeID, &typeName, &typeSlug, &card.CreatedAt,
@@ -622,6 +626,8 @@ func (r *ProductPG) LoadProductWithRelations(ctx context.Context, productID int3
 	}
 	out["state"] = card.State
 	out["isDraft"] = card.ModerateState == "DRAFT"
+	out["hasPaidExtraPhotos"] = card.HasPaidExtraPhotos
+	out["hasPaidExtraDesc"] = card.HasPaidExtraDesc
 	return out, nil
 }
 

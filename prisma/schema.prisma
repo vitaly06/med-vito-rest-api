@@ -155,6 +155,8 @@
     isHide Boolean @default(false)
     moderateState ProductModerate @default(MODERATE)
     moderationRejectionReason String?
+    hasPaidExtraPhotos Boolean @default(false)
+    hasPaidExtraDesc   Boolean @default(false)
   
     categoryId  Int
     category    Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)

@@ -55,7 +55,7 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 	if s.s3 == nil && len(files) > 0 {
 		return nil, &AppError{500, "S3 не настроен"}
 	}
-	uid, currentTypeID, existingImages, modState, err := s.prod.ProductWithTypeForUpdate(ctx, productID)
+	uid, currentTypeID, existingImages, currentDesc, hasPaidExtraPhotos, hasPaidExtraDesc, modState, err := s.prod.ProductWithTypeForUpdate(ctx, productID)
 	if errors.Is(err, repository.ErrNotFound) {
 		return nil, &AppError{400, "Товар не найден"}
 	}
@@ -185,18 +185,30 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 		vidPtr = &v
 	}
 
-	hasPaid, err := s.prod.HasActivePaidPromotionForProduct(ctx, productID)
-	if err != nil {
-		return nil, err
+	totalImagesCount := len(existingImages) + len(files)
+	effectiveDesc := description
+	if descPtr == nil {
+	effectiveDesc = currentDesc
 	}
+
+	if totalImagesCount > paidMaxImages {
+		return nil, &AppError{400, "Можно загрузить не более 15 фото"}
+	}
+	if len([]rune(strings.TrimSpace(effectiveDesc))) > paidDescMaxLen {
+		return nil, &AppError{400, "Описание не должно превышать 7000 символов"}
+	}
+
+	extraCost := 0
+	setPaidExtraPhotos := false
+	setPaidExtraDesc := false
 	if !isDraft {
-		if err := validateProductContentLimits(len(existingImages)+len(files), description, hasPaid); err != nil {
-			return nil, err
+		if totalImagesCount > freeMaxImages && !hasPaidExtraPhotos {
+			extraCost += repository.AdListingCost
+			setPaidExtraPhotos = true
 		}
-	} else {
-		// В черновик разрешено сохранять более 8 фото (до 15 фото, оплата проверяется только при публикации)
-		if len(existingImages)+len(files) > paidMaxImages {
-			return nil, &AppError{400, "Для черновика можно загрузить не более 15 фото"}
+		if len([]rune(strings.TrimSpace(effectiveDesc))) > freeDescMaxLen && !hasPaidExtraDesc {
+			extraCost += repository.AdListingCost
+			setPaidExtraDesc = true
 		}
 	}
 
@@ -213,9 +225,12 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 		imgsArg = append(append([]string{}, existingImages...), newImages...)
 	}
 
-	if err := s.prod.UpdateProductPartial(ctx, productID, namePtr, pricePtr, quantityPtr, statePtr, descPtr, addrPtr, categoryIDPtr, subCategoryIDPtr, typeIDPtr, vidPtr, imgsArg); err != nil {
+	if err := s.prod.UpdateProductTx(ctx, productID, userID, namePtr, pricePtr, quantityPtr, statePtr, descPtr, addrPtr, categoryIDPtr, subCategoryIDPtr, typeIDPtr, vidPtr, imgsArg, setPaidExtraPhotos, setPaidExtraDesc, extraCost); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, &AppError{400, "Товар не найден"}
+		}
+		if errors.Is(err, repository.ErrInsufficientFunds) {
+			return nil, &AppError{400, fmt.Sprintf("Недостаточно средств на балансе. Для сохранения изменений требуется %d ₽", extraCost)}
 		}
 		return nil, &AppError{400, "Ошибка при обновлении: " + err.Error()}
 	}
