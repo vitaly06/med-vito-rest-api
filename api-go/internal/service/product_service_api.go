@@ -202,12 +202,19 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 	setPaidExtraPhotos := false
 	setPaidExtraDesc := false
 	if !isDraft {
-		if totalImagesCount > freeMaxImages && !hasPaidExtraPhotos {
+		alreadyHasExtraPhotos := hasPaidExtraPhotos || len(existingImages) > freeMaxImages
+		if totalImagesCount > freeMaxImages && !alreadyHasExtraPhotos {
 			extraCost += repository.AdListingCost
 			setPaidExtraPhotos = true
+		} else if len(existingImages) > freeMaxImages && !hasPaidExtraPhotos {
+			setPaidExtraPhotos = true
 		}
-		if len([]rune(strings.TrimSpace(effectiveDesc))) > freeDescMaxLen && !hasPaidExtraDesc {
+
+		alreadyHasExtraDesc := hasPaidExtraDesc || len([]rune(strings.TrimSpace(currentDesc))) > freeDescMaxLen
+		if len([]rune(strings.TrimSpace(effectiveDesc))) > freeDescMaxLen && !alreadyHasExtraDesc {
 			extraCost += repository.AdListingCost
+			setPaidExtraDesc = true
+		} else if len([]rune(strings.TrimSpace(currentDesc))) > freeDescMaxLen && !hasPaidExtraDesc {
 			setPaidExtraDesc = true
 		}
 	}
@@ -588,8 +595,10 @@ func (s *ProductService) GetProductCard(ctx context.Context, productID int32, vi
 		"promotionLevel":  card.PromotionLevel,
 		"promotionName":   card.PromotionName,
 		"viewsCount":      card.ViewsCount,
-		"todayViewsCount": card.TodayViewsCount,
-		"createdAt":       formatProductDate(card.CreatedAt),
+		"todayViewsCount":    card.TodayViewsCount,
+		"hasPaidExtraPhotos": card.HasPaidExtraPhotos,
+		"hasPaidExtraDesc":   card.HasPaidExtraDesc,
+		"createdAt":          formatProductDate(card.CreatedAt),
 	}, nil
 }
 
