@@ -116,6 +116,30 @@ type signInResponse struct {
 	} `json:"user"`
 }
 
+// ResolveUserPhoto формирует корректный URL фотографии пользователя.
+// Если фото уже содержит полный URL (http/https), возвращает его без дублирования BaseURL.
+func ResolveUserPhoto(baseURL string, rawPhoto *string) *string {
+	if rawPhoto == nil || *rawPhoto == "" {
+		return nil
+	}
+	p := strings.TrimSpace(*rawPhoto)
+	for strings.HasPrefix(p, "https://torguisam.ru/apihttp") || strings.HasPrefix(p, "http://torguisam.ru/apihttp") {
+		p = strings.TrimPrefix(p, "https://torguisam.ru/api")
+		p = strings.TrimPrefix(p, "http://torguisam.ru/api")
+	}
+	if strings.HasPrefix(p, "http://") || strings.HasPrefix(p, "https://") {
+		return &p
+	}
+	if baseURL != "" {
+		if !strings.HasPrefix(p, "/") && !strings.HasSuffix(baseURL, "/") {
+			p = "/" + p
+		}
+		full := baseURL + p
+		return &full
+	}
+	return &p
+}
+
 func (s *AuthService) SignUp(ctx context.Context, where string, fullName, email, phone, password string) error {
 	ok, err := s.users.FindUserByEmailOrPhone(ctx, email, phone)
 	if err != nil {
@@ -224,11 +248,7 @@ func (s *AuthService) VerifyMobileCode(ctx context.Context, code string) (*signI
 		return nil, "", err
 	}
 
-	var photo *string
-	if u.Photo != nil && *u.Photo != "" {
-		p := s.cfg.BaseURL + *u.Photo
-		photo = &p
-	}
+	photo := ResolveUserPhoto(s.cfg.BaseURL, u.Photo)
 	out := &signInResponse{Message: "Вы успешно зарегистрировались!"}
 	out.User.ID = u.ID
 	out.User.Email = u.Email
@@ -256,11 +276,7 @@ func (s *AuthService) SignIn(ctx context.Context, login, password string) (*sign
 	if err := s.rdb.Set(ctx, sessionKeyPrefix+sid, b, sessionTTL).Err(); err != nil {
 		return nil, "", err
 	}
-	var photo *string
-	if u.Photo != nil && *u.Photo != "" {
-		p := s.cfg.BaseURL + *u.Photo
-		photo = &p
-	}
+	photo := ResolveUserPhoto(s.cfg.BaseURL, u.Photo)
 	out := &signInResponse{Message: "Вы успешно авторизовались!"}
 	out.User.ID = u.ID
 	out.User.Email = u.Email
@@ -368,11 +384,8 @@ func (s *AuthService) SignInWithTID(ctx context.Context, code, state string) (*s
 		return nil, "", err
 	}
 
-	var photo *string
-	if user.Photo != nil && *user.Photo != "" {
-		p := s.cfg.BaseURL + *user.Photo
-		photo = &p
-	} else if strings.TrimSpace(profile.Avatar) != "" {
+	photo := ResolveUserPhoto(s.cfg.BaseURL, user.Photo)
+	if photo == nil && strings.TrimSpace(profile.Avatar) != "" {
 		a := strings.TrimSpace(profile.Avatar)
 		photo = &a
 	}
@@ -531,11 +544,8 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code, state, deviceID st
 		return nil, "", err
 	}
 
-	var photo *string
-	if user.Photo != nil && *user.Photo != "" {
-		p := s.cfg.BaseURL + *user.Photo
-		photo = &p
-	} else if strings.TrimSpace(public.Avatar) != "" {
+	photo := ResolveUserPhoto(s.cfg.BaseURL, user.Photo)
+	if photo == nil && strings.TrimSpace(public.Avatar) != "" {
 		a := strings.TrimSpace(public.Avatar)
 		photo = &a
 	}
@@ -1014,11 +1024,7 @@ func (s *AuthService) Me(ctx context.Context, userID int32) (*domain.MeResponse,
 		}
 		return nil, err
 	}
-	var photo *string
-	if u.Photo != nil && *u.Photo != "" {
-		p := s.cfg.BaseURL + *u.Photo
-		photo = &p
-	}
+	photo := ResolveUserPhoto(s.cfg.BaseURL, u.Photo)
 
 	// Проверяем, нужен ли онбординг Яндекса (нет/не подтверждён телефон у Яндекс-пользователя)
 	isYandexUser, _ := s.users.HasOAuthProviderForUser(ctx, userID, "yandex")
@@ -2128,11 +2134,8 @@ func (s *AuthService) SignInWithYandex(ctx context.Context, code, state string) 
 		return nil, err
 	}
 
-	var photo *string
-	if user.Photo != nil && *user.Photo != "" {
-		p := s.cfg.BaseURL + *user.Photo
-		photo = &p
-	} else if strings.TrimSpace(profile.Avatar) != "" {
+	photo := ResolveUserPhoto(s.cfg.BaseURL, user.Photo)
+	if photo == nil && strings.TrimSpace(profile.Avatar) != "" {
 		a := strings.TrimSpace(profile.Avatar)
 		photo = &a
 	}

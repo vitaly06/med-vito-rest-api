@@ -5,3 +5,7 @@ ALTER TABLE "SupportTicket"
 CREATE INDEX IF NOT EXISTS "idx_support_ticket_admin_read_at"
     ON "SupportTicket" ("adminReadAt");
 
+-- Очищаем возможные дублированные префиксы https://torguisam.ru/api в фото пользователей
+UPDATE "User"
+SET photo = REGEXP_REPLACE(photo, '^https?://torguisam\.ru/api', '')
+WHERE photo LIKE '%torguisam.ru/apihttp%';

@@ -180,11 +180,8 @@ func (s *AuthService) YandexRegistrationVerifyCode(ctx context.Context, ticket, 
 		return nil, "", err
 	}
 
-	var photo *string
-	if user.Photo != nil && *user.Photo != "" {
-		p := s.cfg.BaseURL + *user.Photo
-		photo = &p
-	} else if pending.Avatar != "" {
+	photo := ResolveUserPhoto(s.cfg.BaseURL, user.Photo)
+	if photo == nil && pending.Avatar != "" {
 		a := pending.Avatar
 		photo = &a
 	}
