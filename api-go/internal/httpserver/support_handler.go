@@ -192,4 +192,24 @@ func RegisterSupportRoutes(app fiber.Router, sup *service.SupportService, auth *
 		}
 		return c.JSON(out)
 	})
+
+	readTicketHandler := func(c *fiber.Ctx) error {
+		me := authmw.UserFromLocals(c)
+		if !supportIsModerator(me) {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"statusCode": fiber.StatusForbidden,
+				"message":    "Доступ запрещен. Требуется роль модератора или администратора",
+			})
+		}
+		tid, err := c.ParamsInt("id")
+		if err != nil || tid < 1 {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Некорректный id"})
+		}
+		if err := sup.MarkTicketRead(c.UserContext(), int32(tid)); err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(fiber.Map{"ok": true})
+	}
+	g.Post("/tickets/:id/read", sess, readTicketHandler)
+	g.Patch("/tickets/:id/read", sess, readTicketHandler)
 }

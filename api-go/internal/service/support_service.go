@@ -127,6 +127,9 @@ func (s *SupportService) GetTicket(ctx context.Context, ticketID, userID int32, 
 	if err != nil {
 		return nil, err
 	}
+	if isModerator {
+		_ = s.repo.MarkTicketAdminRead(ctx, ticketID)
+	}
 	if !isModerator {
 		for i := range msgs {
 			maskSupportMessageForUser(&msgs[i])
@@ -266,4 +269,9 @@ func (s *SupportService) NotifyUserBilling(ctx context.Context, userID int32, te
 	if err == nil && msg != nil && s.onNewMsg != nil {
 		s.onNewMsg(userID, ticketID, msg)
 	}
+}
+
+
+func (s *SupportService) MarkTicketRead(ctx context.Context, ticketID int32) error {
+	return s.repo.MarkTicketAdminRead(ctx, ticketID)
 }

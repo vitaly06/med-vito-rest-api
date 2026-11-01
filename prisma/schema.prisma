@@ -512,6 +512,9 @@
     // Сообщения в тикете
     messages SupportMessage[]
 
+    // Дата последнего прочтения администратором
+    adminReadAt DateTime?
+
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
   }

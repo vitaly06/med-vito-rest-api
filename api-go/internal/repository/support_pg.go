@@ -41,6 +41,7 @@ type SupportTicketFull struct {
 	Priority    string       `json:"priority"`
 	UserID      int32        `json:"userId"`
 	ModeratorID *int32       `json:"moderatorId,omitempty"`
+	AdminReadAt *time.Time   `json:"adminReadAt,omitempty"`
 	CreatedAt   time.Time    `json:"createdAt"`
 	UpdatedAt   time.Time    `json:"updatedAt"`
 	User        SupportUser  `json:"user"`
@@ -109,7 +110,7 @@ func (r *SupportPG) CreateTicket(ctx context.Context, userID int32, theme, subje
 
 func (r *SupportPG) GetTicketFull(ctx context.Context, ticketID int32) (*SupportTicketFull, error) {
 	q := `
-		SELECT t.id, t.theme::text, t.subject, t.status::text, t.priority::text, t."userId", t."moderatorId", t."createdAt", t."updatedAt",
+		SELECT t.id, t.theme::text, t.subject, t.status::text, t.priority::text, t."userId", t."moderatorId", t."adminReadAt", t."createdAt", t."updatedAt",
 			u.id, u."fullName", u.email,
 			m.id, m."fullName", m.email
 		FROM "SupportTicket" t
@@ -121,7 +122,7 @@ func (r *SupportPG) GetTicketFull(ctx context.Context, ticketID int32) (*Support
 	var mID *int32
 	var mFn, mEm *string
 	err := row.Scan(
-		&t.ID, &t.Theme, &t.Subject, &t.Status, &t.Priority, &t.UserID, &t.ModeratorID, &t.CreatedAt, &t.UpdatedAt,
+		&t.ID, &t.Theme, &t.Subject, &t.Status, &t.Priority, &t.UserID, &t.ModeratorID, &t.AdminReadAt, &t.CreatedAt, &t.UpdatedAt,
 		&t.User.ID, &t.User.FullName, &t.User.Email,
 		&mID, &mFn, &mEm,
 	)
@@ -197,7 +198,7 @@ func (r *SupportPG) ListTickets(ctx context.Context, onlyUserID *int32, status, 
 	}
 
 	dataQ := `
-		SELECT t.id, t.theme::text, t.subject, t.status::text, t.priority::text, t."userId", t."moderatorId", t."createdAt", t."updatedAt",
+		SELECT t.id, t.theme::text, t.subject, t.status::text, t.priority::text, t."userId", t."moderatorId", t."adminReadAt", t."createdAt", t."updatedAt",
 			u.id, u."fullName", u.email,
 			modu.id, modu."fullName", modu.email,
 			lm.id, lm.text, lm."sentAt", lm."authorId",
@@ -223,6 +224,7 @@ func (r *SupportPG) ListTickets(ctx context.Context, onlyUserID *int32, status, 
 				(SELECT MAX(sm2."sentAt") FROM "SupportMessage" sm2 WHERE sm2."ticketId" = t.id AND sm2."authorId" != t."userId"),
 				'1970-01-01'::timestamptz
 			  )
+			  AND (t."adminReadAt" IS NULL OR sm."sentAt" > t."adminReadAt")
 		) unread ON true
 	` + where.String() + fmt.Sprintf(` ORDER BY t."updatedAt" DESC LIMIT $%d OFFSET $%d`, n, n+1)
 	args = append(args, limit, offset)
@@ -246,7 +248,7 @@ func (r *SupportPG) ListTickets(ctx context.Context, onlyUserID *int32, status, 
 		var lmaFN, lmaEm *string
 
 		err := rows.Scan(
-			&item.ID, &item.Theme, &item.Subject, &item.Status, &item.Priority, &item.UserID, &item.ModeratorID, &item.CreatedAt, &item.UpdatedAt,
+			&item.ID, &item.Theme, &item.Subject, &item.Status, &item.Priority, &item.UserID, &item.ModeratorID, &item.AdminReadAt, &item.CreatedAt, &item.UpdatedAt,
 			&item.User.ID, &item.User.FullName, &item.User.Email,
 			&mID, &mFn, &mEm,
 			&lmID, &lmText, &lmAt, &lmAuth,
@@ -322,7 +324,7 @@ func (r *SupportPG) SendMessageTx(ctx context.Context, ticketID, authorID int32,
 
 	if isModerator {
 		_, err = tx.Exec(ctx, `
-			UPDATE "SupportTicket" SET status = 'IN_PROGRESS'::"TicketStatus", "moderatorId" = $2, "updatedAt" = NOW() WHERE id = $1`,
+			UPDATE "SupportTicket" SET status = 'IN_PROGRESS'::"TicketStatus", "moderatorId" = $2, "adminReadAt" = NOW(), "updatedAt" = NOW() WHERE id = $1`,
 			ticketID, authorID)
 	} else if currentStatus == "RESOLVED" {
 		_, err = tx.Exec(ctx, `UPDATE "SupportTicket" SET status = 'OPEN'::"TicketStatus", "updatedAt" = NOW() WHERE id = $1`, ticketID)
@@ -506,4 +508,11 @@ func (r *SupportPG) PostStaffNotification(ctx context.Context, userID, staffID i
 	}
 	msg, err := r.SendMessageTx(ctx, ticketID, staffID, text, true, "IN_PROGRESS")
 	return ticketID, msg, err
+}
+
+
+// MarkTicketAdminRead обновляет время последнего прочтения обращения администратором.
+func (r *SupportPG) MarkTicketAdminRead(ctx context.Context, ticketID int32) error {
+	_, err := r.pool.Exec(ctx, `UPDATE "SupportTicket" SET "adminReadAt" = NOW() WHERE id = $1`, ticketID)
+	return err
 }
