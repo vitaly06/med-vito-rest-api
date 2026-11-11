@@ -53,6 +53,9 @@ services:
       context: ./api-go
       dockerfile: Dockerfile
     restart: unless-stopped
+    dns:
+      - 77.88.8.8
+      - 8.8.8.8
     env_file:
       - ./.env
     ports:

@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	mathrand "math/rand"
 	"net/http"
 	"net/url"
@@ -170,21 +171,7 @@ func (s *AuthService) SignUp(ctx context.Context, where string, fullName, email,
 			return &AppError{500, "Не удалось отправить сообщение"}
 		}
 	case "sms":
-		if s.cfg.MTSBearer == "" {
-			return &AppError{500, "MTS_TOKEN не задан"}
-		}
-		body := map[string]any{
-			"submits": []any{
-				map[string]any{"msid": phone, "message": "Код подтверждения: " + code},
-			},
-			"naming": "Torguisamru",
-		}
-		if err := s.httpPostJSON(ctx,
-			"https://api.mts.ru/client-omni-adapter_production/1.0.2/mcom/messageManagement/messages",
-			body,
-			s.cfg.MTSBearer,
-			nil,
-		); err != nil {
+		if err := s.sendSMS(ctx, phone, "Код подтверждения: "+code); err != nil {
 			return err
 		}
 	default:
@@ -782,34 +769,64 @@ func (s *AuthService) sendVKEmailCode(ctx context.Context, userID int32, email s
 		fromAddr, email, "Код подтверждения почты - Торгуй Сам", htmlBody, s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure)
 }
 
-func (s *AuthService) sendVKPhoneCode(ctx context.Context, phone, code string) error {
-	if s.cfg.MTSBearer != "" {
+func (s *AuthService) sendSMS(ctx context.Context, phone, message string) error {
+	phone = strings.TrimSpace(phone)
+	if phone == "" {
+		return &AppError{400, "Номер телефона не указан"}
+	}
+	var lastErr error
+
+	// 1. Попытка через МТС с таймаутом 5 сек (если задан токен), чтобы не блокировать процесс при зависании TLS
+	if strings.TrimSpace(s.cfg.MTSBearer) != "" {
+		mtsCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+
 		body := map[string]any{
-			"submits": []any{map[string]any{"msid": phone, "message": "Код подтверждения: " + code}},
+			"submits": []any{map[string]any{"msid": phone, "message": message}},
 			"naming":  "Torguisamru",
 		}
-		return s.httpPostJSON(ctx,
+		if err := s.httpPostJSON(mtsCtx,
 			"https://api.mts.ru/client-omni-adapter_production/1.0.2/mcom/messageManagement/messages",
 			body,
 			s.cfg.MTSBearer,
 			nil,
-		)
+		); err != nil {
+			log.Printf("[SMS] MTS send error for %s (%v), attempting Notisend fallback", phone, err)
+			lastErr = err
+		} else {
+			return nil
+		}
 	}
-	if s.cfg.NotisendAPIKey != "" {
+
+	// 2. Фолбэк на Notisend (если задан API ключ)
+	if strings.TrimSpace(s.cfg.NotisendAPIKey) != "" {
 		u := fmt.Sprintf(
 			"https://sms.notisend.ru/api/message/send?project=%s&message=%s&recipients=%s&apikey=%s",
 			url.QueryEscape(s.cfg.NotisendProject),
-			url.QueryEscape("Код подтверждения: "+code),
+			url.QueryEscape(message),
 			url.QueryEscape(phone),
 			url.QueryEscape(s.cfg.NotisendAPIKey),
 		)
 		var resp map[string]any
 		if err := s.httpGETJSON(ctx, u, &resp); err != nil {
-			return err
+			log.Printf("[SMS] Notisend error for %s: %v", phone, err)
+			lastErr = err
+		} else if st, _ := resp["status"].(string); st == "error" {
+			log.Printf("[SMS] Notisend response error for %s: %v", phone, resp)
+			lastErr = &AppError{500, "Не удалось отправить SMS через Notisend"}
+		} else {
+			return nil
 		}
-		return nil
 	}
-	return &AppError{500, "Не настроен SMS провайдер"}
+
+	if lastErr != nil {
+		return &AppError{400, "Ошибка отправки SMS: " + lastErr.Error()}
+	}
+	return &AppError{500, "Не настроен SMS провайдер (MTS_TOKEN / NOTISEND_API_KEY)"}
+}
+
+func (s *AuthService) sendVKPhoneCode(ctx context.Context, phone, code string) error {
+	return s.sendSMS(ctx, phone, "Код подтверждения: "+code)
 }
 
 func inferOAuthIdentityFromUser(u *domain.UserEntity) (provider, externalID string, ok bool) {
@@ -1090,22 +1107,8 @@ func (s *AuthService) ForgotPasswordBy(ctx context.Context, where, email, phone 
 	}
 
 	if where == "sms" {
-		if s.cfg.MTSBearer == "" {
-			return &AppError{500, "MTS_TOKEN не задан"}
-		}
-		body := map[string]any{
-			"submits": []any{
-				map[string]any{"msid": u.PhoneNumber, "message": "Код восстановления пароля: " + code},
-			},
-			"naming": "Torguisamru",
-		}
-		if err := s.httpPostJSON(ctx,
-			"https://api.mts.ru/client-omni-adapter_production/1.0.2/mcom/messageManagement/messages",
-			body,
-			s.cfg.MTSBearer,
-			nil,
-		); err != nil {
-			return &AppError{400, "Ошибка отправки SMS: " + err.Error()}
+		if err := s.sendSMS(ctx, u.PhoneNumber, "Код восстановления пароля: "+code); err != nil {
+			return err
 		}
 		return nil
 	}

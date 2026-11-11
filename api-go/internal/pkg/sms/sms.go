@@ -87,17 +87,17 @@ func (s *Sender) Send(ctx context.Context, phone, message string) error {
 		req.Header.Set("Authorization", "Bearer "+s.MTSBearer)
 
 		resp, err := s.client.Do(req)
+		if err == nil && resp.StatusCode < 300 {
+			defer resp.Body.Close()
+			log.Printf("sms(mts) sent successfully to %s: %s", phone, message)
+			return nil
+		}
 		if err != nil {
-			log.Printf("sms(mts) error to %s: %v", phone, err)
-			return err
+			log.Printf("sms(mts) error to %s: %v, attempting Notisend fallback", phone, err)
+		} else {
+			defer resp.Body.Close()
+			log.Printf("sms(mts) non-ok status %s to %s, attempting Notisend fallback", resp.Status, phone)
 		}
-		defer resp.Body.Close()
-		if resp.StatusCode >= 300 {
-			log.Printf("sms(mts) non-ok status %s to %s", resp.Status, phone)
-			return fmt.Errorf("mts status %s", resp.Status)
-		}
-		log.Printf("sms(mts) sent successfully to %s: %s", phone, message)
-		return nil
 	}
 
 	if s.NotisendAPIKey != "" {
