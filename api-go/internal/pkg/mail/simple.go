@@ -3,9 +3,12 @@ package mail
 import (
 	"crypto/tls"
 	"fmt"
+	"mime"
 	"net"
+	"net/mail"
 	"net/smtp"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -31,13 +34,44 @@ func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 	}
 }
 
+// extractEnvelopeAddress извлекает чистый email (без имени и скобок) для команд SMTP (MAIL FROM / RCPT TO).
+func extractEnvelopeAddress(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if addr, err := mail.ParseAddress(raw); err == nil && addr.Address != "" {
+		return addr.Address
+	}
+	if start := strings.Index(raw, "<"); start >= 0 {
+		if end := strings.Index(raw[start:], ">"); end > 0 {
+			return strings.TrimSpace(raw[start+1 : start+end])
+		}
+	}
+	return strings.Trim(raw, "<> \t\r\n")
+}
+
+// formatFromHeader форматирует заголовок From: с RFC 2047 кодированием имени (для поддержки кириллицы).
+func formatFromHeader(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if addr, err := mail.ParseAddress(raw); err == nil {
+		if addr.Name != "" {
+			return fmt.Sprintf("%s <%s>", mime.QEncoding.Encode("utf-8", addr.Name), addr.Address)
+		}
+		return addr.Address
+	}
+	return raw
+}
+
+// formatSubjectHeader кодирует тему письма по RFC 2047.
+func formatSubjectHeader(subj string) string {
+	return mime.QEncoding.Encode("utf-8", subj)
+}
+
 func mailBytes(fromAddr, toAddr, subject, body string, html bool) []byte {
 	ctype := "text/plain; charset=UTF-8"
 	if html {
 		ctype = "text/html; charset=UTF-8"
 	}
 	hdr := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: %s\r\n\r\n",
-		fromAddr, toAddr, subject, ctype)
+		formatFromHeader(fromAddr), toAddr, formatSubjectHeader(subject), ctype)
 	return []byte(hdr + body)
 }
 
@@ -45,22 +79,26 @@ func mailBytes(fromAddr, toAddr, subject, body string, html bool) []byte {
 func SendText(host string, port int, user, password, fromAddr, toAddr, subject, body string, useTLS, tlsInsecure bool) error {
 	addr := net.JoinHostPort(host, strconv.Itoa(port))
 	msg := mailBytes(fromAddr, toAddr, subject, body, false)
+	envFrom := extractEnvelopeAddress(fromAddr)
+	envTo := extractEnvelopeAddress(toAddr)
 
 	if useTLS || port == 465 {
-		return sendSMTPS(addr, user, password, fromAddr, []string{toAddr}, msg, tlsInsecure)
+		return sendSMTPS(addr, user, password, envFrom, []string{envTo}, msg, tlsInsecure)
 	}
-	return smtp.SendMail(addr, newAuth(user, password), fromAddr, []string{toAddr}, msg)
+	return smtp.SendMail(addr, newAuth(user, password), envFrom, []string{envTo}, msg)
 }
 
 // SendHTML — письмо с телом text/html (как Nest + hbs).
 func SendHTML(host string, port int, user, password, fromAddr, toAddr, subject, htmlBody string, useTLS, tlsInsecure bool) error {
 	addr := net.JoinHostPort(host, strconv.Itoa(port))
 	msg := mailBytes(fromAddr, toAddr, subject, htmlBody, true)
+	envFrom := extractEnvelopeAddress(fromAddr)
+	envTo := extractEnvelopeAddress(toAddr)
 
 	if useTLS || port == 465 {
-		return sendSMTPS(addr, user, password, fromAddr, []string{toAddr}, msg, tlsInsecure)
+		return sendSMTPS(addr, user, password, envFrom, []string{envTo}, msg, tlsInsecure)
 	}
-	return smtp.SendMail(addr, newAuth(user, password), fromAddr, []string{toAddr}, msg)
+	return smtp.SendMail(addr, newAuth(user, password), envFrom, []string{envTo}, msg)
 }
 
 func sendSMTPS(addr, user, pass, from string, to []string, msg []byte, tlsInsecure bool) error {
@@ -93,11 +131,11 @@ func sendSMTPS(addr, user, pass, from string, to []string, msg []byte, tlsInsecu
 			return err
 		}
 	}
-	if err := c.Mail(from); err != nil {
+	if err := c.Mail(extractEnvelopeAddress(from)); err != nil {
 		return err
 	}
 	for _, a := range to {
-		if err := c.Rcpt(a); err != nil {
+		if err := c.Rcpt(extractEnvelopeAddress(a)); err != nil {
 			return err
 		}
 	}
@@ -136,6 +174,8 @@ func SendHTMLSmart(host string, port int, user, password, fromAddr, toAddr, subj
 func sendSTARTTLS(host string, port int, user, password, fromAddr, toAddr, subject, body string, html, tlsInsecure bool) error {
 	addr := net.JoinHostPort(host, strconv.Itoa(port))
 	msg := mailBytes(fromAddr, toAddr, subject, body, html)
+	envFrom := extractEnvelopeAddress(fromAddr)
+	envTo := extractEnvelopeAddress(toAddr)
 
 	conn, err := net.DialTimeout("tcp", addr, 10*time.Second)
 	if err != nil {
@@ -166,10 +206,10 @@ func sendSTARTTLS(host string, port int, user, password, fromAddr, toAddr, subje
 			return err
 		}
 	}
-	if err := c.Mail(fromAddr); err != nil {
+	if err := c.Mail(envFrom); err != nil {
 		return err
 	}
-	if err := c.Rcpt(toAddr); err != nil {
+	if err := c.Rcpt(envTo); err != nil {
 		return err
 	}
 	w, err := c.Data()
