@@ -17,6 +17,8 @@ services:
   db-init:
     image: postgres:17-alpine
     restart: "no"
+    profiles:
+      - init
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT_INTERNAL: "5432"
@@ -117,8 +119,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      db-init:
-        condition: service_completed_successfully
       redis:
         condition: service_healthy
 
