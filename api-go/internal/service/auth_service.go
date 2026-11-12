@@ -774,31 +774,26 @@ func (s *AuthService) sendSMS(ctx context.Context, phone, message string) error 
 	if phone == "" {
 		return &AppError{400, "Номер телефона не указан"}
 	}
-	var lastErr error
 
-	// 1. Попытка через МТС с таймаутом 5 сек (если задан токен), чтобы не блокировать процесс при зависании TLS
+	// 1. Отправка через МТС (основной канал)
 	if strings.TrimSpace(s.cfg.MTSBearer) != "" {
-		mtsCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
-
 		body := map[string]any{
 			"submits": []any{map[string]any{"msid": phone, "message": message}},
 			"naming":  "Torguisamru",
 		}
-		if err := s.httpPostJSON(mtsCtx,
+		if err := s.httpPostJSON(ctx,
 			"https://api.mts.ru/client-omni-adapter_production/1.0.2/mcom/messageManagement/messages",
 			body,
 			s.cfg.MTSBearer,
 			nil,
 		); err != nil {
-			log.Printf("[SMS] MTS send error for %s (%v), attempting Notisend fallback", phone, err)
-			lastErr = err
-		} else {
-			return nil
+			log.Printf("[SMS] MTS send error for %s: %v", phone, err)
+			return &AppError{400, "Ошибка отправки SMS через МТС: " + err.Error()}
 		}
+		return nil
 	}
 
-	// 2. Фолбэк на Notisend (если задан API ключ)
+	// 2. Если МТС не настроен — запасной канал Notisend
 	if strings.TrimSpace(s.cfg.NotisendAPIKey) != "" {
 		u := fmt.Sprintf(
 			"https://sms.notisend.ru/api/message/send?project=%s&message=%s&recipients=%s&apikey=%s",
@@ -810,19 +805,16 @@ func (s *AuthService) sendSMS(ctx context.Context, phone, message string) error 
 		var resp map[string]any
 		if err := s.httpGETJSON(ctx, u, &resp); err != nil {
 			log.Printf("[SMS] Notisend error for %s: %v", phone, err)
-			lastErr = err
-		} else if st, _ := resp["status"].(string); st == "error" {
-			log.Printf("[SMS] Notisend response error for %s: %v", phone, resp)
-			lastErr = &AppError{500, "Не удалось отправить SMS через Notisend"}
-		} else {
-			return nil
+			return &AppError{400, "Ошибка отправки SMS: " + err.Error()}
 		}
+		if st, _ := resp["status"].(string); st == "error" {
+			log.Printf("[SMS] Notisend response error for %s: %v", phone, resp)
+			return &AppError{500, "Не удалось отправить SMS"}
+		}
+		return nil
 	}
 
-	if lastErr != nil {
-		return &AppError{400, "Ошибка отправки SMS: " + lastErr.Error()}
-	}
-	return &AppError{500, "Не настроен SMS провайдер (MTS_TOKEN / NOTISEND_API_KEY)"}
+	return &AppError{500, "Не настроен SMS провайдер (MTS_TOKEN)"}
 }
 
 func (s *AuthService) sendVKPhoneCode(ctx context.Context, phone, code string) error {
@@ -1231,6 +1223,7 @@ func (s *AuthService) httpGETJSON(ctx context.Context, u string, out any) error 
 	if err != nil {
 		return err
 	}
+	req.Header.Set("User-Agent", "TorguiSam/1.0")
 	res, err := s.client.Do(req)
 	if err != nil {
 		return err
@@ -1256,6 +1249,7 @@ func (s *AuthService) httpPostJSON(ctx context.Context, urlStr string, body any,
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "TorguiSam/1.0")
 	if bearer != "" {
 		req.Header.Set("Authorization", "Bearer "+bearer)
 	}
