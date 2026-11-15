@@ -143,7 +143,7 @@ func (r *ProductPG) ListProductsPublic(ctx context.Context, orderClause string, 
 }
 
 func scanProductListRows(rows pgx.Rows) ([]ProductListRow, error) {
-	var out []ProductListRow
+	out := make([]ProductListRow, 0)
 	for rows.Next() {
 		var pr ProductListRow
 		var typeID *int32
@@ -258,7 +258,7 @@ func (r *ProductPG) RandomSubcategoriesWithProducts(ctx context.Context) ([]Prod
 		return nil, err
 	}
 
-	var out []ProductListRow
+	out := make([]ProductListRow, 0)
 	for _, sid := range subIDs {
 		q := fmt.Sprintf(`SELECT %s %s
 			WHERE p."subCategoryId" = $1
@@ -669,7 +669,7 @@ func (r *ProductPG) ListPromotedProducts(ctx context.Context) ([]PromotedProduct
 		return nil, err
 	}
 
-	var out []PromotedProductRow
+	out := make([]PromotedProductRow, 0)
 	for _, pid := range pids {
 		row, err := r.loadOnePromoted(ctx, pid)
 		if err != nil {

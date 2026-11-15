@@ -67,7 +67,7 @@ func (r *BannerPG) queryBanners(ctx context.Context, where string, args []any) (
 }
 
 func scanBannerRows(rows pgx.Rows) ([]BannerRow, error) {
-	var out []BannerRow
+	out := make([]BannerRow, 0)
 	for rows.Next() {
 		var b BannerRow
 		if err := rows.Scan(&b.ID, &b.Name, &b.PhotoURL, &b.Place, &b.ModerateState, &b.NavigateToURL, &b.UserID, &b.CreatedAt, &b.UpdatedAt); err != nil {
