@@ -47,6 +47,9 @@ func New(endpoint, region, bucket, accessKey, secretKey, publicBase string) (*Cl
 		region = "ru1"
 	}
 	if publicBase == "" {
+		publicBase = endpoint
+	}
+	if publicBase == "" {
 		publicBase = "https://s3.ru1.storage.beget.cloud"
 	}
 	publicBase = strings.TrimRight(publicBase, "/")

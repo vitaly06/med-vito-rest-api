@@ -258,7 +258,7 @@ func Load() Config {
 		S3Bucket:     os.Getenv("S3_BUCKET_NAME"),
 		S3AccessKey:  os.Getenv("S3_ACCESS_KEY"),
 		S3SecretKey:  os.Getenv("S3_SECRET_KEY"),
-		S3PublicBase: os.Getenv("S3_PUBLIC_BASE"),
+		S3PublicBase: firstNonEmpty(os.Getenv("S3_PUBLIC_BASE"), os.Getenv("S3_ENDPOINT")),
 
 		TinkoffTerminalKey: strings.TrimSpace(os.Getenv("TINKOFF_TERMINAL_KEY")),
 		TinkoffSecretKey:   strings.TrimSpace(os.Getenv("TINKOFF_SECRET_KEY")),
