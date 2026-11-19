@@ -50,7 +50,7 @@ func (r *PaymentPG) ListByUserID(ctx context.Context, userID int32, limit int) (
 		return nil, err
 	}
 	defer rows.Close()
-	var out []PaymentRow
+	out := make([]PaymentRow, 0)
 	for rows.Next() {
 		var p PaymentRow
 		if err := rows.Scan(&p.ID, &p.OrderID, &p.PaymentID, &p.UserID, &p.Amount, &p.Status, &p.PaymentURL, &p.CreatedAt, &p.UpdatedAt); err != nil {
