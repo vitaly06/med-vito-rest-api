@@ -39,7 +39,7 @@ services:
     ports:
       - "${REDIS_PUBLISH_PORT:-6379}:6379"
     command: >
-      sh -c 'if [ -n "$$REDIS_PASSWORD" ]; then exec redis-server --requirepass "$$REDIS_PASSWORD"; else exec redis-server; fi'
+      sh -c 'if [ -n "$$REDIS_PASSWORD" ]; then exec redis-server --requirepass "$$REDIS_PASSWORD" --appendonly yes; else exec redis-server --appendonly yes; fi'
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     volumes:
@@ -64,7 +64,7 @@ services:
       - "${PORT:-3000}:3000"
     environment:
       PORT: "3000"
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       DATABASE_URL: postgresql://${POSTGRES_USER:-medvito}:${POSTGRES_PASSWORD:-medvito}@postgres:5432/${POSTGRES_DB:-medvito}?sslmode=disable
       REDIS_HOST: redis
       REDIS_PORT: "6379"

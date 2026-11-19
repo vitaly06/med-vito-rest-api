@@ -1,6 +1,8 @@
 package httpserver
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 
 	"med-vito/api-go/internal/config"
@@ -9,6 +11,12 @@ import (
 )
 
 func sessionCookie(cfg config.Config, value string, maxAgeSec int) *fiber.Cookie {
+	var expires time.Time
+	if maxAgeSec > 0 {
+		expires = time.Now().Add(time.Duration(maxAgeSec) * time.Second)
+	} else if maxAgeSec < 0 {
+		expires = time.Now().Add(-24 * time.Hour)
+	}
 	return &fiber.Cookie{
 		Name:     "session_id",
 		Value:    value,
@@ -17,16 +25,24 @@ func sessionCookie(cfg config.Config, value string, maxAgeSec int) *fiber.Cookie
 		Secure:   cfg.Production,
 		SameSite: "Lax",
 		MaxAge:   maxAgeSec,
+		Expires:  expires,
 	}
 }
 
 func clearSessionCookie(cfg config.Config) *fiber.Cookie {
 	c := sessionCookie(cfg, "", -1)
 	c.MaxAge = -1
+	c.Expires = time.Now().Add(-24 * time.Hour)
 	return c
 }
 
 func wsSessionCookie(cfg config.Config, value string, maxAgeSec int) *fiber.Cookie {
+	var expires time.Time
+	if maxAgeSec > 0 {
+		expires = time.Now().Add(time.Duration(maxAgeSec) * time.Second)
+	} else if maxAgeSec < 0 {
+		expires = time.Now().Add(-24 * time.Hour)
+	}
 	return &fiber.Cookie{
 		Name:     "ws_session_id",
 		Value:    value,
@@ -35,12 +51,14 @@ func wsSessionCookie(cfg config.Config, value string, maxAgeSec int) *fiber.Cook
 		Secure:   cfg.Production,
 		SameSite: "Lax",
 		MaxAge:   maxAgeSec,
+		Expires:  expires,
 	}
 }
 
 func clearWSSessionCookie(cfg config.Config) *fiber.Cookie {
 	c := wsSessionCookie(cfg, "", -1)
 	c.MaxAge = -1
+	c.Expires = time.Now().Add(-24 * time.Hour)
 	return c
 }
 
