@@ -275,3 +275,47 @@ func (s *SupportService) NotifyUserBilling(ctx context.Context, userID int32, te
 func (s *SupportService) MarkTicketRead(ctx context.Context, ticketID int32) error {
 	return s.repo.MarkTicketAdminRead(ctx, ticketID)
 }
+
+func (s *SupportService) StartAdminTicket(ctx context.Context, adminID, targetUserID int32, subject, message string) (*repository.SupportTicketFull, error) {
+	if targetUserID <= 0 {
+		return nil, &AppError{400, "Укажите пользователя"}
+	}
+	exists, err := s.repo.UserExists(ctx, targetUserID)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, &AppError{404, "Пользователь не найден"}
+	}
+
+	subject = strings.TrimSpace(subject)
+	if subject == "" {
+		subject = "Диалог со службой поддержки"
+	}
+
+	// 1. Проверяем, есть ли уже активный тикет с этим пользователем
+	existingID, err := s.repo.FindActiveTicketByUser(ctx, targetUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	if existingID > 0 {
+		// Чат уже есть: если передано сообщение, отправляем его в существующий чат
+		msgTrim := strings.TrimSpace(message)
+		if msgTrim != "" {
+			if _, sendErr := s.SendMessage(ctx, existingID, adminID, msgTrim, true); sendErr != nil {
+				return nil, sendErr
+			}
+		}
+		return s.repo.GetTicketFull(ctx, existingID)
+	}
+
+	// 2. Чата нет — создаем новый тикет
+	ticket, err := s.repo.CreateTicketForUserByAdmin(ctx, targetUserID, adminID, "OTHER", subject, "MEDIUM", message)
+	if err != nil {
+		return nil, err
+	}
+
+	return ticket, nil
+}
+

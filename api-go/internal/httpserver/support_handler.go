@@ -74,6 +74,34 @@ func RegisterSupportRoutes(app fiber.Router, sup *service.SupportService, auth *
 		return c.Status(fiber.StatusCreated).JSON(out)
 	})
 
+	g.Post("/tickets/admin/start", sess, func(c *fiber.Ctx) error {
+		me := authmw.UserFromLocals(c)
+		if !supportIsModerator(me) {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"statusCode": fiber.StatusForbidden,
+				"message":    "Доступ запрещен. Требуется роль модератора или администратора",
+			})
+		}
+		var body struct {
+			UserID  int32  `json:"userId"`
+			Subject string `json:"subject"`
+			Message string `json:"message"`
+		}
+		if err := c.BodyParser(&body); err != nil || body.UserID <= 0 {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"statusCode": 400,
+				"message":    "Укажите корректный userId",
+			})
+		}
+		out, err := sup.StartAdminTicket(c.UserContext(), me.ID, body.UserID, body.Subject, body.Message)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		NotifySupportNewTicket(out)
+		return c.Status(fiber.StatusOK).JSON(out)
+	})
+
+
 	g.Get("/tickets/my", sess, func(c *fiber.Ctx) error {
 		page, limit := parseSupportPageLimit(c)
 		me := authmw.UserFromLocals(c)

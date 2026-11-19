@@ -516,3 +516,59 @@ func (r *SupportPG) MarkTicketAdminRead(ctx context.Context, ticketID int32) err
 	_, err := r.pool.Exec(ctx, `UPDATE "SupportTicket" SET "adminReadAt" = NOW() WHERE id = $1`, ticketID)
 	return err
 }
+
+// UserExists проверяет существование пользователя.
+func (r *SupportPG) UserExists(ctx context.Context, userID int32) (bool, error) {
+	var dummy int
+	err := r.pool.QueryRow(ctx, `SELECT 1 FROM "User" WHERE id = $1`, userID).Scan(&dummy)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	return dummy == 1, err
+}
+
+// FindActiveTicketByUser ищет id активного тикета пользователя.
+func (r *SupportPG) FindActiveTicketByUser(ctx context.Context, userID int32) (int32, error) {
+	var id int32
+	err := r.pool.QueryRow(ctx, `
+		SELECT id FROM "SupportTicket"
+		WHERE "userId" = $1 AND status IN ('OPEN', 'IN_PROGRESS')
+		ORDER BY "updatedAt" DESC LIMIT 1`, userID).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, nil
+	}
+	return id, err
+}
+
+// CreateTicketForUserByAdmin создает тикет для пользователя от имени администратора.
+func (r *SupportPG) CreateTicketForUserByAdmin(ctx context.Context, userID, adminID int32, theme, subject, priority, message string) (*SupportTicketFull, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	var id int32
+	err = tx.QueryRow(ctx, `
+		INSERT INTO "SupportTicket" (theme, subject, status, priority, "userId", "moderatorId", "createdAt", "updatedAt")
+		VALUES ($1::"TicketTheme", $2, 'IN_PROGRESS'::"TicketStatus", $3::"TicketPriority", $4, $5, NOW(), NOW())
+		RETURNING id`,
+		theme, subject, priority, userID, adminID,
+	).Scan(&id)
+	if err != nil {
+		return nil, err
+	}
+
+	msgTrim := strings.TrimSpace(message)
+	if msgTrim != "" {
+		if _, err := tx.Exec(ctx, `INSERT INTO "SupportMessage" ("ticketId", "authorId", text, "sentAt") VALUES ($1, $2, $3, NOW())`, id, adminID, msgTrim); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return r.GetTicketFull(ctx, id)
+}
+
