@@ -228,27 +228,29 @@ func (s *ModerationService) processProduct(ctx context.Context, product reposito
 	visionReason := ""
 	visionTechnicalFailure := false
 
-	for _, imageURL := range product.Images {
-		visionResult, err := s.moderateImage(ctx, imageURL)
-		if err != nil {
-			log.Printf("AI moderation worker: [#%d] vision moderation error: %v", product.ID, err)
-			visionTechnicalFailure = true
-			continue
-		}
-		log.Printf("AI moderation worker: [#%d] Vision [%s] -> %s", product.ID, imageURL, visionResult.Decision)
+	if s.cfg.AIVisionEnabled && len(product.Images) > 0 {
+		for _, imageURL := range product.Images {
+			visionResult, err := s.moderateImage(ctx, imageURL)
+			if err != nil {
+				log.Printf("AI moderation worker: [#%d] vision moderation error: %v", product.ID, err)
+				visionTechnicalFailure = true
+				continue
+			}
+			log.Printf("AI moderation worker: [#%d] Vision [%s] -> %s", product.ID, imageURL, visionResult.Decision)
 
-		if visionResult.Decision == "MANUAL" && visionResult.Reason == visionTechnicalErrorReason {
-			visionTechnicalFailure = true
-			continue
-		}
-		if visionResult.Decision == "DENIED" {
-			visionDecision = "DENIED"
-			visionReason = visionResult.Reason
-			break
-		}
-		if visionResult.Decision == "MANUAL" {
-			visionDecision = "MANUAL"
-			visionReason = visionResult.Reason
+			if visionResult.Decision == "MANUAL" && visionResult.Reason == visionTechnicalErrorReason {
+				visionTechnicalFailure = true
+				continue
+			}
+			if visionResult.Decision == "DENIED" {
+				visionDecision = "DENIED"
+				visionReason = visionResult.Reason
+				break
+			}
+			if visionResult.Decision == "MANUAL" {
+				visionDecision = "MANUAL"
+				visionReason = visionResult.Reason
+			}
 		}
 	}
 
@@ -266,7 +268,8 @@ func (s *ModerationService) processProduct(ctx context.Context, product reposito
 	if visionDecision == "MANUAL" && strings.TrimSpace(visionReason) != "" {
 		reasons = append(reasons, "Фото: "+strings.TrimSpace(visionReason))
 	}
-	if visionTechnicalFailure && visionDecision != "MANUAL" {
+	// Техническая ошибка анализа фото блокирует автоодобрение только в строгом режиме
+	if visionTechnicalFailure && visionDecision != "MANUAL" && s.cfg.AIVisionStrict {
 		reasons = append(reasons, visionTechnicalErrorReason)
 	}
 
@@ -467,8 +470,17 @@ func (s *ModerationService) moderateImage(ctx context.Context, imageURL string) 
 		return fallbackVisionResult(), nil
 	}
 
+	visionModel := strings.TrimSpace(s.cfg.AIVisionModel)
+	if visionModel == "" {
+		visionModel = "qwen3.6-35b-a3b"
+	}
+	modelURI := visionModel
+	if !strings.HasPrefix(modelURI, "gpt://") {
+		modelURI = fmt.Sprintf("gpt://%s/%s", s.cfg.YandexFolderID, visionModel)
+	}
+
 	payload := map[string]any{
-		"model":       fmt.Sprintf("gpt://%s/gemma-3-27b-it/latest", s.cfg.YandexFolderID),
+		"model":       modelURI,
 		"max_tokens":  150,
 		"temperature": 0.05,
 		"messages": []map[string]any{

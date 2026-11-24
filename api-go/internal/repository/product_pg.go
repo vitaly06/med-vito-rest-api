@@ -1077,7 +1077,16 @@ func (r *ProductPG) ToggleProductHide(ctx context.Context, productID int32) (boo
 func (r *ProductPG) SetModerationState(ctx context.Context, productID int32, state string, reason *string) error {
 	var q string
 	var args []any
-	if reason != nil {
+	if state == "APPROVED" {
+		// При одобрении товара срок размещения (30 дней) отсчитывается с момента одобрения
+		if reason != nil {
+			q = `UPDATE "Product" SET "moderateState" = $2::"ProductModerate", "moderationRejectionReason" = $3, "updatedAt" = NOW(), "expiresAt" = NOW() + INTERVAL '30 days' WHERE id = $1`
+			args = []any{productID, state, *reason}
+		} else {
+			q = `UPDATE "Product" SET "moderateState" = $2::"ProductModerate", "moderationRejectionReason" = NULL, "updatedAt" = NOW(), "expiresAt" = NOW() + INTERVAL '30 days' WHERE id = $1`
+			args = []any{productID, state}
+		}
+	} else if reason != nil {
 		q = `UPDATE "Product" SET "moderateState" = $2::"ProductModerate", "moderationRejectionReason" = $3, "updatedAt" = NOW() WHERE id = $1`
 		args = []any{productID, state, *reason}
 	} else {

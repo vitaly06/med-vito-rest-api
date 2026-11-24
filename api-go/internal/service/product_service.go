@@ -49,6 +49,18 @@ func formatProductDate(t time.Time) string {
 }
 
 func appendProductLifetime(out map[string]any, createdAt time.Time, expiresAtPtr *time.Time) {
+	var st string
+	if ms, ok := out["moderateState"].(string); ok {
+		st = strings.ToUpper(strings.TrimSpace(ms))
+	}
+	// Если товар ещё не одобрен (на модерации, в проверке ИИ, черновик или отклонён) — срок размещения не уменьшается
+	if st == "MODERATE" || st == "AI_REVIEWED" || st == "DRAFT" || st == "DENIED" || st == "DENIDED" {
+		out["expiresAt"] = nil
+		out["daysUntilExpiration"] = 30
+		out["isExpired"] = false
+		return
+	}
+
 	var expiresAt time.Time
 	if expiresAtPtr != nil && !expiresAtPtr.IsZero() {
 		expiresAt = *expiresAtPtr

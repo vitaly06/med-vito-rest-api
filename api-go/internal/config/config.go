@@ -17,6 +17,9 @@ type Config struct {
 	AIModerationEnabled      bool
 	AIModerationPollInterval int
 	AIModerationBatchSize    int
+	AIVisionEnabled          bool
+	AIVisionModel            string
+	AIVisionStrict           bool
 	YandexFolderID           string
 	YandexAPIKey             string
 
@@ -104,6 +107,14 @@ func Load() Config {
 			aiBatchSize = n
 		}
 	}
+	aiVisionEnabledStr := strings.ToLower(strings.TrimSpace(os.Getenv("AI_VISION_MODERATION_ENABLED")))
+	aiVisionEnabled := aiVisionEnabledStr == "true" || aiVisionEnabledStr == "1" || aiVisionEnabledStr == "yes"
+	aiVisionModel := strings.TrimSpace(os.Getenv("AI_VISION_MODEL"))
+	if aiVisionModel == "" {
+		aiVisionModel = "qwen3.6-35b-a3b"
+	}
+	aiVisionStrictStr := strings.ToLower(strings.TrimSpace(os.Getenv("AI_VISION_STRICT")))
+	aiVisionStrict := aiVisionStrictStr == "true" || aiVisionStrictStr == "1" || aiVisionStrictStr == "yes"
 	base := os.Getenv("BASE_URL")
 	if base == "" {
 		base = "http://localhost:3000"
@@ -235,6 +246,9 @@ func Load() Config {
 		AIModerationEnabled:      aiModerationEnabled,
 		AIModerationPollInterval: aiPollInterval,
 		AIModerationBatchSize:    aiBatchSize,
+		AIVisionEnabled:          aiVisionEnabled,
+		AIVisionModel:            aiVisionModel,
+		AIVisionStrict:           aiVisionStrict,
 		YandexFolderID:           strings.TrimSpace(os.Getenv("YANDEX_FOLDER_ID")),
 		YandexAPIKey:             strings.TrimSpace(os.Getenv("YANDEX_API_KEY")),
 
