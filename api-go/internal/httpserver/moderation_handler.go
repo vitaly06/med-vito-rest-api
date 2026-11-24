@@ -41,6 +41,14 @@ func RegisterModerationRoutes(app fiber.Router, moderation *service.ModerationAd
 		return c.JSON(out)
 	})
 
+	g.Post("/recheck-ai", mod, func(c *fiber.Ctx) error {
+		count, err := moderation.RecheckAI(c.UserContext())
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(fiber.Map{"ok": true, "count": count})
+	})
+
 	g.Get("/summary", adm, func(c *fiber.Ctx) error {
 		days := 30
 		if v := strings.TrimSpace(c.Query("days")); v != "" {

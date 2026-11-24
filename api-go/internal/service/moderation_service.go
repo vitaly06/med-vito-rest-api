@@ -597,6 +597,10 @@ func NewModerationAdminService(repo *repository.ProductPG) *ModerationAdminServi
 	return &ModerationAdminService{repo: repo}
 }
 
+func (s *ModerationAdminService) RecheckAI(ctx context.Context) (int64, error) {
+	return s.repo.ResetProductsForAIModeration(ctx)
+}
+
 func (s *ModerationAdminService) ListProducts(ctx context.Context, filter string, page int) (map[string]any, error) {
 	items, total, err := s.repo.ListProductsForModeration(ctx, filter, page, 20)
 	if err != nil {

@@ -125,6 +125,23 @@ func (r *ProductPG) ListPendingAIModeration(ctx context.Context, limit int) ([]A
 	return out, rows.Err()
 }
 
+func (r *ProductPG) ResetProductsForAIModeration(ctx context.Context) (int64, error) {
+	tag, err := r.pool.Exec(ctx, `
+		UPDATE "Product"
+		SET "moderateState" = 'MODERATE'::"ProductModerate",
+		    "moderationRejectionReason" = NULL,
+		    "updatedAt" = NOW()
+		WHERE ("moderateState" = 'AI_REVIEWED'::"ProductModerate"
+		   OR "moderationRejectionReason" LIKE '%Ошибка анализа фото%'
+		   OR "moderationRejectionReason" LIKE '%Требуется ручная проверка%')
+		  AND "isHide" = false
+	`)
+	if err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
+}
+
 func (r *ProductPG) ListProductsForModeration(ctx context.Context, filter string, page, pageSize int) ([]ModerationListRow, int, error) {
 	if page <= 0 {
 		page = 1
