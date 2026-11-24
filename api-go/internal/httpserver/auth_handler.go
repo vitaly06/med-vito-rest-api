@@ -1,6 +1,8 @@
 package httpserver
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -10,56 +12,53 @@ import (
 	"med-vito/api-go/internal/service"
 )
 
-func sessionCookie(cfg config.Config, value string, maxAgeSec int) *fiber.Cookie {
+func setSessionCookies(c *fiber.Ctx, cfg config.Config, sid string, maxAgeSec int) {
 	var expires time.Time
 	if maxAgeSec > 0 {
 		expires = time.Now().Add(time.Duration(maxAgeSec) * time.Second)
-	} else if maxAgeSec < 0 {
+	} else {
 		expires = time.Now().Add(-24 * time.Hour)
+		maxAgeSec = -1
 	}
-	return &fiber.Cookie{
-		Name:     "session_id",
-		Value:    value,
-		Path:     "/",
-		HTTPOnly: true,
-		Secure:   cfg.Production,
-		SameSite: "Lax",
-		MaxAge:   maxAgeSec,
-		Expires:  expires,
+
+	isHTTPS := cfg.Production ||
+		strings.EqualFold(c.Get("X-Forwarded-Proto"), "https") ||
+		strings.EqualFold(c.Protocol(), "https") ||
+		strings.Contains(strings.ToLower(cfg.BaseURL), "https") ||
+		!strings.Contains(strings.ToLower(c.Hostname()), "localhost")
+
+	domain := ""
+	host := strings.ToLower(c.Hostname())
+	if strings.Contains(host, "torguisam.ru") || strings.Contains(strings.ToLower(cfg.BaseURL), "torguisam.ru") {
+		domain = ".torguisam.ru"
 	}
+
+	buildCookie := func(name, value string, httpOnly bool) string {
+		parts := []string{
+			fmt.Sprintf("%s=%s", name, value),
+			"Path=/",
+			fmt.Sprintf("Max-Age=%d", maxAgeSec),
+			fmt.Sprintf("Expires=%s", expires.UTC().Format(time.RFC1123)),
+			"SameSite=Lax",
+		}
+		if domain != "" {
+			parts = append(parts, "Domain="+domain)
+		}
+		if httpOnly {
+			parts = append(parts, "HttpOnly")
+		}
+		if isHTTPS {
+			parts = append(parts, "Secure")
+		}
+		return strings.Join(parts, "; ")
+	}
+
+	c.Append("Set-Cookie", buildCookie("session_id", sid, true))
+	c.Append("Set-Cookie", buildCookie("ws_session_id", sid, false))
 }
 
-func clearSessionCookie(cfg config.Config) *fiber.Cookie {
-	c := sessionCookie(cfg, "", -1)
-	c.MaxAge = -1
-	c.Expires = time.Now().Add(-24 * time.Hour)
-	return c
-}
-
-func wsSessionCookie(cfg config.Config, value string, maxAgeSec int) *fiber.Cookie {
-	var expires time.Time
-	if maxAgeSec > 0 {
-		expires = time.Now().Add(time.Duration(maxAgeSec) * time.Second)
-	} else if maxAgeSec < 0 {
-		expires = time.Now().Add(-24 * time.Hour)
-	}
-	return &fiber.Cookie{
-		Name:     "ws_session_id",
-		Value:    value,
-		Path:     "/",
-		HTTPOnly: false,
-		Secure:   cfg.Production,
-		SameSite: "Lax",
-		MaxAge:   maxAgeSec,
-		Expires:  expires,
-	}
-}
-
-func clearWSSessionCookie(cfg config.Config) *fiber.Cookie {
-	c := wsSessionCookie(cfg, "", -1)
-	c.MaxAge = -1
-	c.Expires = time.Now().Add(-24 * time.Hour)
-	return c
+func clearSessionCookies(c *fiber.Ctx, cfg config.Config) {
+	setSessionCookies(c, cfg, "", -1)
 }
 
 // RegisterAuthRoutes — пути как Nest AuthController.
@@ -89,8 +88,7 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 		if err != nil {
 			return writeAppError(c, err)
 		}
-		c.Cookie(sessionCookie(cfg, sid, 30*24*60*60))
-		c.Cookie(wsSessionCookie(cfg, sid, 30*24*60*60))
+		setSessionCookies(c, cfg, sid, 30*24*60*60)
 		return c.JSON(out)
 	})
 
@@ -106,8 +104,7 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 		if err != nil {
 			return writeAppError(c, err)
 		}
-		c.Cookie(sessionCookie(cfg, sid, 30*24*60*60))
-		c.Cookie(wsSessionCookie(cfg, sid, 30*24*60*60))
+		setSessionCookies(c, cfg, sid, 30*24*60*60)
 		return c.JSON(out)
 	})
 
@@ -140,8 +137,7 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 		if err != nil {
 			return writeAppError(c, err)
 		}
-		c.Cookie(sessionCookie(cfg, sid, 30*24*60*60))
-		c.Cookie(wsSessionCookie(cfg, sid, 30*24*60*60))
+		setSessionCookies(c, cfg, sid, 30*24*60*60)
 		return c.JSON(out)
 	})
 
@@ -157,8 +153,7 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 		if err != nil {
 			return writeAppError(c, err)
 		}
-		c.Cookie(sessionCookie(cfg, sid, 30*24*60*60))
-		c.Cookie(wsSessionCookie(cfg, sid, 30*24*60*60))
+		setSessionCookies(c, cfg, sid, 30*24*60*60)
 		return c.JSON(out)
 	})
 
@@ -190,8 +185,7 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 				"registrationTicket":       res.RegistrationTicket,
 			})
 		}
-		c.Cookie(sessionCookie(cfg, res.SessionID, 30*24*60*60))
-		c.Cookie(wsSessionCookie(cfg, res.SessionID, 30*24*60*60))
+		setSessionCookies(c, cfg, res.SessionID, 30*24*60*60)
 		return c.JSON(res.SignIn)
 	})
 
@@ -235,8 +229,7 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 		if err != nil {
 			return writeAppError(c, err)
 		}
-		c.Cookie(sessionCookie(cfg, sid, 30*24*60*60))
-		c.Cookie(wsSessionCookie(cfg, sid, 30*24*60*60))
+		setSessionCookies(c, cfg, sid, 30*24*60*60)
 		return c.JSON(out)
 	})
 
@@ -298,8 +291,7 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 			if err != nil {
 				return writeAppError(c, err)
 			}
-			c.Cookie(sessionCookie(cfg, sid, 30*24*60*60))
-			c.Cookie(wsSessionCookie(cfg, sid, 30*24*60*60))
+			setSessionCookies(c, cfg, sid, 30*24*60*60)
 		}
 		return c.JSON(fiber.Map{"message": "Код подтверждения отправлен на почту"})
 	})
@@ -340,8 +332,7 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 		u := middleware.UserFromLocals(c)
 		sid := middleware.GetSessionID(c)
 		if sid != "" {
-			c.Cookie(sessionCookie(cfg, sid, 30*24*60*60))
-			c.Cookie(wsSessionCookie(cfg, sid, 30*24*60*60))
+			setSessionCookies(c, cfg, sid, 30*24*60*60)
 		}
 		me, err := auth.Me(c.UserContext(), u.ID)
 		if err != nil {
@@ -359,8 +350,7 @@ func RegisterAuthRoutes(app fiber.Router, cfg config.Config, auth *service.AuthS
 		if err := auth.Logout(c.UserContext(), sid); err != nil {
 			return writeAppError(c, err)
 		}
-		c.Cookie(clearSessionCookie(cfg))
-		c.Cookie(clearWSSessionCookie(cfg))
+		clearSessionCookies(c, cfg)
 		return c.JSON(fiber.Map{"message": "Вы успешно вышли из системы!"})
 	})
 
