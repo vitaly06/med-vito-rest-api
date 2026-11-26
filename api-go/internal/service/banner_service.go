@@ -333,3 +333,7 @@ func (s *BannerService) ModerateBanner(ctx context.Context, id int32, status str
 func (s *BannerService) AllBannersToModerate(ctx context.Context) ([]repository.BannerModerateRow, error) {
 	return s.repo.ListModerateQueue(ctx)
 }
+
+func (s *BannerService) AllBannersHistory(ctx context.Context, status string) ([]repository.BannerHistoryRow, error) {
+	return s.repo.ListHistory(ctx, status)
+}

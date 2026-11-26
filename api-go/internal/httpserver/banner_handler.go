@@ -99,6 +99,14 @@ func RegisterBannerRoutes(app fiber.Router, ban *service.BannerService, auth *se
 		return c.JSON(out)
 	})
 
+	g.Get("/all-banners-history", adm, func(c *fiber.Ctx) error {
+		out, err := ban.AllBannersHistory(c.UserContext(), c.Query("status"))
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
 	mod := authmw.RequireModerator(auth)
 
 	modHandler := func(c *fiber.Ctx) error {

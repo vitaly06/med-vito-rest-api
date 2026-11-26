@@ -1055,6 +1055,7 @@ func (s *AuthService) Me(ctx context.Context, userID int32) (*domain.MeResponse,
 	return &domain.MeResponse{
 		ID: u.ID, Email: u.Email, FullName: u.FullName, PhoneNumber: u.PhoneNumber,
 		ProfileType: u.ProfileType, Photo: photo, Rating: u.Rating, IsAnswersCall: u.IsAnswersCall,
+		IsHidePhone:             u.IsHidePhone,
 		Role:                    u.RoleName,
 		Balance:                 u.Balance,
 		BonusBalance:            u.BonusBalance,

@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -33,16 +34,20 @@ func setSessionCookies(c *fiber.Ctx, cfg config.Config, sid string, maxAgeSec in
 		domain = ".torguisam.ru"
 	}
 
-	buildCookie := func(name, value string, httpOnly bool) string {
+	buildCookie := func(name, value, dom string, maxAge int, httpOnly bool) string {
+		exp := expires
+		if maxAge < 0 {
+			exp = time.Now().Add(-24 * time.Hour)
+		}
 		parts := []string{
 			fmt.Sprintf("%s=%s", name, value),
 			"Path=/",
-			fmt.Sprintf("Max-Age=%d", maxAgeSec),
-			fmt.Sprintf("Expires=%s", expires.UTC().Format(time.RFC1123)),
+			fmt.Sprintf("Max-Age=%d", maxAge),
+			fmt.Sprintf("Expires=%s", exp.UTC().Format(http.TimeFormat)),
 			"SameSite=Lax",
 		}
-		if domain != "" {
-			parts = append(parts, "Domain="+domain)
+		if dom != "" {
+			parts = append(parts, "Domain="+dom)
 		}
 		if httpOnly {
 			parts = append(parts, "HttpOnly")
@@ -53,8 +58,13 @@ func setSessionCookies(c *fiber.Ctx, cfg config.Config, sid string, maxAgeSec in
 		return strings.Join(parts, "; ")
 	}
 
-	c.Append("Set-Cookie", buildCookie("session_id", sid, true))
-	c.Append("Set-Cookie", buildCookie("ws_session_id", sid, false))
+	if domain != "" {
+		// Удаляем возможные устаревшие host-only cookie (без Domain), чтобы они не перекрывали .torguisam.ru
+		c.Append("Set-Cookie", buildCookie("session_id", "", "", -1, true))
+		c.Append("Set-Cookie", buildCookie("ws_session_id", "", "", -1, false))
+	}
+	c.Append("Set-Cookie", buildCookie("session_id", sid, domain, maxAgeSec, true))
+	c.Append("Set-Cookie", buildCookie("ws_session_id", sid, domain, maxAgeSec, false))
 }
 
 func clearSessionCookies(c *fiber.Ctx, cfg config.Config) {

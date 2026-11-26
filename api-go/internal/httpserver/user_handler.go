@@ -68,6 +68,7 @@ func RegisterUserRoutes(app fiber.Router, u *service.UserService, auth *service.
 		phone := c.FormValue("phoneNumber")
 		email := c.FormValue("email")
 		isAns := c.FormValue("isAnswersCall")
+		isHidePhone := c.FormValue("isHidePhone")
 		prof := c.FormValue("profileType")
 		var photoData []byte
 		var photoName, photoCT string
@@ -85,7 +86,7 @@ func RegisterUserRoutes(app fiber.Router, u *service.UserService, auth *service.
 				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"statusCode": 400, "message": "Не удалось прочитать файл"})
 			}
 		}
-		out, err := u.UpdateSettingsMultipart(c.UserContext(), me.ID, fullName, phone, email, isAns, prof, photoName, photoCT, photoData)
+		out, err := u.UpdateSettingsMultipart(c.UserContext(), me.ID, fullName, phone, email, isAns, isHidePhone, prof, photoName, photoCT, photoData)
 		if err != nil {
 			return writeAppError(c, err)
 		}

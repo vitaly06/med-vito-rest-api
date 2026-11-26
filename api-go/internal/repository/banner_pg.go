@@ -318,6 +318,58 @@ func (r *BannerPG) ListModerateQueue(ctx context.Context) ([]BannerModerateRow, 
 	return out, rows.Err()
 }
 
+type BannerHistoryRow struct {
+	ID            int32     `json:"id"`
+	Name          string    `json:"name"`
+	PhotoURL      string    `json:"photoUrl"`
+	Place         string    `json:"place"`
+	NavigateToURL string    `json:"navigateToUrl"`
+	ModerateState string    `json:"moderateState"`
+	IsHide        bool      `json:"isHide"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
+	User          struct {
+		ID       int32   `json:"id"`
+		FullName string  `json:"fullName"`
+		Photo    *string `json:"photo,omitempty"`
+	} `json:"user"`
+}
+
+func (r *BannerPG) ListHistory(ctx context.Context, status string) ([]BannerHistoryRow, error) {
+	where := ""
+	var args []any
+	st := strings.ToUpper(strings.TrimSpace(status))
+	if st == "APPROVED" || st == "DENIDED" || st == "MODERATE" {
+		where = `WHERE b."moderateState" = $1::"BannerModerate"`
+		args = append(args, st)
+	}
+	q := `
+		SELECT b.id, b.name, b."photoUrl", b.place::text, b."navigateToUrl", b."moderateState"::text, b."isHide", b."createdAt", b."updatedAt",
+			u.id, COALESCE(u."fullName", ''), u.photo
+		FROM "Banner" b
+		JOIN "User" u ON u.id = b."userId"
+		` + where + `
+		ORDER BY b."updatedAt" DESC, b."createdAt" DESC`
+	rows, err := r.pool.Query(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make([]BannerHistoryRow, 0)
+	for rows.Next() {
+		var row BannerHistoryRow
+		if err := rows.Scan(
+			&row.ID, &row.Name, &row.PhotoURL, &row.Place, &row.NavigateToURL,
+			&row.ModerateState, &row.IsHide, &row.CreatedAt, &row.UpdatedAt,
+			&row.User.ID, &row.User.FullName, &row.User.Photo,
+		); err != nil {
+			return nil, err
+		}
+		out = append(out, row)
+	}
+	return out, rows.Err()
+}
+
 // BannerViewRow — ответ registerView.
 type BannerViewRow struct {
 	ID        int32     `json:"id"`

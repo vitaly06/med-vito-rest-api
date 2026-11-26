@@ -208,11 +208,16 @@ func (s *UserService) GetUserInfo(ctx context.Context, id int32) (fiberMap, erro
 	if remaining < 0 {
 		remaining = 0
 	}
+	phoneNumber := row.PhoneNumber
+	if row.IsHidePhone {
+		phoneNumber = ""
+	}
 	return fiberMap{
 		"id":           row.ID,
 		"fullName":     row.FullName,
 		"profileType":  label,
-		"phoneNumber":  row.PhoneNumber,
+		"phoneNumber":  phoneNumber,
+		"isHidePhone":  row.IsHidePhone,
 		"balance":      row.Balance,
 		"bonusBalance": row.BonusBalance,
 		"photo":        row.Photo,
@@ -260,12 +265,15 @@ func (s *UserService) GetRemainingFreeAds(ctx context.Context, userID int32) (fi
 }
 
 func (s *UserService) GetPhoneNumber(ctx context.Context, sellerID, viewerID int32) (fiberMap, error) {
-	ph, err := s.users.GetPhoneForUser(ctx, sellerID)
+	ph, hide, err := s.users.GetPhoneAndHideForUser(ctx, sellerID)
 	if err != nil {
 		if err == repository.ErrNotFound {
 			return nil, &AppError{404, "Продавец с данным id не найден"}
 		}
 		return nil, err
+	}
+	if hide && viewerID != sellerID {
+		return nil, &AppError{403, "Пользователь скрыл номер телефона"}
 	}
 	if strings.TrimSpace(ph) == "" {
 		return nil, &AppError{400, "У продавца отсутствует номер телефона"}
@@ -283,7 +291,7 @@ func (s *UserService) GetPhoneNumber(ctx context.Context, sellerID, viewerID int
 }
 
 // UpdateSettingsMultipart — поля из multipart + опциональный файл photo.
-func (s *UserService) UpdateSettingsMultipart(ctx context.Context, userID int32, fullName, phone, email, isAnswersRaw, profileType string, photoName, photoCT string, photoBody []byte) (fiberMap, error) {
+func (s *UserService) UpdateSettingsMultipart(ctx context.Context, userID int32, fullName, phone, email, isAnswersRaw, isHidePhoneRaw, profileType string, photoName, photoCT string, photoBody []byte) (fiberMap, error) {
 	patch := repository.UserSettingsPatch{}
 	if fullName != "" {
 		patch.FullName = &fullName
@@ -318,6 +326,10 @@ func (s *UserService) UpdateSettingsMultipart(ctx context.Context, userID int32,
 	if isAnswersRaw != "" {
 		v := isAnswersRaw == "true" || isAnswersRaw == "1"
 		patch.IsAnswersCall = &v
+	}
+	if isHidePhoneRaw != "" {
+		v := isHidePhoneRaw == "true" || isHidePhoneRaw == "1"
+		patch.IsHidePhone = &v
 	}
 	if profileType != "" {
 		pt := strings.TrimSpace(profileType)
@@ -359,6 +371,9 @@ func (s *UserService) UpdateSettingsMultipart(ctx context.Context, userID int32,
 	}
 	if patch.IsAnswersCall != nil {
 		out["isAnswersCall"] = *patch.IsAnswersCall
+	}
+	if patch.IsHidePhone != nil {
+		out["isHidePhone"] = *patch.IsHidePhone
 	}
 	if patch.ProfileType != nil {
 		out["profileType"] = *patch.ProfileType

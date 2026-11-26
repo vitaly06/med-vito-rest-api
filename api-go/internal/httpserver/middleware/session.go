@@ -12,28 +12,77 @@ import (
 
 const UserLocalsKey = "user"
 
-func GetSessionID(c *fiber.Ctx) string {
-	sid := strings.TrimSpace(c.Cookies("session_id"))
-	if sid == "" {
-		sid = strings.TrimSpace(c.Cookies("ws_session_id"))
+func GetSessionIDs(c *fiber.Ctx) []string {
+	var ids []string
+	seen := make(map[string]struct{})
+	add := func(v string) {
+		v = strings.TrimSpace(v)
+		if v == "" {
+			return
+		}
+		if _, ok := seen[v]; ok {
+			return
+		}
+		seen[v] = struct{}{}
+		ids = append(ids, v)
 	}
-	if sid == "" {
-		authHdr := strings.TrimSpace(c.Get("Authorization"))
-		if strings.HasPrefix(strings.ToLower(authHdr), "bearer ") {
-			sid = strings.TrimSpace(authHdr[7:])
+
+	// Парсим сырой заголовок Cookie, чтобы при наличии дублей cookie (host-only + .torguisam.ru) проверить все
+	if rawCookie := c.Get("Cookie"); rawCookie != "" {
+		for _, part := range strings.Split(rawCookie, ";") {
+			kv := strings.SplitN(strings.TrimSpace(part), "=", 2)
+			if len(kv) == 2 {
+				k := strings.TrimSpace(kv[0])
+				if k == "session_id" || k == "ws_session_id" {
+					add(kv[1])
+				}
+			}
 		}
 	}
-	return sid
+	add(c.Cookies("session_id"))
+	add(c.Cookies("ws_session_id"))
+	authHdr := strings.TrimSpace(c.Get("Authorization"))
+	if strings.HasPrefix(strings.ToLower(authHdr), "bearer ") {
+		add(authHdr[7:])
+	}
+	return ids
+}
+
+func GetSessionID(c *fiber.Ctx) string {
+	ids := GetSessionIDs(c)
+	if len(ids) > 0 {
+		return ids[0]
+	}
+	return ""
+}
+
+func resolveSessionUser(c *fiber.Ctx, auth *service.AuthService) (*domain.UserEntity, string, error) {
+	ids := GetSessionIDs(c)
+	if len(ids) == 0 {
+		return nil, "", nil
+	}
+	var lastErr error
+	for _, sid := range ids {
+		u, err := auth.UserFromSession(c.UserContext(), sid)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		if u != nil {
+			return u, sid, nil
+		}
+	}
+	return nil, ids[0], lastErr
 }
 
 func RequireSession(auth *service.AuthService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		sid := GetSessionID(c)
-		if sid == "" {
+		ids := GetSessionIDs(c)
+		if len(ids) == 0 {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия не найдена"})
 		}
-		u, err := auth.UserFromSession(c.UserContext(), sid)
-		if err != nil {
+		u, sid, err := resolveSessionUser(c, auth)
+		if err != nil && u == nil {
 			if strings.Contains(err.Error(), "expired") || strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "no session") {
 				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия недействительна или истекла"})
 			}
@@ -88,12 +137,12 @@ func allowDuringYandexOnboarding(path string) bool {
 
 func RequireRoleLevel(auth *service.AuthService, minLevel int, denyMessage string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		sid := GetSessionID(c)
-		if sid == "" {
+		ids := GetSessionIDs(c)
+		if len(ids) == 0 {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия не найдена"})
 		}
-		u, err := auth.UserFromSession(c.UserContext(), sid)
-		if err != nil {
+		u, _, err := resolveSessionUser(c, auth)
+		if err != nil && u == nil {
 			if strings.Contains(err.Error(), "expired") || strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "no session") {
 				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия недействительна или истекла"})
 			}
@@ -126,12 +175,12 @@ func RequireModerator(auth *service.AuthService) fiber.Handler {
 
 func RequirePermission(auth *service.AuthService, permission, denyMessage string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		sid := GetSessionID(c)
-		if sid == "" {
+		ids := GetSessionIDs(c)
+		if len(ids) == 0 {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия не найдена"})
 		}
-		u, err := auth.UserFromSession(c.UserContext(), sid)
-		if err != nil {
+		u, _, err := resolveSessionUser(c, auth)
+		if err != nil && u == nil {
 			if strings.Contains(err.Error(), "expired") || strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "no session") {
 				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия недействительна или истекла"})
 			}
@@ -156,11 +205,7 @@ func RequirePermission(auth *service.AuthService, permission, denyMessage string
 
 func OptionalSession(auth *service.AuthService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		sid := GetSessionID(c)
-		if sid == "" {
-			return c.Next()
-		}
-		u, err := auth.UserFromSession(c.UserContext(), sid)
+		u, _, err := resolveSessionUser(c, auth)
 		if err != nil || u == nil || u.IsBanned {
 			return c.Next()
 		}

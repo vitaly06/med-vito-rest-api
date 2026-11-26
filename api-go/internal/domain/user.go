@@ -11,6 +11,7 @@ type UserEntity struct {
 	Photo           *string `json:"photo,omitempty"`
 	Rating          *int32  `json:"rating,omitempty"`
 	IsAnswersCall   *bool   `json:"isAnswersCall,omitempty"`
+	IsHidePhone     bool    `json:"isHidePhone"`
 	RoleID          *int32  `json:"roleId,omitempty"`
 	RoleName        *string `json:"role,omitempty"`
 	IsBanned        bool    `json:"isBanned"`
@@ -31,6 +32,7 @@ type MeResponse struct {
 	Photo                   *string `json:"photo"`
 	Rating                  *int32  `json:"rating,omitempty"`
 	IsAnswersCall           *bool   `json:"isAnswersCall,omitempty"`
+	IsHidePhone             bool    `json:"isHidePhone"`
 	Role                    *string `json:"role"`
 	Balance                 float64 `json:"balance"`
 	BonusBalance            float64 `json:"bonusBalance"`

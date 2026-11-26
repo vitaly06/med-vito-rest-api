@@ -67,7 +67,7 @@ func (r *ChatPG) scanChatFull(row pgx.Row) (*ChatFullRow, error) {
 const chatFullSelect = `
 	c.id, c."productId", c."buyerId", c."sellerId", c."isModerationChat", c."lastMessageAt", c."createdAt",
 	p.id, p.name, COALESCE(p.images, ARRAY[]::text[]), p.price, p.description,
-	b."fullName", b."phoneNumber", s."fullName", s."phoneNumber"`
+	b."fullName", CASE WHEN COALESCE(b."isHidePhone", false) THEN '' ELSE b."phoneNumber" END, s."fullName", CASE WHEN COALESCE(s."isHidePhone", false) THEN '' ELSE s."phoneNumber" END`
 
 const chatFullJoins = `
 	FROM "Chat" c
@@ -149,7 +149,7 @@ func (r *ChatPG) ListChatsForUser(ctx context.Context, userID int32) ([]ChatList
 	q := `
 		SELECT c.id, c."productId", c."buyerId", c."sellerId", c."isModerationChat", c."lastMessageAt", c."createdAt",
 			p.id, p.name, COALESCE(p.images, ARRAY[]::text[]), p.price, p.description,
-			b."fullName", b."phoneNumber", s."fullName", s."phoneNumber",
+			b."fullName", CASE WHEN COALESCE(b."isHidePhone", false) THEN '' ELSE b."phoneNumber" END, s."fullName", CASE WHEN COALESCE(s."isHidePhone", false) THEN '' ELSE s."phoneNumber" END,
 			c."unreadCountBuyer", c."unreadCountSeller",
 			m.id, m.content, m."createdAt", m."senderId", m."isRead"
 		FROM "Chat" c

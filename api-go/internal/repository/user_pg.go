@@ -27,7 +27,7 @@ func (r *UserPG) FindUserByLogin(ctx context.Context, login string) (*domain.Use
 		SELECT u."id", u."fullName", u."email", u."phoneNumber", u."password", u."profileType"::text,
 		       u."photo", u."rating", u."isAnswersCall", u."roleId", r."name",
 		       u."isBanned", u."isEmailVerified", u."isPhoneVerified", u."isResetVerified",
-		       u."balance", u."bonusBalance"
+		       u."balance", u."bonusBalance", COALESCE(u."isHidePhone", false)
 		FROM "User" u
 		LEFT JOIN "Role" r ON u."roleId" = r."id"
 		WHERE u."email" = $1 OR u."phoneNumber" = $1
@@ -53,7 +53,7 @@ func (r *UserPG) FindUserByEmail(ctx context.Context, email string) (*domain.Use
 		SELECT u."id", u."fullName", u."email", u."phoneNumber", u."password", u."profileType"::text,
 		       u."photo", u."rating", u."isAnswersCall", u."roleId", r."name",
 		       u."isBanned", u."isEmailVerified", u."isPhoneVerified", u."isResetVerified",
-		       u."balance", u."bonusBalance"
+		       u."balance", u."bonusBalance", COALESCE(u."isHidePhone", false)
 		FROM "User" u
 		LEFT JOIN "Role" r ON u."roleId" = r."id"
 		WHERE u."email" = $1`
@@ -65,7 +65,7 @@ func (r *UserPG) FindUserByPhone(ctx context.Context, phone string) (*domain.Use
 		SELECT u."id", u."fullName", u."email", u."phoneNumber", u."password", u."profileType"::text,
 		       u."photo", u."rating", u."isAnswersCall", u."roleId", r."name",
 		       u."isBanned", u."isEmailVerified", u."isPhoneVerified", u."isResetVerified",
-		       u."balance", u."bonusBalance"
+		       u."balance", u."bonusBalance", COALESCE(u."isHidePhone", false)
 		FROM "User" u
 		LEFT JOIN "Role" r ON u."roleId" = r."id"
 		WHERE u."phoneNumber" = $1 LIMIT 1`
@@ -87,7 +87,7 @@ func (r *UserPG) FindUserByID(ctx context.Context, id int32) (*domain.UserEntity
 		SELECT u."id", u."fullName", u."email", u."phoneNumber", u."password", u."profileType"::text,
 		       u."photo", u."rating", u."isAnswersCall", u."roleId", r."name",
 		       u."isBanned", u."isEmailVerified", u."isPhoneVerified", u."isResetVerified",
-		       u."balance", u."bonusBalance"
+		       u."balance", u."bonusBalance", COALESCE(u."isHidePhone", false)
 		FROM "User" u
 		LEFT JOIN "Role" r ON u."roleId" = r."id"
 		WHERE u."id" = $1`
@@ -101,7 +101,7 @@ func (r *UserPG) scanUser(ctx context.Context, row pgx.Row) (*domain.UserEntity,
 		&u.ID, &u.FullName, &u.Email, &u.PhoneNumber, &u.PasswordHash, &u.ProfileType,
 		&u.Photo, &u.Rating, &u.IsAnswersCall, &u.RoleID, &roleName,
 		&u.IsBanned, &u.IsEmailVerified, &u.IsPhoneVerified, &u.IsResetVerified,
-		&u.Balance, &u.BonusBalance,
+		&u.Balance, &u.BonusBalance, &u.IsHidePhone,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -292,6 +292,7 @@ type UserInfoRow struct {
 	FullName         string
 	ProfileType      string
 	PhoneNumber      string
+	IsHidePhone      bool
 	Balance          float64
 	BonusBalance     float64
 	Photo            *string
@@ -302,12 +303,12 @@ type UserInfoRow struct {
 
 func (r *UserPG) GetUserInfoRow(ctx context.Context, id int32) (*UserInfoRow, error) {
 	const q = `
-		SELECT u."id", u."fullName", u."profileType"::text, u."phoneNumber", u."balance", u."bonusBalance",
+		SELECT u."id", u."fullName", u."profileType"::text, u."phoneNumber", COALESCE(u."isHidePhone", false), u."balance", u."bonusBalance",
 		       u."photo", u."freeAdsLimit", u."usedFreeAds", u."lastAdLimitReset"
 		FROM "User" u WHERE u."id" = $1`
 	var row UserInfoRow
 	err := r.pool.QueryRow(ctx, q, id).Scan(
-		&row.ID, &row.FullName, &row.ProfileType, &row.PhoneNumber, &row.Balance, &row.BonusBalance,
+		&row.ID, &row.FullName, &row.ProfileType, &row.PhoneNumber, &row.IsHidePhone, &row.Balance, &row.BonusBalance,
 		&row.Photo, &row.FreeAdsLimit, &row.UsedFreeAds, &row.LastAdLimitReset,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -391,11 +392,22 @@ func (r *UserPG) GetUserPhoto(ctx context.Context, userID int32) (*string, error
 	return ph, err
 }
 
+func (r *UserPG) GetPhoneAndHideForUser(ctx context.Context, userID int32) (string, bool, error) {
+	var ph string
+	var hide bool
+	err := r.pool.QueryRow(ctx, `SELECT "phoneNumber", COALESCE("isHidePhone", false) FROM "User" WHERE id = $1`, userID).Scan(&ph, &hide)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", false, ErrNotFound
+	}
+	return ph, hide, err
+}
+
 // UserSettingsPatch — PATCH настроек (только заданные поля).
 type UserSettingsPatch struct {
 	FullName      *string
 	PhoneNumber   *string
 	IsAnswersCall *bool
+	IsHidePhone   *bool
 	ProfileType   *string
 	Photo         *string
 	Email         *string
@@ -424,6 +436,11 @@ func (r *UserPG) UpdateUserSettings(ctx context.Context, userID int32, p UserSet
 	if p.IsAnswersCall != nil {
 		sets = append(sets, fmt.Sprintf(`"isAnswersCall" = $%d`, n))
 		args = append(args, *p.IsAnswersCall)
+		n++
+	}
+	if p.IsHidePhone != nil {
+		sets = append(sets, fmt.Sprintf(`"isHidePhone" = $%d`, n))
+		args = append(args, *p.IsHidePhone)
 		n++
 	}
 	if p.ProfileType != nil {
