@@ -189,6 +189,7 @@ type ApproveBannerResult struct {
 	BalanceUsed     float64
 	BonusUsed       float64
 	AlreadyApproved bool
+	AlreadyPaid     bool
 }
 
 func (r *BannerPG) ApproveAndDeduct(ctx context.Context, id int32, price float64) (*ApproveBannerResult, error) {
@@ -200,11 +201,12 @@ func (r *BannerPG) ApproveAndDeduct(ctx context.Context, id int32, price float64
 
 	var userID int32
 	var name, place, moderateState string
+	var isPaid bool
 	err = tx.QueryRow(ctx, `
-		SELECT "userId", name, place::text, COALESCE("moderateState"::text, 'MODERATE')
+		SELECT "userId", name, place::text, COALESCE("moderateState"::text, 'MODERATE'), COALESCE("isPaid", false)
 		FROM "Banner"
 		WHERE id = $1 FOR UPDATE`, id,
-	).Scan(&userID, &name, &place, &moderateState)
+	).Scan(&userID, &name, &place, &moderateState, &isPaid)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrBannerNotFound
 	}
@@ -218,12 +220,32 @@ func (r *BannerPG) ApproveAndDeduct(ctx context.Context, id int32, price float64
 			BannerName:      name,
 			Price:           price,
 			AlreadyApproved: true,
+			AlreadyPaid:     true,
+		}, nil
+	}
+
+	var email string
+	_ = tx.QueryRow(ctx, `SELECT COALESCE(email, '') FROM "User" WHERE id = $1`, userID).Scan(&email)
+
+	// Если баннер уже был оплачен ранее (например, повторная модерация после редактирования) — повторно деньги не списываем
+	if isPaid {
+		if _, err := tx.Exec(ctx, `UPDATE "Banner" SET "moderateState" = 'APPROVED'::"BannerModerate", "updatedAt" = NOW() WHERE id = $1`, id); err != nil {
+			return nil, err
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return nil, err
+		}
+		return &ApproveBannerResult{
+			UserID:      userID,
+			UserEmail:   email,
+			BannerName:  name,
+			Price:       0,
+			AlreadyPaid: true,
 		}, nil
 	}
 
 	var bal, bonus float64
-	var email string
-	err = tx.QueryRow(ctx, `SELECT balance, "bonusBalance", email FROM "User" WHERE id = $1 FOR UPDATE`, userID).Scan(&bal, &bonus, &email)
+	err = tx.QueryRow(ctx, `SELECT balance, "bonusBalance" FROM "User" WHERE id = $1 FOR UPDATE`, userID).Scan(&bal, &bonus)
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +271,7 @@ func (r *BannerPG) ApproveAndDeduct(ctx context.Context, id int32, price float64
 		return nil, err
 	}
 
-	if _, err := tx.Exec(ctx, `UPDATE "Banner" SET "moderateState" = 'APPROVED'::"BannerModerate", "updatedAt" = NOW() WHERE id = $1`, id); err != nil {
+	if _, err := tx.Exec(ctx, `UPDATE "Banner" SET "moderateState" = 'APPROVED'::"BannerModerate", "isPaid" = true, "updatedAt" = NOW() WHERE id = $1`, id); err != nil {
 		return nil, err
 	}
 

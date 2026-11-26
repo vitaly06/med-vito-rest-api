@@ -81,7 +81,7 @@ type SupportAuthorOut struct {
 	Role     *SupportRoleName `json:"role,omitempty"`
 }
 
-// CreateTicket — транзакция: тикет + первое сообщение; возвращает тикет с user/moderator (без messages).
+// CreateTicket — транзакция: при наличии активного тикета дописывает в него, иначе создаёт новый (защита от дублей).
 func (r *SupportPG) CreateTicket(ctx context.Context, userID int32, theme, subject, priority, message string) (*SupportTicketFull, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
@@ -89,15 +89,29 @@ func (r *SupportPG) CreateTicket(ctx context.Context, userID int32, theme, subje
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(9001, $1)`, userID); err != nil {
+		return nil, err
+	}
+
 	var id int32
 	err = tx.QueryRow(ctx, `
-		INSERT INTO "SupportTicket" (theme, subject, status, priority, "userId", "moderatorId", "createdAt", "updatedAt")
-		VALUES ($1::"TicketTheme", $2, 'OPEN'::"TicketStatus", $3::"TicketPriority", $4, NULL, NOW(), NOW())
-		RETURNING id`,
-		theme, subject, priority, userID,
-	).Scan(&id)
-	if err != nil {
+		SELECT id FROM "SupportTicket"
+		WHERE "userId" = $1 AND status IN ('OPEN', 'IN_PROGRESS')
+		ORDER BY "updatedAt" DESC LIMIT 1`, userID).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		err = tx.QueryRow(ctx, `
+			INSERT INTO "SupportTicket" (theme, subject, status, priority, "userId", "moderatorId", "createdAt", "updatedAt")
+			VALUES ($1::"TicketTheme", $2, 'OPEN'::"TicketStatus", $3::"TicketPriority", $4, NULL, NOW(), NOW())
+			RETURNING id`,
+			theme, subject, priority, userID,
+		).Scan(&id)
+		if err != nil {
+			return nil, err
+		}
+	} else if err != nil {
 		return nil, err
+	} else {
+		_, _ = tx.Exec(ctx, `UPDATE "SupportTicket" SET "updatedAt" = NOW() WHERE id = $1`, id)
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO "SupportMessage" ("ticketId", "authorId", text, "sentAt") VALUES ($1, $2, $3, NOW())`, id, userID, message); err != nil {
 		return nil, err
@@ -490,13 +504,23 @@ func (r *SupportPG) FirstStaffUserID(ctx context.Context) (int32, error) {
 // PostStaffNotification — сообщение от службы поддержки в тикет пользователя.
 // Возвращает ticketID и сохранённое сообщение.
 func (r *SupportPG) PostStaffNotification(ctx context.Context, userID, staffID int32, text string) (int32, *SupportMessageOut, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return 0, nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(9001, $1)`, userID); err != nil {
+		return 0, nil, err
+	}
+
 	var ticketID int32
-	err := r.pool.QueryRow(ctx, `
+	err = tx.QueryRow(ctx, `
 		SELECT id FROM "SupportTicket"
-		WHERE "userId" = $1 AND subject = $2 AND status IN ('OPEN', 'IN_PROGRESS')
-		ORDER BY "updatedAt" DESC LIMIT 1`, userID, billingNotificationsSubject).Scan(&ticketID)
+		WHERE "userId" = $1 AND status IN ('OPEN', 'IN_PROGRESS')
+		ORDER BY "updatedAt" DESC LIMIT 1`, userID).Scan(&ticketID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		err = r.pool.QueryRow(ctx, `
+		err = tx.QueryRow(ctx, `
 			INSERT INTO "SupportTicket" (theme, subject, status, priority, "userId", "moderatorId", "createdAt", "updatedAt")
 			VALUES ('OTHER'::"TicketTheme", $1, 'IN_PROGRESS'::"TicketStatus", 'MEDIUM'::"TicketPriority", $2, $3, NOW(), NOW())
 			RETURNING id`, billingNotificationsSubject, userID, staffID).Scan(&ticketID)
@@ -504,6 +528,9 @@ func (r *SupportPG) PostStaffNotification(ctx context.Context, userID, staffID i
 			return 0, nil, err
 		}
 	} else if err != nil {
+		return 0, nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
 		return 0, nil, err
 	}
 	msg, err := r.SendMessageTx(ctx, ticketID, staffID, text, true, "IN_PROGRESS")

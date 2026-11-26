@@ -295,12 +295,22 @@ func (s *BannerService) ModerateBanner(ctx context.Context, id int32, status str
 
 		if !res.AlreadyApproved {
 			if s.support != nil && res.UserID > 0 {
-				chatMsg := fmt.Sprintf("✅ Ваш баннер «%s» успешно одобрен и опубликован.\nС баланса списано: %.0f ₽.", res.BannerName, res.Price)
+				var chatMsg string
+				if res.AlreadyPaid {
+					chatMsg = fmt.Sprintf("✅ Ваш обновлённый баннер «%s» успешно прошёл повторную модерацию и опубликован.", res.BannerName)
+				} else {
+					chatMsg = fmt.Sprintf("✅ Ваш баннер «%s» успешно одобрен и опубликован.\nС баланса списано: %.0f ₽.", res.BannerName, res.Price)
+				}
 				go s.support.NotifyUserBilling(context.Background(), res.UserID, chatMsg)
 			}
 			if res.UserEmail != "" {
 				subject := fmt.Sprintf("Баннер «%s» одобрен и опубликован — TorguiSam.ru", res.BannerName)
-				body := fmt.Sprintf("<p>Здравствуйте!</p><p>Ваш рекламный баннер <b>«%s»</b> успешно прошёл модерацию и опубликован.</p><p>С вашего баланса списано: <b>%.0f ₽</b>.</p>", res.BannerName, res.Price)
+				var body string
+				if res.AlreadyPaid {
+					body = fmt.Sprintf("<p>Здравствуйте!</p><p>Ваш обновлённый рекламный баннер <b>«%s»</b> успешно прошёл повторную модерацию и опубликован на сайте.</p>", res.BannerName)
+				} else {
+					body = fmt.Sprintf("<p>Здравствуйте!</p><p>Ваш рекламный баннер <b>«%s»</b> успешно прошёл модерацию и опубликован.</p><p>С вашего баланса списано: <b>%.0f ₽</b>.</p>", res.BannerName, res.Price)
+				}
 				go s.sendMail(res.UserEmail, subject, body)
 			}
 		}

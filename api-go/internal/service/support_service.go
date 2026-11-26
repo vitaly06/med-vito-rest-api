@@ -40,13 +40,17 @@ func (s *SupportService) SetWSNotifier(fn WSMessageNotifier) {
 
 const supportCenterDisplayName = "Служба поддержки"
 
-func maskSupportMessageForUser(m *repository.SupportMessageOut) {
-	if m.Author.Role != nil {
+func maskSupportMessageForUser(m *repository.SupportMessageOut, ticketOwnerID int32) {
+	isStaff := m.AuthorID != ticketOwnerID
+	if !isStaff && m.Author.Role != nil {
 		name := m.Author.Role.Name
 		if rbac.HasMinRole(&name, 70) {
-			m.Author.FullName = supportCenterDisplayName
-			m.Author.Email = ""
+			isStaff = true
 		}
+	}
+	if isStaff {
+		m.Author.FullName = supportCenterDisplayName
+		m.Author.Email = ""
 	}
 }
 
@@ -132,7 +136,7 @@ func (s *SupportService) GetTicket(ctx context.Context, ticketID, userID int32, 
 	}
 	if !isModerator {
 		for i := range msgs {
-			maskSupportMessageForUser(&msgs[i])
+			maskSupportMessageForUser(&msgs[i], t.UserID)
 		}
 		maskTicketModeratorForUser(t)
 	}
@@ -217,7 +221,9 @@ func (s *SupportService) SendMessage(ctx context.Context, ticketID, userID int32
 	}
 	msg, err := s.repo.SendMessageTx(ctx, ticketID, userID, text, isModerator, st)
 	if err == nil && s.onNewMsg != nil {
-		s.onNewMsg(ownerID, ticketID, msg)
+		wsMsg := *msg
+		maskSupportMessageForUser(&wsMsg, ownerID)
+		s.onNewMsg(ownerID, ticketID, &wsMsg)
 	}
 	return msg, err
 }
@@ -267,7 +273,9 @@ func (s *SupportService) NotifyUserBilling(ctx context.Context, userID int32, te
 	}
 	ticketID, msg, err := s.repo.PostStaffNotification(ctx, userID, staffID, text)
 	if err == nil && msg != nil && s.onNewMsg != nil {
-		s.onNewMsg(userID, ticketID, msg)
+		wsMsg := *msg
+		maskSupportMessageForUser(&wsMsg, userID)
+		s.onNewMsg(userID, ticketID, &wsMsg)
 	}
 }
 
