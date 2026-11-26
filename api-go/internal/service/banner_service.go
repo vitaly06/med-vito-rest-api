@@ -67,7 +67,14 @@ func (s *BannerService) Create(ctx context.Context, userID int32, isAdmin bool, 
 	if err != nil {
 		return nil, &AppError{400, "Ошибка загрузки в S3: " + err.Error()}
 	}
-	return s.repo.Insert(ctx, name, url, place, state, navigateToURL, userID)
+	row, err := s.repo.Insert(ctx, name, url, place, state, navigateToURL, userID)
+	if err != nil {
+		return nil, err
+	}
+	if state == "MODERATE" && s.support != nil && userID > 0 {
+		go s.support.NotifyUserBilling(context.Background(), userID, fmt.Sprintf("🕒 Ваш баннер «%s» отправлен на модерацию. Мы уведомим вас о результате.", name))
+	}
+	return row, nil
 }
 
 func (s *BannerService) FindRandom(ctx context.Context, limit int) ([]repository.BannerRow, error) {
@@ -136,7 +143,14 @@ func (s *BannerService) Update(ctx context.Context, id int32, requesterID int32,
 		mod := "MODERATE"
 		moderateState = &mod
 	}
-	return s.repo.Update(ctx, id, photoURL, pl, nav, nm, moderateState)
+	row, err := s.repo.Update(ctx, id, photoURL, pl, nav, nm, moderateState)
+	if err != nil {
+		return nil, err
+	}
+	if moderateState != nil && *moderateState == "MODERATE" && s.support != nil && existing.UserID > 0 {
+		go s.support.NotifyUserBilling(context.Background(), existing.UserID, fmt.Sprintf("🕒 Ваш баннер «%s» обновлён и отправлен на повторную модерацию.", row.Name))
+	}
+	return row, nil
 }
 
 func (s *BannerService) Toggle(ctx context.Context, id int32, requesterID int32, isAdmin bool) (*repository.BannerRow, error) {

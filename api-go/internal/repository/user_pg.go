@@ -77,6 +77,11 @@ func (r *UserPG) UpdatePhoneNumber(ctx context.Context, userID int32, phone stri
 	return err
 }
 
+func (r *UserPG) UpdateEmailAddress(ctx context.Context, userID int32, email string) error {
+	_, err := r.pool.Exec(ctx, `UPDATE "User" SET "email" = $2, "isEmailVerified" = true, "updatedAt" = NOW() WHERE id = $1`, userID, email)
+	return err
+}
+
 func (r *UserPG) FindUserByID(ctx context.Context, id int32) (*domain.UserEntity, error) {
 	const q = `
 		SELECT u."id", u."fullName", u."email", u."phoneNumber", u."password", u."profileType"::text,

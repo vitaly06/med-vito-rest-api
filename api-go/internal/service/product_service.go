@@ -401,6 +401,9 @@ func (s *ProductService) CreateProduct(ctx context.Context, userID int32, name, 
 		return nil, &AppError{400, "Ошибка при создании продукта: " + err.Error()}
 	}
 	s.notifyAdListingBilling(ctx, userID, beforeRemaining, expectedCost)
+	if s.support != nil {
+		go s.support.NotifyUserBilling(context.Background(), userID, fmt.Sprintf("🕒 Ваш товар «%s» отправлен на модерацию. Мы уведомим вас о результате.", name))
+	}
 	prod, err := s.prod.LoadProductWithRelations(ctx, pid)
 	if err != nil {
 		return nil, err

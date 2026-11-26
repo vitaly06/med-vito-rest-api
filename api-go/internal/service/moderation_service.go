@@ -313,6 +313,12 @@ func (s *ModerationService) applyDecision(ctx context.Context, productID int32, 
 			msg := fmt.Sprintf("❌ Ваш товар «%s» был отклонён автоматической модерацией.\n\nПричина: %s\n\nЕсли вы считаете, что произошла ошибка, напишите нам в этот чат.", name, *reason)
 			go s.support.NotifyUserBilling(context.Background(), sellerID, msg)
 		}
+	} else if state == "APPROVED" && s.support != nil {
+		name, sellerID, err := s.repo.GetProductNameAndSeller(ctx, productID)
+		if err == nil {
+			msg := fmt.Sprintf("✅ Ваш товар «%s» успешно прошёл автоматическую модерацию и опубликован.", name)
+			go s.support.NotifyUserBilling(context.Background(), sellerID, msg)
+		}
 	}
 	return nil
 }

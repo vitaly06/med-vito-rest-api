@@ -1078,12 +1078,12 @@ func (r *ProductPG) SetModerationState(ctx context.Context, productID int32, sta
 	var q string
 	var args []any
 	if state == "APPROVED" {
-		// При одобрении товара срок размещения (30 дней) отсчитывается с момента одобрения
+		// При одобрении товара срок размещения (30 дней) отсчитывается с момента одобрения, и товар сразу публикуется (isHide = false)
 		if reason != nil {
-			q = `UPDATE "Product" SET "moderateState" = $2::"ProductModerate", "moderationRejectionReason" = $3, "updatedAt" = NOW(), "expiresAt" = NOW() + INTERVAL '30 days' WHERE id = $1`
+			q = `UPDATE "Product" SET "moderateState" = $2::"ProductModerate", "moderationRejectionReason" = $3, "isHide" = false, "updatedAt" = NOW(), "expiresAt" = NOW() + INTERVAL '30 days' WHERE id = $1`
 			args = []any{productID, state, *reason}
 		} else {
-			q = `UPDATE "Product" SET "moderateState" = $2::"ProductModerate", "moderationRejectionReason" = NULL, "updatedAt" = NOW(), "expiresAt" = NOW() + INTERVAL '30 days' WHERE id = $1`
+			q = `UPDATE "Product" SET "moderateState" = $2::"ProductModerate", "moderationRejectionReason" = NULL, "isHide" = false, "updatedAt" = NOW(), "expiresAt" = NOW() + INTERVAL '30 days' WHERE id = $1`
 			args = []any{productID, state}
 		}
 	} else if reason != nil {

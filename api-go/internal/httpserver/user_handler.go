@@ -147,6 +147,36 @@ func RegisterUserRoutes(app fiber.Router, u *service.UserService, auth *service.
 		return c.JSON(out)
 	})
 
+	g.Post("/request-email-change", sess, func(c *fiber.Ctx) error {
+		me := authmw.UserFromLocals(c)
+		var body struct {
+			Email string `json:"email"`
+		}
+		if err := c.BodyParser(&body); err != nil || strings.TrimSpace(body.Email) == "" {
+			body.Email = c.FormValue("email")
+		}
+		out, err := u.RequestEmailChange(c.UserContext(), me.ID, body.Email)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
+	g.Post("/confirm-email-change", sess, func(c *fiber.Ctx) error {
+		me := authmw.UserFromLocals(c)
+		var body struct {
+			Code string `json:"code"`
+		}
+		if err := c.BodyParser(&body); err != nil || strings.TrimSpace(body.Code) == "" {
+			body.Code = c.FormValue("code")
+		}
+		out, err := u.ConfirmEmailChange(c.UserContext(), me.ID, body.Code)
+		if err != nil {
+			return writeAppError(c, err)
+		}
+		return c.JSON(out)
+	})
+
 	g.Put("/set-balance/:userId", mod, func(c *fiber.Ctx) error {
 		uid, err := strconv.ParseInt(c.Params("userId"), 10, 32)
 		if err != nil {

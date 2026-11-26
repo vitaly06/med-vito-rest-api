@@ -43,7 +43,7 @@ func RequireSession(auth *service.AuthService) fiber.Handler {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия недействительна или истекла"})
 		}
 		if u.IsBanned {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"statusCode": fiber.StatusForbidden, "message": "Ваш аккаунт заблокирован"})
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"statusCode": fiber.StatusForbidden, "message": "Ваш аккаунт заблокирован", "code": "USER_BANNED"})
 		}
 		if auth.SessionRequiresVKOnboarding(c.UserContext(), sid, u) && !allowDuringVKOnboarding(c.Path()) {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
@@ -103,7 +103,7 @@ func RequireRoleLevel(auth *service.AuthService, minLevel int, denyMessage strin
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия недействительна или истекла"})
 		}
 		if u.IsBanned {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"statusCode": fiber.StatusForbidden, "message": "Ваш аккаунт заблокирован"})
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"statusCode": fiber.StatusForbidden, "message": "Ваш аккаунт заблокирован", "code": "USER_BANNED"})
 		}
 		if !rbac.HasMinRole(u.RoleName, minLevel) {
 			if denyMessage == "" {
@@ -141,7 +141,7 @@ func RequirePermission(auth *service.AuthService, permission, denyMessage string
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"statusCode": fiber.StatusUnauthorized, "message": "Сессия недействительна или истекла"})
 		}
 		if u.IsBanned {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"statusCode": fiber.StatusForbidden, "message": "Ваш аккаунт заблокирован"})
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"statusCode": fiber.StatusForbidden, "message": "Ваш аккаунт заблокирован", "code": "USER_BANNED"})
 		}
 		if !rbac.HasPermission(u.RoleName, permission) {
 			if denyMessage == "" {
@@ -161,7 +161,7 @@ func OptionalSession(auth *service.AuthService) fiber.Handler {
 			return c.Next()
 		}
 		u, err := auth.UserFromSession(c.UserContext(), sid)
-		if err != nil || u == nil {
+		if err != nil || u == nil || u.IsBanned {
 			return c.Next()
 		}
 		c.Locals(UserLocalsKey, u)

@@ -257,6 +257,9 @@ func (s *AuthService) SignIn(ctx context.Context, login, password string) (*sign
 	if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)); err != nil {
 		return nil, "", &AppError{401, "Неверный пароль"}
 	}
+	if u.IsBanned {
+		return nil, "", &AppError{403, "Ваш аккаунт заблокирован"}
+	}
 	sid := generateSessionID()
 	sp := sessionPayload{UserID: u.ID, Email: u.Email, ProfileType: u.ProfileType, AuthProvider: "password"}
 	b, _ := json.Marshal(sp)
@@ -357,6 +360,9 @@ func (s *AuthService) SignInWithTID(ctx context.Context, code, state string) (*s
 	user, err := s.findOrCreateTrustedOAuthUser(ctx, profile)
 	if err != nil {
 		return nil, "", err
+	}
+	if user.IsBanned {
+		return nil, "", &AppError{403, "Ваш аккаунт заблокирован"}
 	}
 
 	sid := generateSessionID()
@@ -513,6 +519,9 @@ func (s *AuthService) SignInWithVK(ctx context.Context, code, state, deviceID st
 		return nil, "", err
 	}
 	_ = s.users.UpsertOAuthIdentity(ctx, "vk", strings.TrimSpace(vkID), user.ID)
+	if user.IsBanned {
+		return nil, "", &AppError{403, "Ваш аккаунт заблокирован"}
+	}
 	user = s.applyVKProfileEmail(ctx, user, email)
 	user = s.applyVKProfileName(ctx, user, fullName)
 	_ = s.users.SetEmailVerified(ctx, user.ID, false)
@@ -550,6 +559,9 @@ func (s *AuthService) CreateSessionForUserID(ctx context.Context, userID int32) 
 	u, err := s.users.FindUserByID(ctx, userID)
 	if err != nil {
 		return "", err
+	}
+	if u.IsBanned {
+		return "", &AppError{403, "Ваш аккаунт заблокирован"}
 	}
 	sid := generateSessionID()
 	sp := sessionPayload{UserID: u.ID, Email: u.Email, ProfileType: u.ProfileType, AuthProvider: "password"}
@@ -2116,6 +2128,9 @@ func (s *AuthService) SignInWithYandex(ctx context.Context, code, state string) 
 		return &YandexSignInResult{RequirePhoneRegistration: true, RegistrationTicket: ticket}, nil
 	}
 	_ = s.users.UpsertOAuthIdentity(ctx, "yandex", profile.ExternalID, user.ID)
+	if user.IsBanned {
+		return nil, &AppError{403, "Ваш аккаунт заблокирован"}
+	}
 
 	requireYandexOnboarding := IsYandexOnboardingRequired(user, true)
 	sid := generateSessionID()

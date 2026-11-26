@@ -123,10 +123,41 @@ func (s *UserService) ToggleBanned(ctx context.Context, id int32) (fiberMap, err
 	if err := s.users.SetBanned(ctx, id, !was); err != nil {
 		return nil, err
 	}
-	if was {
-		return fiberMap{"message": "Пользователь успешно разбанен"}, nil
+	if !was {
+		// При бане немедленно завершаем все активные сессии пользователя в Redis
+		s.revokeUserSessions(ctx, id)
+		return fiberMap{"message": "Пользователь успешно забанен"}, nil
 	}
-	return fiberMap{"message": "Пользователь успешно забанен"}, nil
+	return fiberMap{"message": "Пользователь успешно разбанен"}, nil
+}
+
+func (s *UserService) revokeUserSessions(ctx context.Context, userID int32) {
+	if s.rdb == nil {
+		return
+	}
+	var cursor uint64
+	for {
+		keys, next, err := s.rdb.Scan(ctx, cursor, sessionKeyPrefix+"*", 200).Result()
+		if err != nil {
+			return
+		}
+		for _, k := range keys {
+			raw, err := s.rdb.Get(ctx, k).Bytes()
+			if err != nil {
+				continue
+			}
+			var sp struct {
+				UserID int32 `json:"userId"`
+			}
+			if json.Unmarshal(raw, &sp) == nil && sp.UserID == userID {
+				_ = s.rdb.Del(ctx, k).Err()
+			}
+		}
+		cursor = next
+		if cursor == 0 {
+			break
+		}
+	}
 }
 
 func (s *UserService) DeleteUser(ctx context.Context, id int32) (fiberMap, error) {
@@ -276,7 +307,13 @@ func (s *UserService) UpdateSettingsMultipart(ctx context.Context, userID int32,
 	}
 	if strings.TrimSpace(email) != "" {
 		cleanEmail := strings.ToLower(strings.TrimSpace(email))
-		patch.Email = &cleanEmail
+		curEmail, _, err := s.users.GetUserEmailPhone(ctx, userID)
+		if err == nil && cleanEmail != strings.ToLower(strings.TrimSpace(curEmail)) {
+			// Изменение почты требует отдельного подтверждения через письмо!
+			// Напрямую через обычные настройки не перезаписываем.
+		} else {
+			patch.Email = &cleanEmail
+		}
 	}
 	if isAnswersRaw != "" {
 		v := isAnswersRaw == "true" || isAnswersRaw == "1"
@@ -609,5 +646,119 @@ func (s *UserService) ConfirmPhoneChange(ctx context.Context, userID int32, code
 	return fiberMap{
 		"message":     "Номер телефона успешно подтверждён и обновлён",
 		"phoneNumber": cached.Phone,
+	}, nil
+}
+
+const changeEmailKeyPrefix = "change-email:"
+
+type changeEmailCache struct {
+	UserID int32  `json:"userId"`
+	Email  string `json:"email"`
+	Code   string `json:"code"`
+}
+
+func (s *UserService) RequestEmailChange(ctx context.Context, userID int32, rawEmail string) (fiberMap, error) {
+	newEmail := strings.ToLower(strings.TrimSpace(rawEmail))
+	at := strings.IndexByte(newEmail, '@')
+	if newEmail == "" || at <= 0 || strings.ContainsAny(newEmail, " \t\r\n") || !strings.Contains(newEmail[at+1:], ".") {
+		return nil, &AppError{400, "Некорректный адрес электронной почты"}
+	}
+
+	curEmail, _, err := s.users.GetUserEmailPhone(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if newEmail == strings.ToLower(strings.TrimSpace(curEmail)) {
+		return nil, &AppError{400, "Новая почта совпадает с текущей"}
+	}
+
+	otherID, err := s.users.FindUserIDByEmail(ctx, newEmail)
+	if err != nil {
+		return nil, err
+	}
+	if otherID != nil && *otherID != userID {
+		return nil, &AppError{400, "Эта почта уже привязана к другому аккаунту"}
+	}
+
+	if s.cfg.SMTPHost == "" {
+		return nil, &AppError{500, "SMTP не настроен (SMTP_HOST)"}
+	}
+
+	code := generateVerifyCode6()
+	cache := changeEmailCache{
+		UserID: userID,
+		Email:  newEmail,
+		Code:   code,
+	}
+	b, _ := json.Marshal(cache)
+	key := changeEmailKeyPrefix + strconv.Itoa(int(userID))
+	if err := s.rdb.Set(ctx, key, b, 15*time.Minute).Err(); err != nil {
+		return nil, err
+	}
+
+	subj := "Код подтверждения смены почты - Торгуй Сам"
+	htmlBody, err := mailpkg.VerifyEmailHTML(code)
+	if err != nil {
+		return nil, &AppError{500, "Не удалось сформировать письмо"}
+	}
+	if err := mailpkg.SendHTMLSmart(s.cfg.SMTPHost, s.cfg.SMTPPort, s.cfg.SMTPUser, s.cfg.SMTPPassword,
+		s.cfg.SMTPFrom, newEmail, subj, htmlBody, s.cfg.SMTPSecure, s.cfg.SMTPTLSInsecure); err != nil {
+		_ = s.rdb.Del(ctx, key).Err()
+		return nil, &AppError{400, "Ошибка отправки письма: " + err.Error()}
+	}
+
+	return fiberMap{
+		"message": "Код подтверждения отправлен на почту " + newEmail,
+		"email":   newEmail,
+	}, nil
+}
+
+func (s *UserService) ConfirmEmailChange(ctx context.Context, userID int32, code string) (fiberMap, error) {
+	code = strings.TrimSpace(code)
+	if code == "" {
+		return nil, &AppError{400, "Введите код подтверждения"}
+	}
+
+	key := changeEmailKeyPrefix + strconv.Itoa(int(userID))
+	raw, err := s.rdb.Get(ctx, key).Result()
+	if errors.Is(err, redis.Nil) || raw == "" {
+		return nil, &AppError{400, "Срок действия кода истёк или смена почты не запрашивалась"}
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var cached changeEmailCache
+	if err := json.Unmarshal([]byte(raw), &cached); err != nil {
+		return nil, &AppError{400, "Ошибка чтения данных кода"}
+	}
+
+	if cached.Code != code {
+		return nil, &AppError{400, "Неверный код подтверждения"}
+	}
+
+	otherID, err := s.users.FindUserIDByEmail(ctx, cached.Email)
+	if err != nil {
+		return nil, err
+	}
+	if otherID != nil && *otherID != userID {
+		return nil, &AppError{400, "Эта почта уже привязана к другому аккаунту"}
+	}
+
+	oldEmail, _, _ := s.users.GetUserEmailPhone(ctx, userID)
+
+	if err := s.users.UpdateEmailAddress(ctx, userID, cached.Email); err != nil {
+		return nil, err
+	}
+
+	_ = s.rdb.Del(ctx, key).Err()
+
+	if oldEmail != "" && !strings.HasSuffix(strings.ToLower(oldEmail), "@oauth.local") && oldEmail != cached.Email {
+		go s.sendMail(oldEmail, "Смена почты - Торгуй Сам", fmt.Sprintf("<p>Электронная почта вашего аккаунта изменена на <b>%s</b>.</p>", cached.Email))
+	}
+
+	return fiberMap{
+		"message": "Почта успешно подтверждена и обновлена",
+		"email":   cached.Email,
 	}, nil
 }

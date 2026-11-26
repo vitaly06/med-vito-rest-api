@@ -254,6 +254,13 @@ func (s *ProductService) UpdateProduct(ctx context.Context, productID, userID in
 	if err != nil {
 		return nil, err
 	}
+	if s.support != nil && (namePtr != nil || descPtr != nil || addrPtr != nil || imgsArg != nil) {
+		pName, _ := prod["name"].(string)
+		if pName == "" {
+			pName = fmt.Sprintf("#%d", productID)
+		}
+		go s.support.NotifyUserBilling(context.Background(), userID, fmt.Sprintf("🕒 Ваш товар «%s» обновлён и отправлен на повторную модерацию.", pName))
+	}
 	return map[string]any{"message": "Товар успешно обновлён и отправлен на повторную модерацию", "product": prod}, nil
 }
 
@@ -490,6 +497,9 @@ func (s *ProductService) PublishDraft(ctx context.Context, productID, userID int
 	prod, err := s.prod.LoadProductWithRelations(ctx, productID)
 	if err != nil {
 		return nil, err
+	}
+	if s.support != nil {
+		go s.support.NotifyUserBilling(context.Background(), userID, fmt.Sprintf("🕒 Ваш товар «%s» опубликован и отправлен на модерацию. Мы уведомим вас о результате.", card.Name))
 	}
 	return map[string]any{
 		"message":       "Черновик опубликован и отправлен на модерацию",
