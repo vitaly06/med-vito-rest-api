@@ -60,11 +60,11 @@ func setSessionCookies(c *fiber.Ctx, cfg config.Config, sid string, maxAgeSec in
 
 	if domain != "" {
 		// Удаляем возможные устаревшие host-only cookie (без Domain), чтобы они не перекрывали .torguisam.ru
-		c.Append("Set-Cookie", buildCookie("session_id", "", "", -1, true))
-		c.Append("Set-Cookie", buildCookie("ws_session_id", "", "", -1, false))
+		c.Response().Header.Add("Set-Cookie", buildCookie("session_id", "", "", -1, true))
+		c.Response().Header.Add("Set-Cookie", buildCookie("ws_session_id", "", "", -1, false))
 	}
-	c.Append("Set-Cookie", buildCookie("session_id", sid, domain, maxAgeSec, true))
-	c.Append("Set-Cookie", buildCookie("ws_session_id", sid, domain, maxAgeSec, false))
+	c.Response().Header.Add("Set-Cookie", buildCookie("session_id", sid, domain, maxAgeSec, true))
+	c.Response().Header.Add("Set-Cookie", buildCookie("ws_session_id", sid, domain, maxAgeSec, false))
 }
 
 func clearSessionCookies(c *fiber.Ctx, cfg config.Config) {
